@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Farsight RPC Providers</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; background: #111827; color: #f9fafb; }
+        nav { padding: 1rem 1.5rem; background: #1f2937; display: flex; gap: 1rem; align-items: center; }
+        nav a, nav button { color: #f9fafb; background: none; border: 0; text-decoration: none; cursor: pointer; font: inherit; }
+        main { padding: 1.5rem; }
+        table { width: 100%; border-collapse: collapse; background: #1f2937; }
+        th, td { padding: 0.75rem; border-bottom: 1px solid #374151; text-align: left; vertical-align: top; }
+        input, select { width: 100%; padding: 0.55rem; margin-top: 0.25rem; box-sizing: border-box; }
+        .actions { display: flex; gap: 0.5rem; align-items: center; }
+        .button { display: inline-block; padding: 0.6rem 0.9rem; border-radius: 6px; background: #2563eb; color: white; text-decoration: none; border: 0; cursor: pointer; }
+        .secondary { background: #374151; }
+        .danger { background: #b91c1c; }
+        .panel { background: #1f2937; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; }
+        .field { margin-bottom: 1rem; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; }
+        .message { padding: 0.75rem; border-radius: 6px; margin-bottom: 1rem; }
+        .message.success { background: #14532d; }
+        .message.error { background: #7f1d1d; }
+        .message.info { background: #1e3a8a; }
+    </style>
+</head>
+<body>
+    <nav>
+        <a asp-page="/Index">Home</a>
+        <a asp-page="/Providers/Index">Providers</a>
+        @if (User.Identity?.IsAuthenticated == true)
+        {
+            <span>@User.Identity.Name</span>
+            <form method="post" asp-page="/Logout">
+                <button type="submit">Logout</button>
+            </form>
+        }
+    </nav>
+    <main>
+        @RenderBody()
+    </main>
+</body>
+</html>

@@ -1,0 +1,47 @@
+name: Publish Farsight.RPC.Providers.Sdk
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.x"
+
+      - name: Determine package version
+        id: version
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            version="${GITHUB_REF_NAME#v}"
+          else
+            version="0.0.1-beta.${GITHUB.RUN_NUMBER}"
+          fi
+
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Restore dependencies
+        run: dotnet restore Farsight.RPC.Providers.slnx
+
+      - name: Build solution
+        run: dotnet build Farsight.RPC.Providers.slnx --configuration Release --no-restore -warnaserror
+
+      - name: Pack SDK package
+        run: dotnet pack Farsight.RPC.Providers.Sdk/Farsight.RPC.Providers.Sdk.csproj --configuration Release --no-build --output ./nupkgs -p:Version=${{ steps.version.outputs.version }}
+
+      - name: Publish to farsight-packages
+        env:
+          API_KEY: ${{ secrets.NUGET_PRIVATE_API_KEY }}
+        shell: bash
+        run: dotnet nuget push ./nupkgs/*.nupkg --source https://nuget.farsight-cda.de/nuget/farsight-packages/v3/index.json --api-key "$API_KEY" --skip-duplicate

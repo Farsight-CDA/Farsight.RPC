@@ -1,0 +1,90 @@
+@page "{id:guid?}"
+@model Farsight.RPC.Providers.Pages.Providers.EditModel
+@{
+    Layout = "/Pages/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Edit Provider";
+}
+
+<div class="panel">
+    <h1>@(Model.Input.Id.HasValue ? "Edit Provider" : "Create Provider")</h1>
+    @if (!string.IsNullOrWhiteSpace(Model.StatusMessage))
+    {
+        <div class="message @(Model.StatusIsError ? "error" : "success")">@Model.StatusMessage</div>
+    }
+    @if (!string.IsNullOrWhiteSpace(Model.ProbeMessage))
+    {
+        <div class="message @(Model.ProbeSucceeded ? "success" : "info")">@Model.ProbeMessage</div>
+    }
+    <form method="post">
+        <input asp-for="Input.Id" type="hidden" />
+        <div class="grid">
+            <div class="field">
+                <label asp-for="Input.Type"></label>
+                <select asp-for="Input.Type" asp-items="Model.TypeItems"></select>
+            </div>
+            <div class="field">
+                <label asp-for="Input.Environment"></label>
+                <select asp-for="Input.Environment" asp-items="Model.EnvironmentItems"></select>
+            </div>
+            <div class="field">
+                <label asp-for="Input.Application"></label>
+                <input asp-for="Input.Application" />
+            </div>
+            <div class="field">
+                <label asp-for="Input.Chain"></label>
+                <input asp-for="Input.Chain" />
+            </div>
+            <div class="field">
+                <label asp-for="Input.Provider"></label>
+                <input asp-for="Input.Provider" />
+            </div>
+            <div class="field">
+                <label asp-for="Input.Address"></label>
+                <input asp-for="Input.Address" />
+            </div>
+            <div class="field">
+                <label asp-for="Input.Priority"></label>
+                <input asp-for="Input.Priority" type="number" />
+            </div>
+            <div class="field">
+                <label asp-for="Input.IsEnabled"></label>
+                <input asp-for="Input.IsEnabled" type="checkbox" style="width:auto;" />
+            </div>
+        </div>
+
+        @if (Model.Input.Type == RpcEndpointType.Archive)
+        {
+            <div class="grid">
+                <div class="field">
+                    <label asp-for="Input.IndexerStepSize"></label>
+                    <input asp-for="Input.IndexerStepSize" type="number" />
+                </div>
+                <div class="field">
+                    <label asp-for="Input.DexIndexStepSize"></label>
+                    <input asp-for="Input.DexIndexStepSize" type="number" />
+                </div>
+                <div class="field">
+                    <label asp-for="Input.IndexBlockOffset"></label>
+                    <input asp-for="Input.IndexBlockOffset" type="number" />
+                </div>
+            </div>
+        }
+
+        @if (Model.Input.Type == RpcEndpointType.Tracing)
+        {
+            <div class="field">
+                <label asp-for="Input.TracingMode"></label>
+                <select asp-for="Input.TracingMode" asp-items="Model.TracingModeItems"></select>
+            </div>
+        }
+
+        <div class="actions">
+            <button class="button" type="submit">Save</button>
+            <button class="button secondary" type="submit" asp-page-handler="Probe">Probe</button>
+            @if (Model.Input.Id.HasValue)
+            {
+                <button class="button danger" type="submit" asp-page-handler="Delete" onclick="return confirm('Hard delete this provider row?');">Delete</button>
+            }
+        </div>
+    </form>
+</div>

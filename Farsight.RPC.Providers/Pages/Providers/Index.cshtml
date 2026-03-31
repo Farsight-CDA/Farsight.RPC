@@ -1,0 +1,70 @@
+@page
+@model Farsight.RPC.Providers.Pages.Providers.IndexModel
+@{
+    Layout = "/Pages/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Providers";
+}
+
+<div class="panel">
+    <h1>Provider Rows</h1>
+    <form method="get" class="grid">
+        <div class="field">
+            <label>Search</label>
+            <input asp-for="Query.Search" />
+        </div>
+        <div class="field">
+            <label>Environment</label>
+            <select asp-for="Query.Environment" asp-items="Model.EnvironmentItems">
+                <option value="">All</option>
+            </select>
+        </div>
+        <div class="field">
+            <label>Type</label>
+            <select asp-for="Query.Type" asp-items="Model.TypeItems">
+                <option value="">All</option>
+            </select>
+        </div>
+        <div class="field">
+            <label>Sort</label>
+            <select asp-for="Query.Sort" asp-items="Model.SortItems"></select>
+        </div>
+        <div class="field actions">
+            <button class="button" type="submit">Apply</button>
+        </div>
+    </form>
+    <div class="actions" style="margin-top: 1rem;">
+        <a class="button" asp-page="/Providers/Edit" asp-route-type="RealTime">Add RealTime</a>
+        <a class="button" asp-page="/Providers/Edit" asp-route-type="Archive">Add Archive</a>
+        <a class="button" asp-page="/Providers/Edit" asp-route-type="Tracing">Add Tracing</a>
+    </div>
+</div>
+
+<table>
+    <thead>
+        <tr>
+            <th>Application</th>
+            <th>Chain</th>
+            <th>Type</th>
+            <th>Provider</th>
+            <th>Address</th>
+            <th>Priority</th>
+            <th>Updated</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+    @foreach (var row in Model.Rows)
+    {
+        <tr>
+            <td>@row.Application</td>
+            <td>@row.Chain</td>
+            <td>@row.Type</td>
+            <td>@row.Provider</td>
+            <td>@row.Address</td>
+            <td>@row.Priority</td>
+            <td>@row.UpdatedUtc</td>
+            <td><a class="button secondary" asp-page="/Providers/Edit" asp-route-type="@row.Type" asp-route-id="@row.Id">Edit</a></td>
+        </tr>
+    }
+    </tbody>
+</table>

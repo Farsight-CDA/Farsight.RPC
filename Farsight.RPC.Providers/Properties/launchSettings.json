@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "Farsight.RPC.Providers": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "applicationUrl": "https://localhost:63232;http://localhost:63233"
+    }
+  }
+}

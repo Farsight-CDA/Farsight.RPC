@@ -1,0 +1,14 @@
+@page
+@model Farsight.RPC.Providers.Pages.IndexModel
+@{
+    Layout = "Shared/_Layout";
+    ViewData["Title"] = "Home";
+}
+
+<div class="panel">
+    <h1>Farsight RPC Providers</h1>
+    <p>Manage RPC provider rows by environment, application, chain, and type.</p>
+    <div class="actions">
+        <a class="button" asp-page="/Providers/Index">Open Provider Admin</a>
+    </div>
+</div>

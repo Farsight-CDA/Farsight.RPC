@@ -1,0 +1,9 @@
+.git
+.github
+.vs
+**/bin
+**/obj
+**/*.user
+**/*.suo
+nupkgs
+README.md

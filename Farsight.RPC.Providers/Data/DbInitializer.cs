@@ -13,10 +13,7 @@ public sealed class DbInitializer(
 {
     public async Task InitializeAsync(IHostEnvironment environment, ILogger logger, CancellationToken cancellationToken)
     {
-        if (environment.IsDevelopment())
-        {
-            await dbContext.Database.MigrateAsync(cancellationToken);
-        }
+        await dbContext.Database.MigrateAsync(cancellationToken);
 
         await SeedRolesAsync(cancellationToken);
         await SeedAdminAsync(logger, cancellationToken);

@@ -4,6 +4,7 @@ services:
       context: .
       dockerfile: docker/api.Dockerfile
     environment:
+      - ASPNETCORE_ENVIRONMENT=Development
       - ConnectionStrings__DefaultConnection=Host=db;Database=FarsightRpcProviders;Username=postgres;Password=password
       - ASPNETCORE_HTTP_PORTS=8080
       - BootstrapAdmin__UserName=admin
@@ -23,8 +24,6 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=password
       - POSTGRES_DB=FarsightRpcProviders
-    ports:
-      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     restart: always
@@ -35,5 +34,6 @@ volumes:
   postgres_data:
 
 networks:
+  internal:
   nginxmanager_proxy:
     external: true

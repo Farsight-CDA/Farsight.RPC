@@ -2,8 +2,8 @@ name: Publish Farsight.RPC.Providers.Sdk
 
 on:
   push:
-    tags:
-      - "v*"
+    branches:
+      - master
   workflow_dispatch:
 
 jobs:
@@ -19,20 +19,32 @@ jobs:
         with:
           dotnet-version: "10.x"
 
-      - name: Determine package version
+      - name: Restore dependencies
+        run: dotnet restore Farsight.RPC.Providers.slnx
+
+      - name: Calculate next package version
         id: version
         shell: bash
         run: |
-          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
-            version="${GITHUB_REF_NAME#v}"
-          else
-            version="0.0.1-beta.${GITHUB.RUN_NUMBER}"
+          project_path="Farsight.RPC.Providers.Sdk/Farsight.RPC.Providers.Sdk.csproj"
+          version="$(dotnet msbuild "$project_path" -nologo -getProperty:Version)"
+
+          if [[ -z "$version" ]]; then
+            echo "Could not resolve Version for $project_path"
+            exit 1
           fi
 
-          echo "version=$version" >> "$GITHUB_OUTPUT"
+          if [[ ! "$version" =~ ^([0-9]+\.[0-9]+\.[0-9]+)(-.*)?$ ]]; then
+            echo "Unexpected Version format '$version' in $project_path"
+            exit 1
+          fi
 
-      - name: Restore dependencies
-        run: dotnet restore Farsight.RPC.Providers.slnx
+          base_version="${BASH_REMATCH[1]}"
+          build_number="${{ github.run_number }}"
+          run_attempt="${{ github.run_attempt }}"
+          package_version="$base_version-private.$build_number.$run_attempt"
+
+          echo "version=$package_version" >> "$GITHUB_OUTPUT"
 
       - name: Build solution
         run: dotnet build Farsight.RPC.Providers.slnx --configuration Release --no-restore -warnaserror

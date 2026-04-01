@@ -18,9 +18,12 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "10.x"
+          source-url: https://nuget.farsight-cda.de/nuget/farsight-packages/v3/index.json
+        env:
+          NUGET_AUTH_TOKEN: ${{ secrets.NUGET_PRIVATE_API_KEY }}
 
       - name: Restore dependencies
-        run: dotnet restore Farsight.RPC.Providers.slnx
+        run: dotnet restore Farsight.RPC.Providers.slnx --source https://api.nuget.org/v3/index.json --source https://nuget.farsight-cda.de/nuget/farsight-packages/v3/index.json
 
       - name: Calculate next package version
         id: version

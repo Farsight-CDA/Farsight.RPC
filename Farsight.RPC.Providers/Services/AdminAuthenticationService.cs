@@ -1,16 +1,20 @@
-using System.Security.Claims;
+using Farsight.Common;
 using Farsight.RPC.Providers.Data;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 namespace Farsight.RPC.Providers.Services;
 
-public sealed class AdminAuthenticationService(RpcProvidersDbContext dbContext)
+public partial class AdminAuthenticationService : Singleton
 {
+    [Inject] private readonly IDbContextFactory<RpcProvidersDbContext> _dbContextFactory;
+
     public async Task<bool> SignInAsync(HttpContext httpContext, string userName, string password, CancellationToken cancellationToken)
     {
+        await using var dbContext = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
         var user = await dbContext.Users
             .AsNoTracking()
             .Include(x => x.UserRoles)

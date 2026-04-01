@@ -80,6 +80,13 @@ public sealed class RpcProvidersDbContext(DbContextOptions<RpcProvidersDbContext
             entity.Property(x => x.Chain).HasMaxLength(100);
             entity.Property(x => x.Provider).HasMaxLength(200);
             entity.Property(x => x.Address).HasConversion(x => x.ToString(), x => new Uri(x)).HasMaxLength(2000);
+            entity.ToTable(tableBuilder =>
+            {
+                tableBuilder.HasCheckConstraint($"CK_{tableName}_Application_NotEmpty", "btrim(\"Application\") <> ''");
+                tableBuilder.HasCheckConstraint($"CK_{tableName}_Chain_NotEmpty", "btrim(\"Chain\") <> ''");
+                tableBuilder.HasCheckConstraint($"CK_{tableName}_Provider_NotEmpty", "btrim(\"Provider\") <> ''");
+                tableBuilder.HasCheckConstraint($"CK_{tableName}_Address_Scheme", "\"Address\" ~* '^(http|https|ws|wss)://'");
+            });
             entity.HasIndex(x => new { x.Environment, x.Application, x.Chain, x.IsEnabled, x.Priority });
             entity.HasIndex(x => new { x.Application, x.Chain });
             entity.HasIndex(x => new { x.Chain, x.Provider });

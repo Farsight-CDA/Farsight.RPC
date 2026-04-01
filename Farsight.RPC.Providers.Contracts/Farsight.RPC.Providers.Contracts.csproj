@@ -8,4 +8,12 @@
     <AssemblyName>Farsight.RPC.Providers.Contracts</AssemblyName>
   </PropertyGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Farsight.Analyse" Version="0.1.0-beta.1">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="SwapThing.Sdk" Version="0.0.1-private.110.1" />
+  </ItemGroup>
+
 </Project>

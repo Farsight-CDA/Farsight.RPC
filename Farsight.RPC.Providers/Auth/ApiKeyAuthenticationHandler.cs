@@ -1,9 +1,9 @@
-using System.Security.Claims;
-using System.Text.Encodings.Web;
 using Farsight.RPC.Providers.Data;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using System.Security.Claims;
+using System.Text.Encodings.Web;
 
 namespace Farsight.RPC.Providers.Auth;
 
@@ -11,7 +11,7 @@ public sealed class ApiKeyAuthenticationHandler(
     IOptionsMonitor<ApiKeyAuthenticationOptions> options,
     ILoggerFactory logger,
     UrlEncoder encoder,
-    RpcProvidersDbContext dbContext) : AuthenticationHandler<ApiKeyAuthenticationOptions>(options, logger, encoder)
+    IDbContextFactory<RpcProvidersDbContext> dbContextFactory) : AuthenticationHandler<ApiKeyAuthenticationOptions>(options, logger, encoder)
 {
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
     {
@@ -22,6 +22,7 @@ public sealed class ApiKeyAuthenticationHandler(
 
         var providedKey = values.First()!;
         var providedHash = SecretHasher.Hash(providedKey);
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(Context.RequestAborted);
         var client = await dbContext.ApiClients
             .AsNoTracking()
             .SingleOrDefaultAsync(x => x.ApiKeyHash == providedHash && x.IsEnabled, Context.RequestAborted);

@@ -1,11 +1,14 @@
-using System.Net.WebSockets;
+using Farsight.Common;
 using Farsight.RPC.Providers.Contracts;
 using Farsight.RPC.Providers.Models;
+using System.Net.WebSockets;
 
 namespace Farsight.RPC.Providers.Services;
 
-public sealed class RpcProbeService(IHttpClientFactory httpClientFactory)
+public partial class RpcProbeService : Singleton
 {
+    [Inject] private readonly IHttpClientFactory _httpClientFactory;
+
     public async Task<ProbeResult> ProbeAsync(ProbeRequest request, CancellationToken cancellationToken)
     {
         try
@@ -26,7 +29,7 @@ public sealed class RpcProbeService(IHttpClientFactory httpClientFactory)
 
     private async Task<ProbeResult> ProbeHttpAsync(Uri uri, RpcEndpointType type, CancellationToken cancellationToken)
     {
-        var client = httpClientFactory.CreateClient();
+        var client = _httpClientFactory.CreateClient();
         client.Timeout = TimeSpan.FromSeconds(10);
         using var request = new HttpRequestMessage(HttpMethod.Get, uri);
         using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);

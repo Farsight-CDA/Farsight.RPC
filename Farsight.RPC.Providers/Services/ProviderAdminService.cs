@@ -1,3 +1,4 @@
+using Farsight.Common;
 using Farsight.RPC.Providers.Contracts;
 using Farsight.RPC.Providers.Data;
 using Farsight.RPC.Providers.Data.Entities;
@@ -6,15 +7,61 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Farsight.RPC.Providers.Services;
 
-public sealed class ProviderAdminService(RpcProvidersDbContext dbContext)
+public partial class ProviderAdminService : Singleton
 {
+    [Inject] private readonly IDbContextFactory<RpcProvidersDbContext> _dbContextFactory;
+
     public async Task<ProviderEditModel?> GetEditModelAsync(RpcEndpointType type, Guid id, CancellationToken cancellationToken)
     {
+        await using var dbContext = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
         return type switch
         {
-            RpcEndpointType.RealTime => Map(await dbContext.RealTimeEndpoints.AsNoTracking().SingleOrDefaultAsync(x => x.Id == id, cancellationToken)),
-            RpcEndpointType.Archive => Map(await dbContext.ArchiveEndpoints.AsNoTracking().SingleOrDefaultAsync(x => x.Id == id, cancellationToken)),
-            RpcEndpointType.Tracing => Map(await dbContext.TracingEndpoints.AsNoTracking().SingleOrDefaultAsync(x => x.Id == id, cancellationToken)),
+            RpcEndpointType.RealTime => await dbContext.RealTimeEndpoints.AsNoTracking().SingleOrDefaultAsync(x => x.Id == id, cancellationToken) is { } entity
+                ? new ProviderEditModel
+                {
+                    Id = entity.Id,
+                    Type = RpcEndpointType.RealTime,
+                    Environment = entity.Environment,
+                    Application = entity.Application,
+                    Chain = entity.Chain,
+                    Provider = entity.Provider,
+                    Address = entity.Address.ToString(),
+                    Priority = entity.Priority,
+                    IsEnabled = entity.IsEnabled
+                }
+                : null,
+            RpcEndpointType.Archive => await dbContext.ArchiveEndpoints.AsNoTracking().SingleOrDefaultAsync(x => x.Id == id, cancellationToken) is { } entity
+                ? new ProviderEditModel
+                {
+                    Id = entity.Id,
+                    Type = RpcEndpointType.Archive,
+                    Environment = entity.Environment,
+                    Application = entity.Application,
+                    Chain = entity.Chain,
+                    Provider = entity.Provider,
+                    Address = entity.Address.ToString(),
+                    Priority = entity.Priority,
+                    IsEnabled = entity.IsEnabled,
+                    IndexerStepSize = entity.IndexerStepSize,
+                    DexIndexStepSize = entity.DexIndexStepSize,
+                    IndexBlockOffset = entity.IndexBlockOffset
+                }
+                : null,
+            RpcEndpointType.Tracing => await dbContext.TracingEndpoints.AsNoTracking().SingleOrDefaultAsync(x => x.Id == id, cancellationToken) is { } entity
+                ? new ProviderEditModel
+                {
+                    Id = entity.Id,
+                    Type = RpcEndpointType.Tracing,
+                    Environment = entity.Environment,
+                    Application = entity.Application,
+                    Chain = entity.Chain,
+                    Provider = entity.Provider,
+                    Address = entity.Address.ToString(),
+                    Priority = entity.Priority,
+                    IsEnabled = entity.IsEnabled,
+                    TracingMode = entity.TracingMode
+                }
+                : null,
             _ => throw new ArgumentOutOfRangeException(nameof(type), type, null)
         };
     }
@@ -34,32 +81,40 @@ public sealed class ProviderAdminService(RpcProvidersDbContext dbContext)
                 await SaveTracingAsync(model, now, cancellationToken);
                 break;
             default:
-                throw new ArgumentOutOfRangeException(nameof(model.Type), model.Type, null);
+                throw new ArgumentOutOfRangeException(nameof(model), model.Type, null);
         }
     }
 
     public async Task DeleteAsync(RpcEndpointType type, Guid id, CancellationToken cancellationToken)
     {
+        await using var dbContext = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
         switch (type)
         {
             case RpcEndpointType.RealTime:
-                await DeleteAsync(dbContext.RealTimeEndpoints, id, cancellationToken);
+                await DeleteEntityAsync(dbContext.RealTimeEndpoints, dbContext, id, cancellationToken);
                 break;
             case RpcEndpointType.Archive:
-                await DeleteAsync(dbContext.ArchiveEndpoints, id, cancellationToken);
+                await DeleteEntityAsync(dbContext.ArchiveEndpoints, dbContext, id, cancellationToken);
                 break;
             case RpcEndpointType.Tracing:
-                await DeleteAsync(dbContext.TracingEndpoints, id, cancellationToken);
+                await DeleteEntityAsync(dbContext.TracingEndpoints, dbContext, id, cancellationToken);
                 break;
         }
     }
 
     public async Task<IReadOnlyList<ProviderListItem>> GetListAsync(ProviderListQuery query, CancellationToken cancellationToken)
     {
+        await using var dbContext = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
         var rows = new List<ProviderListItem>();
-        rows.AddRange(await dbContext.RealTimeEndpoints.AsNoTracking().Select(x => new ProviderListItem(x.Id, RpcEndpointType.RealTime, x.Environment, x.Application, x.Chain, x.Provider, x.Address, x.Priority, x.IsEnabled, null, null, null, null, x.UpdatedUtc)).ToListAsync(cancellationToken));
-        rows.AddRange(await dbContext.ArchiveEndpoints.AsNoTracking().Select(x => new ProviderListItem(x.Id, RpcEndpointType.Archive, x.Environment, x.Application, x.Chain, x.Provider, x.Address, x.Priority, x.IsEnabled, x.IndexerStepSize, x.DexIndexStepSize, x.IndexBlockOffset, null, x.UpdatedUtc)).ToListAsync(cancellationToken));
-        rows.AddRange(await dbContext.TracingEndpoints.AsNoTracking().Select(x => new ProviderListItem(x.Id, RpcEndpointType.Tracing, x.Environment, x.Application, x.Chain, x.Provider, x.Address, x.Priority, x.IsEnabled, null, null, null, x.TracingMode, x.UpdatedUtc)).ToListAsync(cancellationToken));
+        rows.AddRange(await dbContext.RealTimeEndpoints.AsNoTracking()
+            .Select(x => new ProviderListItem(x.Id, RpcEndpointType.RealTime, x.Environment, x.Application, x.Chain, x.Provider, x.Address, x.Priority, x.IsEnabled, null, null, null, null, x.UpdatedUtc))
+            .ToListAsync(cancellationToken));
+        rows.AddRange(await dbContext.ArchiveEndpoints.AsNoTracking()
+            .Select(x => new ProviderListItem(x.Id, RpcEndpointType.Archive, x.Environment, x.Application, x.Chain, x.Provider, x.Address, x.Priority, x.IsEnabled, x.IndexerStepSize, x.DexIndexStepSize, x.IndexBlockOffset, null, x.UpdatedUtc))
+            .ToListAsync(cancellationToken));
+        rows.AddRange(await dbContext.TracingEndpoints.AsNoTracking()
+            .Select(x => new ProviderListItem(x.Id, RpcEndpointType.Tracing, x.Environment, x.Application, x.Chain, x.Provider, x.Address, x.Priority, x.IsEnabled, null, null, null, x.TracingMode, x.UpdatedUtc))
+            .ToListAsync(cancellationToken));
 
         IEnumerable<ProviderListItem> filtered = rows;
 
@@ -89,11 +144,34 @@ public sealed class ProviderAdminService(RpcProvidersDbContext dbContext)
             _ => filtered.OrderBy(x => x.Application).ThenBy(x => x.Chain).ThenBy(x => x.Type)
         };
 
-        return filtered.ToArray();
+        return [.. filtered];
+    }
+
+    public async Task<IReadOnlyList<string>> GetKnownApplicationsAsync(CancellationToken cancellationToken)
+    {
+        await using var dbContext = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var values = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        values.UnionWith(await dbContext.RealTimeEndpoints.AsNoTracking().Select(x => x.Application).ToListAsync(cancellationToken));
+        values.UnionWith(await dbContext.ArchiveEndpoints.AsNoTracking().Select(x => x.Application).ToListAsync(cancellationToken));
+        values.UnionWith(await dbContext.TracingEndpoints.AsNoTracking().Select(x => x.Application).ToListAsync(cancellationToken));
+
+        return [.. values.Where(static value => !string.IsNullOrWhiteSpace(value)).OrderBy(static value => value, StringComparer.OrdinalIgnoreCase)];
+    }
+
+    public async Task<IReadOnlyList<string>> GetKnownChainsAsync(CancellationToken cancellationToken)
+    {
+        await using var dbContext = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var values = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        values.UnionWith(await dbContext.RealTimeEndpoints.AsNoTracking().Select(x => x.Chain).ToListAsync(cancellationToken));
+        values.UnionWith(await dbContext.ArchiveEndpoints.AsNoTracking().Select(x => x.Chain).ToListAsync(cancellationToken));
+        values.UnionWith(await dbContext.TracingEndpoints.AsNoTracking().Select(x => x.Chain).ToListAsync(cancellationToken));
+
+        return [.. values.Where(static value => !string.IsNullOrWhiteSpace(value)).OrderBy(static value => value, StringComparer.OrdinalIgnoreCase)];
     }
 
     private async Task SaveRealTimeAsync(ProviderEditModel model, DateTimeOffset now, CancellationToken cancellationToken)
     {
+        await using var dbContext = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
         var entity = model.Id.HasValue
             ? await dbContext.RealTimeEndpoints.SingleAsync(x => x.Id == model.Id.Value, cancellationToken)
             : new RealTimeEndpointEntity { Id = Guid.NewGuid(), CreatedUtc = now };
@@ -109,6 +187,7 @@ public sealed class ProviderAdminService(RpcProvidersDbContext dbContext)
 
     private async Task SaveArchiveAsync(ProviderEditModel model, DateTimeOffset now, CancellationToken cancellationToken)
     {
+        await using var dbContext = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
         var entity = model.Id.HasValue
             ? await dbContext.ArchiveEndpoints.SingleAsync(x => x.Id == model.Id.Value, cancellationToken)
             : new ArchiveEndpointEntity { Id = Guid.NewGuid(), CreatedUtc = now };
@@ -127,6 +206,7 @@ public sealed class ProviderAdminService(RpcProvidersDbContext dbContext)
 
     private async Task SaveTracingAsync(ProviderEditModel model, DateTimeOffset now, CancellationToken cancellationToken)
     {
+        await using var dbContext = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
         var entity = model.Id.HasValue
             ? await dbContext.TracingEndpoints.SingleAsync(x => x.Id == model.Id.Value, cancellationToken)
             : new TracingEndpointEntity { Id = Guid.NewGuid(), CreatedUtc = now };
@@ -153,56 +233,11 @@ public sealed class ProviderAdminService(RpcProvidersDbContext dbContext)
         entity.UpdatedUtc = now;
     }
 
-    private async Task DeleteAsync<TEntity>(DbSet<TEntity> set, Guid id, CancellationToken cancellationToken) where TEntity : ProviderEndpointEntity
+    private static async Task DeleteEntityAsync<TEntity>(DbSet<TEntity> set, RpcProvidersDbContext dbContext, Guid id, CancellationToken cancellationToken) where TEntity : ProviderEndpointEntity
     {
         var entity = await set.SingleAsync(x => x.Id == id, cancellationToken);
         set.Remove(entity);
         await dbContext.SaveChangesAsync(cancellationToken);
     }
 
-    private static ProviderEditModel? Map(RealTimeEndpointEntity? entity)
-        => entity is null ? null : new ProviderEditModel
-        {
-            Id = entity.Id,
-            Type = RpcEndpointType.RealTime,
-            Environment = entity.Environment,
-            Application = entity.Application,
-            Chain = entity.Chain,
-            Provider = entity.Provider,
-            Address = entity.Address.ToString(),
-            Priority = entity.Priority,
-            IsEnabled = entity.IsEnabled
-        };
-
-    private static ProviderEditModel? Map(ArchiveEndpointEntity? entity)
-        => entity is null ? null : new ProviderEditModel
-        {
-            Id = entity.Id,
-            Type = RpcEndpointType.Archive,
-            Environment = entity.Environment,
-            Application = entity.Application,
-            Chain = entity.Chain,
-            Provider = entity.Provider,
-            Address = entity.Address.ToString(),
-            Priority = entity.Priority,
-            IsEnabled = entity.IsEnabled,
-            IndexerStepSize = entity.IndexerStepSize,
-            DexIndexStepSize = entity.DexIndexStepSize,
-            IndexBlockOffset = entity.IndexBlockOffset
-        };
-
-    private static ProviderEditModel? Map(TracingEndpointEntity? entity)
-        => entity is null ? null : new ProviderEditModel
-        {
-            Id = entity.Id,
-            Type = RpcEndpointType.Tracing,
-            Environment = entity.Environment,
-            Application = entity.Application,
-            Chain = entity.Chain,
-            Provider = entity.Provider,
-            Address = entity.Address.ToString(),
-            Priority = entity.Priority,
-            IsEnabled = entity.IsEnabled,
-            TracingMode = entity.TracingMode
-        };
 }

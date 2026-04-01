@@ -1,6 +1,6 @@
 using Farsight.RPC.Providers.Contracts;
 
-namespace Farsight.RPC.Providers.Sdk;
+namespace Farsight.RPC.Providers.Sdk.Client;
 
 public interface IRpcProvidersClient
 {

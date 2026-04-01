@@ -16,6 +16,7 @@
         <div class="message @(Model.ProbeSucceeded ? "success" : "info")">@Model.ProbeMessage</div>
     }
     <form method="post">
+        <div asp-validation-summary="All" class="message error"></div>
         <input asp-for="Input.Id" type="hidden" />
         <div class="grid">
             <div class="field">
@@ -28,23 +29,28 @@
             </div>
             <div class="field">
                 <label asp-for="Input.Application"></label>
-                <input asp-for="Input.Application" />
+                <input asp-for="Input.Application" list="application-options" autocomplete="off" />
+                <span asp-validation-for="Input.Application" class="message error"></span>
             </div>
             <div class="field">
                 <label asp-for="Input.Chain"></label>
-                <input asp-for="Input.Chain" />
+                <input asp-for="Input.Chain" list="chain-options" autocomplete="off" />
+                <span asp-validation-for="Input.Chain" class="message error"></span>
             </div>
             <div class="field">
                 <label asp-for="Input.Provider"></label>
                 <input asp-for="Input.Provider" />
+                <span asp-validation-for="Input.Provider" class="message error"></span>
             </div>
             <div class="field">
                 <label asp-for="Input.Address"></label>
                 <input asp-for="Input.Address" />
+                <span asp-validation-for="Input.Address" class="message error"></span>
             </div>
             <div class="field">
                 <label asp-for="Input.Priority"></label>
                 <input asp-for="Input.Priority" type="number" />
+                <span asp-validation-for="Input.Priority" class="message error"></span>
             </div>
             <div class="field">
                 <label asp-for="Input.IsEnabled"></label>
@@ -58,14 +64,17 @@
                 <div class="field">
                     <label asp-for="Input.IndexerStepSize"></label>
                     <input asp-for="Input.IndexerStepSize" type="number" />
+                    <span asp-validation-for="Input.IndexerStepSize" class="message error"></span>
                 </div>
                 <div class="field">
                     <label asp-for="Input.DexIndexStepSize"></label>
                     <input asp-for="Input.DexIndexStepSize" type="number" />
+                    <span asp-validation-for="Input.DexIndexStepSize" class="message error"></span>
                 </div>
                 <div class="field">
                     <label asp-for="Input.IndexBlockOffset"></label>
                     <input asp-for="Input.IndexBlockOffset" type="number" />
+                    <span asp-validation-for="Input.IndexBlockOffset" class="message error"></span>
                 </div>
             </div>
         }
@@ -75,8 +84,23 @@
             <div class="field">
                 <label asp-for="Input.TracingMode"></label>
                 <select asp-for="Input.TracingMode" asp-items="Model.TracingModeItems"></select>
+                <span asp-validation-for="Input.TracingMode" class="message error"></span>
             </div>
         }
+
+        <datalist id="application-options">
+            @foreach (var application in Model.KnownApplications)
+            {
+                <option value="@application"></option>
+            }
+        </datalist>
+
+        <datalist id="chain-options">
+            @foreach (var chain in Model.KnownChains)
+            {
+                <option value="@chain"></option>
+            }
+        </datalist>
 
         <div class="actions">
             <button class="button" type="submit">Save</button>

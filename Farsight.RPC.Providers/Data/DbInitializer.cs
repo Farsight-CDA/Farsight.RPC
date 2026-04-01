@@ -1,26 +1,27 @@
+using Farsight.Common;
 using Farsight.RPC.Providers.Auth;
 using Farsight.RPC.Providers.Data.Entities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 
 namespace Farsight.RPC.Providers.Data;
 
-public sealed class DbInitializer(
-    RpcProvidersDbContext dbContext,
-    IOptions<BootstrapAdminOptions> adminOptions,
-    IOptions<BootstrapViewerClientOptions> viewerClientOptions)
+public partial class DbInitializer : Singleton
 {
-    public async Task InitializeAsync(IHostEnvironment environment, ILogger logger, CancellationToken cancellationToken)
-    {
-        await dbContext.Database.MigrateAsync(cancellationToken);
+    [Inject] private readonly IDbContextFactory<RpcProvidersDbContext> _dbContextFactory;
+    [Inject] private readonly BootstrapAdminOptions _adminOptions;
+    [Inject] private readonly BootstrapViewerClientOptions _viewerClientOptions;
 
-        await SeedRolesAsync(cancellationToken);
-        await SeedAdminAsync(logger, cancellationToken);
-        await SeedViewerClientAsync(logger, cancellationToken);
+    protected override async Task InitializeAsync(CancellationToken cancellationToken)
+    {
+        await using var dbContext = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        await dbContext.Database.MigrateAsync(cancellationToken);
+        await SeedRolesAsync(dbContext, cancellationToken);
+        await SeedAdminAsync(dbContext, cancellationToken);
+        await SeedViewerClientAsync(dbContext, cancellationToken);
     }
 
-    private async Task SeedRolesAsync(CancellationToken cancellationToken)
+    private static async Task SeedRolesAsync(RpcProvidersDbContext dbContext, CancellationToken cancellationToken)
     {
         if (!await dbContext.Roles.AnyAsync(cancellationToken))
         {
@@ -31,7 +32,7 @@ public sealed class DbInitializer(
         }
     }
 
-    private async Task SeedAdminAsync(ILogger logger, CancellationToken cancellationToken)
+    private async Task SeedAdminAsync(RpcProvidersDbContext dbContext, CancellationToken cancellationToken)
     {
         if (await dbContext.Users.AnyAsync(cancellationToken))
         {
@@ -42,10 +43,10 @@ public sealed class DbInitializer(
         var user = new UserEntity
         {
             Id = Guid.NewGuid(),
-            UserName = adminOptions.Value.UserName,
+            UserName = _adminOptions.UserName,
             IsEnabled = true
         };
-        user.PasswordHash = new PasswordHasher<UserEntity>().HashPassword(user, adminOptions.Value.Password);
+        user.PasswordHash = new PasswordHasher<UserEntity>().HashPassword(user, _adminOptions.Password);
         user.UserRoles.Add(new UserRoleEntity
         {
             UserId = user.Id,
@@ -56,10 +57,10 @@ public sealed class DbInitializer(
 
         dbContext.Users.Add(user);
         await dbContext.SaveChangesAsync(cancellationToken);
-        logger.LogInformation("Bootstrapped admin user '{UserName}'.", user.UserName);
+        _logger.LogInformation("Bootstrapped admin user '{UserName}'.", user.UserName);
     }
 
-    private async Task SeedViewerClientAsync(ILogger logger, CancellationToken cancellationToken)
+    private async Task SeedViewerClientAsync(RpcProvidersDbContext dbContext, CancellationToken cancellationToken)
     {
         if (await dbContext.ApiClients.AnyAsync(cancellationToken))
         {
@@ -70,13 +71,13 @@ public sealed class DbInitializer(
         dbContext.ApiClients.Add(new ApiClientEntity
         {
             Id = Guid.NewGuid(),
-            Name = viewerClientOptions.Value.Name,
-            ApiKeyHash = SecretHasher.Hash(viewerClientOptions.Value.ApiKey),
+            Name = _viewerClientOptions.Name,
+            ApiKeyHash = SecretHasher.Hash(_viewerClientOptions.ApiKey),
             IsEnabled = true,
             CreatedUtc = now,
             UpdatedUtc = now
         });
         await dbContext.SaveChangesAsync(cancellationToken);
-        logger.LogInformation("Bootstrapped viewer API client '{ClientName}'.", viewerClientOptions.Value.Name);
+        _logger.LogInformation("Bootstrapped viewer API client '{ClientName}'.", _viewerClientOptions.Name);
     }
 }

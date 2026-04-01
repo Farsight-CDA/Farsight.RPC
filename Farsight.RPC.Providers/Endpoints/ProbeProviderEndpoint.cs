@@ -1,6 +1,6 @@
-using FastEndpoints;
 using Farsight.RPC.Providers.Models;
 using Farsight.RPC.Providers.Services;
+using FastEndpoints;
 
 namespace Farsight.RPC.Providers.Endpoints;
 

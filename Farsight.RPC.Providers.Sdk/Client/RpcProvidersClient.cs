@@ -89,4 +89,22 @@ internal sealed class RpcProvidersClient(HttpClient client, RpcProvidersClientOp
                 throw new InvalidOperationException();
         }
     }
+
+    public async Task<GetRateLimitsResult> GetRateLimitsAsync(CancellationToken cancellationToken = default)
+    {
+        var response = await _client.GetAsync("/api/rate-limits", cancellationToken);
+
+        switch (response.StatusCode)
+        {
+            case HttpStatusCode.ServiceUnavailable:
+                return new GetRateLimitsResult.Unavailable();
+            case HttpStatusCode.OK:
+                var result = await response.Content.ReadFromJsonAsync<List<ProviderRateLimitDto>>(_options.SerializerOptions, cancellationToken)
+                    ?? throw new InvalidOperationException("Null response");
+                return new GetRateLimitsResult.Success(result);
+            default:
+                response.EnsureSuccessStatusCode();
+                throw new InvalidOperationException();
+        }
+    }
 }

@@ -14,4 +14,8 @@ builder.AddFarsightRpcProviders(options =>
 var providers = await serviceProvider
     .GetRequiredService<Farsight.RPC.Providers.Sdk.Client.IRpcProvidersClient>()
     .GetProvidersAsync("ethereum");
+
+var rateLimits = await serviceProvider
+    .GetRequiredService<Farsight.RPC.Providers.Sdk.Client.IRpcProvidersClient>()
+    .GetRateLimitsAsync();
 ```

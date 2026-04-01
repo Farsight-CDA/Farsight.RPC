@@ -12,6 +12,8 @@ public interface IRpcProvidersClient
 
     Task<GetTracingResult> GetTracingAsync(string chain, CancellationToken cancellationToken = default);
 
+    Task<GetRateLimitsResult> GetRateLimitsAsync(CancellationToken cancellationToken = default);
+
     public abstract record GetProvidersResult
     {
         public sealed record Success(RpcProviderSetDto Providers) : GetProvidersResult;
@@ -46,5 +48,12 @@ public interface IRpcProvidersClient
         public sealed record NotFound : GetTracingResult;
 
         public sealed record Unavailable : GetTracingResult;
+    }
+
+    public abstract record GetRateLimitsResult
+    {
+        public sealed record Success(IReadOnlyList<ProviderRateLimitDto> RateLimits) : GetRateLimitsResult;
+
+        public sealed record Unavailable : GetRateLimitsResult;
     }
 }

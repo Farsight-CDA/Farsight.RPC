@@ -23,7 +23,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Farsight.Analyse" Version="0.1.0-beta.1">
+    <PackageReference Include="Farsight.Analyse" Version="0.1.0-beta.6">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>

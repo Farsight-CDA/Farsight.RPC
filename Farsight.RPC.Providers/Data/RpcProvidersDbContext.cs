@@ -7,21 +7,21 @@ namespace Farsight.RPC.Providers.Data;
 public sealed class RpcProvidersDbContext(DbContextOptions<RpcProvidersDbContext> options) : DbContext(options)
 {
     public DbSet<UserEntity> Users => Set<UserEntity>();
-
     public DbSet<RoleEntity> Roles => Set<RoleEntity>();
-
     public DbSet<UserRoleEntity> UserRoles => Set<UserRoleEntity>();
-
     public DbSet<ApiClientEntity> ApiClients => Set<ApiClientEntity>();
-
+    public DbSet<ApplicationEntity> Applications => Set<ApplicationEntity>();
+    public DbSet<ChainEntity> Chains => Set<ChainEntity>();
+    public DbSet<ProviderEntity> Providers => Set<ProviderEntity>();
+    public DbSet<ProviderRateLimitEntity> ProviderRateLimits => Set<ProviderRateLimitEntity>();
     public DbSet<RealTimeEndpointEntity> RealTimeEndpoints => Set<RealTimeEndpointEntity>();
-
     public DbSet<ArchiveEndpointEntity> ArchiveEndpoints => Set<ArchiveEndpointEntity>();
-
     public DbSet<TracingEndpointEntity> TracingEndpoints => Set<TracingEndpointEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.HasPostgresExtension("citext");
+
         modelBuilder.Entity<UserEntity>(entity =>
         {
             entity.ToTable("users");
@@ -50,10 +50,23 @@ public sealed class RpcProvidersDbContext(DbContextOptions<RpcProvidersDbContext
         {
             entity.ToTable("api_clients");
             entity.HasKey(x => x.Id);
-            entity.Property(x => x.Name).HasMaxLength(200);
-            entity.Property(x => x.ApiKeyHash).HasMaxLength(128);
-            entity.HasIndex(x => x.Name).IsUnique();
-            entity.HasIndex(x => x.ApiKeyHash).IsUnique();
+            entity.Property(x => x.ApiKey).HasMaxLength(200);
+            entity.HasIndex(x => x.ApiKey).IsUnique();
+            entity.HasOne(x => x.Application).WithMany().HasForeignKey(x => x.ApplicationId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        ConfigureLookupEntity<ApplicationEntity>(modelBuilder, "applications");
+        ConfigureLookupEntity<ChainEntity>(modelBuilder, "chains");
+        ConfigureLookupEntity<ProviderEntity>(modelBuilder, "providers");
+
+        modelBuilder.Entity<ProviderRateLimitEntity>(entity =>
+        {
+            entity.ToTable("provider_rate_limits", tableBuilder =>
+            {
+                tableBuilder.HasCheckConstraint("CK_provider_rate_limits_RateLimit_Positive", "\"RateLimit\" > 0");
+            });
+            entity.HasKey(x => x.ProviderId);
+            entity.HasOne(x => x.Provider).WithOne().HasForeignKey<ProviderRateLimitEntity>(x => x.ProviderId).OnDelete(DeleteBehavior.Cascade);
         });
 
         ConfigureProviderEntity<RealTimeEndpointEntity>(modelBuilder, "rpc_realtime_endpoints");
@@ -69,28 +82,38 @@ public sealed class RpcProvidersDbContext(DbContextOptions<RpcProvidersDbContext
         });
     }
 
+    private static void ConfigureLookupEntity<TEntity>(ModelBuilder modelBuilder, string tableName)
+        where TEntity : class
+    {
+        modelBuilder.Entity<TEntity>(entity =>
+        {
+            entity.ToTable(tableName, tableBuilder =>
+            {
+                tableBuilder.HasCheckConstraint($"CK_{tableName}_Name_NotEmpty", "btrim(\"Name\") <> ''");
+            });
+            entity.Property<Guid>("Id");
+            entity.Property<string>("Name").HasColumnType("citext");
+            entity.HasKey("Id");
+            entity.HasIndex("Name").IsUnique();
+        });
+    }
+
     private static void ConfigureProviderEntity<TEntity>(ModelBuilder modelBuilder, string tableName, Action<EntityTypeBuilder<TEntity>>? extra = null)
         where TEntity : ProviderEndpointEntity
     {
         modelBuilder.Entity<TEntity>(entity =>
         {
-            entity.ToTable(tableName);
-            entity.HasKey(x => x.Id);
-            entity.Property(x => x.Application).HasMaxLength(200);
-            entity.Property(x => x.Chain).HasMaxLength(100);
-            entity.Property(x => x.Provider).HasMaxLength(200);
-            entity.Property(x => x.Address).HasConversion(x => x.ToString(), x => new Uri(x)).HasMaxLength(2000);
-            entity.ToTable(tableBuilder =>
+            entity.ToTable(tableName, tableBuilder =>
             {
-                tableBuilder.HasCheckConstraint($"CK_{tableName}_Application_NotEmpty", "btrim(\"Application\") <> ''");
-                tableBuilder.HasCheckConstraint($"CK_{tableName}_Chain_NotEmpty", "btrim(\"Chain\") <> ''");
-                tableBuilder.HasCheckConstraint($"CK_{tableName}_Provider_NotEmpty", "btrim(\"Provider\") <> ''");
                 tableBuilder.HasCheckConstraint($"CK_{tableName}_Address_Scheme", "\"Address\" ~* '^(http|https|ws|wss)://'");
             });
-            entity.HasIndex(x => new { x.Environment, x.Application, x.Chain, x.IsEnabled, x.Priority });
-            entity.HasIndex(x => new { x.Application, x.Chain });
-            entity.HasIndex(x => new { x.Chain, x.Provider });
-            entity.HasIndex(x => new { x.Environment, x.Application, x.Chain, x.Provider, x.Address }).IsUnique();
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Address).HasConversion(x => x.ToString(), x => new Uri(x)).HasMaxLength(2000);
+            entity.HasOne(x => x.Application).WithMany().HasForeignKey(x => x.ApplicationId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.Chain).WithMany().HasForeignKey(x => x.ChainId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.Provider).WithMany().HasForeignKey(x => x.ProviderId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(x => new { x.Environment, x.ApplicationId, x.ChainId, x.ProviderId, x.Address }).IsUnique();
+            entity.HasIndex(x => new { x.ApplicationId, x.Environment, x.ChainId });
             extra?.Invoke(entity);
         });
     }

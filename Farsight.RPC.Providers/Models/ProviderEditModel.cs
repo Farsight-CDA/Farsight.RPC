@@ -10,17 +10,13 @@ public sealed class ProviderEditModel
 
     public HostEnvironment Environment { get; set; }
 
-    public string Application { get; set; } = string.Empty;
+    public Guid ApplicationId { get; set; }
 
-    public string Chain { get; set; } = string.Empty;
+    public Guid ChainId { get; set; }
 
-    public string Provider { get; set; } = string.Empty;
+    public Guid ProviderId { get; set; }
 
     public string Address { get; set; } = string.Empty;
-
-    public int Priority { get; set; }
-
-    public bool IsEnabled { get; set; } = true;
 
     public ulong? IndexerStepSize { get; set; }
 

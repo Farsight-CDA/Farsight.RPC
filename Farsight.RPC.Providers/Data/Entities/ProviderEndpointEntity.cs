@@ -8,19 +8,21 @@ public abstract class ProviderEndpointEntity
 
     public HostEnvironment Environment { get; set; }
 
-    public string Application { get; set; } = string.Empty;
+    public Guid ApplicationId { get; set; }
 
-    public string Chain { get; set; } = string.Empty;
+    public ApplicationEntity Application { get; set; } = null!;
 
-    public string Provider { get; set; } = string.Empty;
+    public Guid ChainId { get; set; }
+
+    public ChainEntity Chain { get; set; } = null!;
+
+    public Guid ProviderId { get; set; }
+
+    public ProviderEntity Provider { get; set; } = null!;
 
     public Uri Address { get; set; } = null!;
 
-    public int Priority { get; set; }
-
-    public bool IsEnabled { get; set; } = true;
-
-    public DateTimeOffset CreatedUtc { get; set; }
-
     public DateTimeOffset UpdatedUtc { get; set; }
+
+    public DateTimeOffset? ProbedUtc { get; set; }
 }

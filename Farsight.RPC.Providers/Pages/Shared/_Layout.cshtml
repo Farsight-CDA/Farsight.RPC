@@ -6,14 +6,42 @@
     <title>@ViewData["Title"] - Farsight RPC Providers</title>
     <style>
         body { font-family: Arial, sans-serif; margin: 0; background: #111827; color: #f9fafb; }
-        nav { padding: 1rem 1.5rem; background: #1f2937; display: flex; gap: 1rem; align-items: center; }
-        nav a, nav button { color: #f9fafb; background: none; border: 0; text-decoration: none; cursor: pointer; font: inherit; }
+        
+        /* Sticky Navigation */
+        nav { 
+            position: sticky; 
+            top: 0; 
+            z-index: 100;
+            padding: 1rem 1.5rem; 
+            background: #1f2937; 
+            display: flex; 
+            gap: 0.5rem; 
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        nav a, nav button { 
+            color: #f9fafb; 
+            background: none; 
+            border: 0; 
+            text-decoration: none; 
+            cursor: pointer; 
+            font: inherit; 
+            padding: 0.5rem 0.75rem;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+        nav a:hover, nav button:hover { background: #374151; }
+        nav a.active { background: #2563eb; }
+        nav .nav-separator { color: #6b7280; margin: 0 0.25rem; }
+        nav .nav-user { margin-left: auto; color: #9ca3af; }
+        
         main { padding: 1.5rem; }
         table { width: 100%; border-collapse: collapse; background: #1f2937; }
         th, td { padding: 0.75rem; border-bottom: 1px solid #374151; text-align: left; vertical-align: top; }
         input, select { width: 100%; padding: 0.55rem; margin-top: 0.25rem; box-sizing: border-box; }
         .actions { display: flex; gap: 0.5rem; align-items: center; }
         .button { display: inline-block; padding: 0.6rem 0.9rem; border-radius: 6px; background: #2563eb; color: white; text-decoration: none; border: 0; cursor: pointer; }
+        .button:disabled { background: #4b5563; cursor: not-allowed; opacity: 0.6; }
         .secondary { background: #374151; }
         .danger { background: #b91c1c; }
         .panel { background: #1f2937; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; }
@@ -23,16 +51,90 @@
         .message.success { background: #14532d; }
         .message.error { background: #7f1d1d; }
         .message.info { background: #1e3a8a; }
+        
+        /* Stepper Styles */
+        .stepper { 
+            display: flex; 
+            gap: 0.5rem; 
+            margin-bottom: 1.5rem; 
+            padding: 1rem; 
+            background: #1f2937; 
+            border-radius: 8px; 
+        }
+        .step { 
+            flex: 1; 
+            text-align: center; 
+            padding: 0.75rem; 
+            border-radius: 6px; 
+            background: #374151;
+            opacity: 0.6;
+            transition: all 0.2s;
+        }
+        .step.active { 
+            background: #2563eb; 
+            opacity: 1;
+            font-weight: bold;
+        }
+        .step.completed { 
+            background: #14532d; 
+            opacity: 1;
+        }
+        .step .number { 
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px; 
+            height: 28px; 
+            border-radius: 50%; 
+            background: rgba(255,255,255,0.2); 
+            margin-right: 0.5rem;
+            font-size: 0.875rem;
+        }
+        
+        /* Clickable Rows */
+        tr.clickable-row { 
+            cursor: pointer; 
+            transition: background 0.2s; 
+        }
+        tr.clickable-row:hover { 
+            background: #374151; 
+        }
+        
+        /* Step Actions */
+        .step-actions { 
+            display: flex; 
+            gap: 1rem; 
+            margin-top: 1rem; 
+            padding-top: 1rem; 
+            border-top: 1px solid #374151; 
+        }
+        
+        /* Add New Link */
+        .add-new-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            color: #60a5fa;
+            text-decoration: none;
+            font-size: 0.875rem;
+            margin-top: 0.5rem;
+        }
+        .add-new-link:hover {
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
     <nav>
-        <a asp-page="/Index">Home</a>
-        <a asp-page="/Providers/Index">Providers</a>
+        <a asp-page="/Index" class="@(ViewData["ActivePage"]?.ToString() == "Home" ? "active" : "")">Home</a>
+        <a asp-page="/Applications/Index" class="@(ViewData["ActivePage"]?.ToString() == "Applications" ? "active" : "")">Applications</a>
+        <a asp-page="/Chains/Index" class="@(ViewData["ActivePage"]?.ToString() == "Chains" ? "active" : "")">Chains</a>
+        <a asp-page="/ProvidersAdmin/Index" class="@(ViewData["ActivePage"]?.ToString() == "Providers" ? "active" : "")">Providers</a>
+        <a asp-page="/Admin/Index" class="@(ViewData["ActivePage"]?.ToString() == "Admin" ? "active" : "")">Admin</a>
         @if (User.Identity?.IsAuthenticated == true)
         {
-            <span>@User.Identity.Name</span>
-            <form method="post" asp-page="/Logout">
+            <span class="nav-user">@User.Identity.Name</span>
+            <form method="post" asp-page="/Logout" style="display: inline;">
                 <button type="submit">Logout</button>
             </form>
         }

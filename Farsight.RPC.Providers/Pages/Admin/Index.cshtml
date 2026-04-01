@@ -1,0 +1,83 @@
+@page
+@model Farsight.RPC.Providers.Pages.Admin.IndexModel
+@{
+    Layout = "/Pages/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Admin";
+    ViewData["ActivePage"] = "Admin";
+}
+
+<div class="actions" style="margin-bottom: 1rem;">
+    <a class="button secondary" asp-page="/Index">← Back to Home</a>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(Model.StatusMessage))
+{
+    <div class="message @(Model.StatusIsError ? "error" : "success")">@Model.StatusMessage</div>
+}
+
+@if (!string.IsNullOrWhiteSpace(Model.GeneratedApiKey))
+{
+    <div class="panel">
+        <div style="color: #9ca3af; margin-bottom: 0.5rem;">Generated API Key</div>
+        <div class="actions" style="justify-content: space-between; align-items: center; gap: 1rem;">
+            <div style="font-family: monospace; word-break: break-all;">@Model.GeneratedApiKey</div>
+            <button type="button" class="button secondary" onclick="navigator.clipboard.writeText('@Model.GeneratedApiKey')">Copy</button>
+        </div>
+    </div>
+}
+
+<div class="panel">
+    <h1>SDK Keys</h1>
+    <form method="post" class="grid">
+        <div class="field">
+            <label>Application</label>
+            <select asp-for="ApplicationId">
+                <option value="">Select application</option>
+                @foreach (var app in Model.Applications)
+                {
+                    <option value="@app.Id">@app.Name</option>
+                }
+            </select>
+        </div>
+        <div class="field">
+            <label>Environment</label>
+            <select asp-for="Environment" asp-items="Model.EnvironmentItems"></select>
+        </div>
+        <div class="field actions">
+            <button class="button" type="submit">Generate</button>
+        </div>
+    </form>
+</div>
+
+<table>
+    <thead>
+        <tr>
+            <th>Key</th>
+            <th>Application</th>
+            <th>Environment</th>
+            <th>Enabled</th>
+            <th>Created</th>
+            <th>Updated</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+    @foreach (var item in Model.Items)
+    {
+        <tr>
+            <td style="font-family: monospace; font-size: 0.875rem;">@item.ApiKey</td>
+            <td>@(item.Application ?? "legacy")</td>
+            <td>@(item.Environment?.ToString() ?? "legacy")</td>
+            <td>@(item.IsEnabled ? "yes" : "no")</td>
+            <td>@item.CreatedUtc.ToString("g")</td>
+            <td>@item.UpdatedUtc.ToString("g")</td>
+            <td>
+                <button type="button" class="button secondary" onclick="navigator.clipboard.writeText('@item.ApiKey')">Copy</button>
+                <form method="post" asp-page-handler="Toggle" asp-route-id="@item.Id" style="display: inline;">
+                    <button class="button secondary" type="submit">@(item.IsEnabled ? "Disable" : "Enable")</button>
+                </form>
+            </td>
+        </tr>
+    }
+    </tbody>
+</table>

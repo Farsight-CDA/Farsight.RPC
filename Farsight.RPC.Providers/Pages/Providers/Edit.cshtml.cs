@@ -25,9 +25,11 @@ public sealed class EditModel(
 
     public bool ProbeSucceeded { get; private set; }
 
-    public IReadOnlyList<string> KnownApplications { get; private set; } = [];
+    public IReadOnlyList<LookupItem> Applications { get; private set; } = [];
 
-    public IReadOnlyList<string> KnownChains { get; private set; } = [];
+    public IReadOnlyList<LookupItem> Chains { get; private set; } = [];
+
+    public IReadOnlyList<LookupItem> Providers { get; private set; } = [];
 
     public IEnumerable<SelectListItem> TypeItems => Enum.GetValues<RpcEndpointType>().Select(x => new SelectListItem(x.ToString(), x.ToString()));
 
@@ -35,7 +37,7 @@ public sealed class EditModel(
 
     public IEnumerable<SelectListItem> TracingModeItems => Enum.GetValues<TracingMode>().Select(x => new SelectListItem(x.ToString(), x.ToString()));
 
-    public async Task<IActionResult> OnGetAsync(Guid? id, RpcEndpointType type = RpcEndpointType.RealTime, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> OnGetAsync(Guid? id, RpcEndpointType type = RpcEndpointType.RealTime, Guid? applicationId = null, Guid? chainId = null, HostEnvironment environment = HostEnvironment.Development, CancellationToken cancellationToken = default)
     {
         if (id.HasValue)
         {
@@ -50,8 +52,9 @@ public sealed class EditModel(
         else
         {
             Input.Type = type;
-            Input.Environment = HostEnvironment.Development;
-            Input.IsEnabled = true;
+            Input.Environment = environment;
+            Input.ApplicationId = applicationId ?? Guid.Empty;
+            Input.ChainId = chainId ?? Guid.Empty;
         }
 
         await LoadSuggestionsAsync(cancellationToken);
@@ -75,6 +78,33 @@ public sealed class EditModel(
 
     public async Task<IActionResult> OnPostProbeAsync(CancellationToken cancellationToken)
     {
+        if (!await ValidateInputAsync(cancellationToken))
+        {
+            StatusMessage = "Please correct the validation issues before probing.";
+            StatusIsError = true;
+            await LoadSuggestionsAsync(cancellationToken);
+            return Page();
+        }
+
+        var wasNew = !Input.Id.HasValue;
+        await providerAdminService.SaveAsync(Input, cancellationToken);
+
+        if (wasNew)
+        {
+            var saved = await providerAdminService.GetListAsync(new ProviderSelectionModel
+            {
+                ApplicationId = Input.ApplicationId,
+                ChainId = Input.ChainId,
+                Environment = Input.Environment
+            }, cancellationToken);
+
+            Input.Id = saved
+                .Where(x => x.Type == Input.Type && x.Address.ToString() == Input.Address)
+                .OrderByDescending(x => x.UpdatedUtc)
+                .Select(x => (Guid?)x.Id)
+                .FirstOrDefault();
+        }
+
         var probeRequest = new ProbeRequest { Address = Input.Address, Type = Input.Type };
         if (!await ValidateProbeAsync(probeRequest, cancellationToken))
         {
@@ -85,6 +115,10 @@ public sealed class EditModel(
         }
 
         var result = await rpcProbeService.ProbeAsync(probeRequest, cancellationToken);
+        if (Input.Id.HasValue)
+        {
+            await providerAdminService.UpdateProbeResultAsync(Input.Type, Input.Id.Value, result.Succeeded, cancellationToken);
+        }
         ProbeMessage = result.Message;
         ProbeSucceeded = result.Succeeded;
         await LoadSuggestionsAsync(cancellationToken);
@@ -104,8 +138,9 @@ public sealed class EditModel(
 
     private async Task LoadSuggestionsAsync(CancellationToken cancellationToken)
     {
-        KnownApplications = await providerAdminService.GetKnownApplicationsAsync(cancellationToken);
-        KnownChains = await providerAdminService.GetKnownChainsAsync(cancellationToken);
+        Applications = await providerAdminService.GetApplicationsAsync(cancellationToken);
+        Chains = await providerAdminService.GetChainsAsync(cancellationToken);
+        Providers = await providerAdminService.GetProvidersAsync(cancellationToken);
     }
 
     private async Task<bool> ValidateInputAsync(CancellationToken cancellationToken)

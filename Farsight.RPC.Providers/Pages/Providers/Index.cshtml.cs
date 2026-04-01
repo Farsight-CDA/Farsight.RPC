@@ -10,16 +10,20 @@ namespace Farsight.RPC.Providers.Pages.Providers;
 public sealed class IndexModel(ProviderAdminService providerAdminService) : PageModel
 {
     [BindProperty(SupportsGet = true)]
-    public ProviderListQuery Query { get; set; } = new();
+    public ProviderSelectionModel Query { get; set; } = new();
 
     public IReadOnlyList<ProviderListItem> Rows { get; private set; } = [];
 
     public IEnumerable<SelectListItem> EnvironmentItems => Enum.GetValues<HostEnvironment>().Select(x => new SelectListItem(x.ToString(), x.ToString()));
 
-    public IEnumerable<SelectListItem> TypeItems => Enum.GetValues<RpcEndpointType>().Select(x => new SelectListItem(x.ToString(), x.ToString()));
+    public IReadOnlyList<LookupItem> Applications { get; private set; } = [];
 
-    public IEnumerable<SelectListItem> SortItems => Enum.GetValues<ProviderSort>().Select(x => new SelectListItem(x.ToString(), x.ToString()));
+    public IReadOnlyList<LookupItem> Chains { get; private set; } = [];
 
     public async Task OnGetAsync(CancellationToken cancellationToken)
-        => Rows = await providerAdminService.GetListAsync(Query, cancellationToken);
+    {
+        Applications = await providerAdminService.GetApplicationsAsync(cancellationToken);
+        Chains = await providerAdminService.GetChainsAsync(cancellationToken);
+        Rows = await providerAdminService.GetListAsync(Query, cancellationToken);
+    }
 }

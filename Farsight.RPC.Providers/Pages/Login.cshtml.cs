@@ -27,7 +27,7 @@ public sealed class LoginModel(AdminAuthenticationService authenticationService)
 
         if (await authenticationService.SignInAsync(HttpContext, Input.UserName, Input.Password, cancellationToken))
         {
-            return RedirectToPage("/Providers/Index");
+            return RedirectToPage("/Index");
         }
 
         ErrorMessage = "Invalid username or password.";

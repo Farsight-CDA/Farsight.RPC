@@ -1,10 +1,207 @@
+using Farsight.RPC.Providers.Contracts;
+using Farsight.RPC.Providers.Models;
+using Farsight.RPC.Providers.Services;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace Farsight.RPC.Providers.Pages;
 
-public sealed class IndexModel : PageModel
+public sealed class IndexModel(ProviderAdminService providerAdminService, RpcProbeService rpcProbeService) : PageModel
 {
-    public void OnGet()
+    // Selection state
+    [BindProperty(SupportsGet = true)]
+    public Guid? SelectedApplicationId { get; set; }
+    
+    [BindProperty(SupportsGet = true)]
+    public Guid? SelectedChainId { get; set; }
+    
+    [BindProperty(SupportsGet = true)]
+    public HostEnvironment? SelectedEnvironment { get; set; }
+
+    // Data sources
+    public IReadOnlyList<LookupItem> Applications { get; private set; } = [];
+    public IReadOnlyList<LookupItem> Chains { get; private set; } = [];
+    public IReadOnlyList<LookupItem> ProvidersList { get; private set; } = [];
+    public IReadOnlyList<ProviderListItem> Providers { get; private set; } = [];
+
+    // Inline add form properties
+    [BindProperty]
+    public RpcEndpointType NewProviderType { get; set; } = RpcEndpointType.RealTime;
+    
+    [BindProperty]
+    public Guid NewProviderId { get; set; }
+    
+    [BindProperty]
+    public string NewAddress { get; set; } = string.Empty;
+
+    // Show inline form flag
+    [BindProperty(SupportsGet = true)]
+    public bool ShowAddForm { get; set; }
+
+    // Probe result messages (TempData)
+    public string? ProbeMessage { get; set; }
+    public bool ProbeSucceeded { get; set; }
+
+    // Computed properties for flow state
+    public bool HasSelectedApplication => SelectedApplicationId.HasValue;
+    public bool HasSelectedChain => SelectedChainId.HasValue;
+    public bool HasSelectedEnvironment => SelectedEnvironment.HasValue;
+    public bool CanShowResults => HasSelectedApplication && HasSelectedChain && HasSelectedEnvironment;
+    public int CurrentStep => GetCurrentStep();
+
+    public async Task OnGetAsync(CancellationToken cancellationToken)
     {
+        Applications = await providerAdminService.GetApplicationsAsync(cancellationToken);
+        Chains = await providerAdminService.GetChainsAsync(cancellationToken);
+        ProvidersList = await providerAdminService.GetProvidersAsync(cancellationToken);
+
+        // Load probe result from TempData
+        if (TempData["ProbeMessage"] is string probeMessage)
+        {
+            ProbeMessage = probeMessage;
+            ProbeSucceeded = TempData["ProbeSucceeded"] as bool? ?? false;
+        }
+
+        if (CanShowResults)
+        {
+            var query = new ProviderSelectionModel
+            {
+                ApplicationId = SelectedApplicationId!.Value,
+                Environment = SelectedEnvironment!.Value,
+                ChainId = SelectedChainId!.Value
+            };
+            Providers = await providerAdminService.GetListAsync(query, cancellationToken);
+        }
+    }
+
+    public IActionResult OnPost()
+    {
+        // Determine what changed and reset downstream selections
+        var changedApp = SelectedApplicationId != GetPreviousApplicationId();
+        var changedChain = SelectedChainId != GetPreviousChainId();
+
+        if (changedApp)
+        {
+            // App changed - reset everything downstream
+            SelectedChainId = null;
+            SelectedEnvironment = null;
+        }
+        else if (changedChain)
+        {
+            // Chain changed - reset environment
+            SelectedEnvironment = null;
+        }
+
+        // Redirect with current state (some values may be null)
+        return RedirectToPage(new 
+        { 
+            SelectedApplicationId, 
+            SelectedChainId, 
+            SelectedEnvironment,
+            ShowAddForm
+        });
+    }
+
+    public async Task<IActionResult> OnPostAddProviderAsync(CancellationToken cancellationToken)
+    {
+        if (!CanShowResults)
+        {
+            return RedirectToPage();
+        }
+
+        var model = new ProviderEditModel
+        {
+            Type = NewProviderType,
+            Environment = SelectedEnvironment!.Value,
+            ApplicationId = SelectedApplicationId!.Value,
+            ChainId = SelectedChainId!.Value,
+            ProviderId = NewProviderId,
+            Address = NewAddress
+        };
+
+        await providerAdminService.SaveAsync(model, cancellationToken);
+
+        // Redirect back to results with form hidden
+        return RedirectToPage(new 
+        { 
+            SelectedApplicationId, 
+            SelectedChainId, 
+            SelectedEnvironment,
+            ShowAddForm = false
+        });
+    }
+
+    private int GetCurrentStep()
+    {
+        if (!HasSelectedApplication) return 1;
+        if (!HasSelectedChain) return 2;
+        if (!HasSelectedEnvironment) return 3;
+        return 4;
+    }
+
+    public string ShortenAddress(Uri address, int maxLength = 40)
+    {
+        var url = address.ToString();
+        if (url.Length <= maxLength) return url;
+        return url.Substring(0, maxLength - 3) + "...";
+    }
+
+    // Helper methods to track what changed (compare with form values before bind)
+    private Guid? GetPreviousApplicationId()
+    {
+        if (Request.Form.TryGetValue("PreviousApplicationId", out var value) && 
+            Guid.TryParse(value, out var id))
+        {
+            return id;
+        }
+        return null;
+    }
+
+    private Guid? GetPreviousChainId()
+    {
+        if (Request.Form.TryGetValue("PreviousChainId", out var value) && 
+            Guid.TryParse(value, out var id))
+        {
+            return id;
+        }
+        return null;
+    }
+
+    public async Task<IActionResult> OnPostProbeAsync(Guid id, RpcEndpointType type, CancellationToken cancellationToken)
+    {
+        if (!CanShowResults)
+        {
+            return RedirectToPage();
+        }
+
+        // Get the provider details to probe
+        var provider = await providerAdminService.GetEditModelAsync(type, id, cancellationToken);
+        if (provider is null)
+        {
+            return RedirectToPage(new { SelectedApplicationId, SelectedChainId, SelectedEnvironment });
+        }
+
+        var probeRequest = new ProbeRequest { Address = provider.Address, Type = type };
+        var result = await rpcProbeService.ProbeAsync(probeRequest, cancellationToken);
+        await providerAdminService.UpdateProbeResultAsync(type, id, result.Succeeded, cancellationToken);
+        
+        // Store result in TempData to show after redirect
+        TempData["ProbeMessage"] = result.Message;
+        TempData["ProbeSucceeded"] = result.Succeeded;
+
+        return RedirectToPage(new { SelectedApplicationId, SelectedChainId, SelectedEnvironment });
+    }
+
+    public async Task<IActionResult> OnPostDeleteAsync(Guid id, RpcEndpointType type, CancellationToken cancellationToken)
+    {
+        if (!CanShowResults)
+        {
+            return RedirectToPage();
+        }
+
+        await providerAdminService.DeleteAsync(type, id, cancellationToken);
+
+        return RedirectToPage(new { SelectedApplicationId, SelectedChainId, SelectedEnvironment });
     }
 }

@@ -1,3 +1,4 @@
+using Farsight.RPC.Providers.Auth;
 using Farsight.RPC.Providers.Contracts;
 using Farsight.RPC.Providers.Services;
 using FastEndpoints;
@@ -8,10 +9,10 @@ public sealed class GetTracingProvidersEndpoint(ProviderQueryService providerQue
 {
     public override void Configure()
     {
-        Get("/api/providers/{Environment}/{Application}/{Chain}/tracing");
+        Get("/api/providers/{Chain}/tracing");
         Policies(AuthorizationPolicies.ViewerOnly);
     }
 
     public override async Task HandleAsync(GetProvidersRequest req, CancellationToken ct)
-        => await Send.OkAsync(await providerQueryService.GetTracingAsync(req.Environment, req.Application, req.Chain, ct), ct);
+        => await Send.OkAsync(await providerQueryService.GetTracingAsync(ApiClientClaimTypes.GetRequiredEnvironment(User), ApiClientClaimTypes.GetRequiredApplicationId(User), req.Chain, ct), ct);
 }

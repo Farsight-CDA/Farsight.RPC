@@ -4,13 +4,13 @@ namespace Farsight.RPC.Providers.Sdk.Client;
 
 public interface IRpcProvidersClient
 {
-    Task<GetProvidersResult> GetProvidersAsync(HostEnvironment environment, string application, string chain, CancellationToken cancellationToken = default);
+    Task<GetProvidersResult> GetProvidersAsync(string chain, CancellationToken cancellationToken = default);
 
-    Task<GetRealTimeResult> GetRealTimeAsync(HostEnvironment environment, string application, string chain, CancellationToken cancellationToken = default);
+    Task<GetRealTimeResult> GetRealTimeAsync(string chain, CancellationToken cancellationToken = default);
 
-    Task<GetArchiveResult> GetArchiveAsync(HostEnvironment environment, string application, string chain, CancellationToken cancellationToken = default);
+    Task<GetArchiveResult> GetArchiveAsync(string chain, CancellationToken cancellationToken = default);
 
-    Task<GetTracingResult> GetTracingAsync(HostEnvironment environment, string application, string chain, CancellationToken cancellationToken = default);
+    Task<GetTracingResult> GetTracingAsync(string chain, CancellationToken cancellationToken = default);
 
     public abstract record GetProvidersResult
     {

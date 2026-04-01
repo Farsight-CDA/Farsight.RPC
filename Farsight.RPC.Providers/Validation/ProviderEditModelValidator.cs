@@ -8,15 +8,15 @@ public sealed class ProviderEditModelValidator : AbstractValidator<ProviderEditM
 {
     public ProviderEditModelValidator()
     {
-        RuleFor(x => x.Application)
+        RuleFor(x => x.ApplicationId)
             .NotEmpty()
             .WithMessage("Application is required.");
 
-        RuleFor(x => x.Chain)
+        RuleFor(x => x.ChainId)
             .NotEmpty()
             .WithMessage("Chain is required.");
 
-        RuleFor(x => x.Provider)
+        RuleFor(x => x.ProviderId)
             .NotEmpty()
             .WithMessage("Provider is required.");
 

@@ -21,22 +21,28 @@ public sealed class ApiKeyAuthenticationHandler(
         }
 
         var providedKey = values.First()!;
-        var providedHash = SecretHasher.Hash(providedKey);
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(Context.RequestAborted);
         var client = await dbContext.ApiClients
             .AsNoTracking()
-            .SingleOrDefaultAsync(x => x.ApiKeyHash == providedHash && x.IsEnabled, Context.RequestAborted);
+            .SingleOrDefaultAsync(x => x.ApiKey == providedKey && x.IsEnabled, Context.RequestAborted);
 
         if (client is null)
         {
             return AuthenticateResult.Fail("Invalid API key.");
         }
 
+        if (!client.ApplicationId.HasValue || !client.Environment.HasValue)
+        {
+            return AuthenticateResult.Fail("API key is not scoped to an application and environment.");
+        }
+
         var claims = new[]
         {
             new Claim(ClaimTypes.NameIdentifier, client.Id.ToString()),
-            new Claim(ClaimTypes.Name, client.Name),
-            new Claim(ClaimTypes.Role, AppRoles.Viewer)
+            new Claim(ClaimTypes.Name, client.ApiKey),
+            new Claim(ClaimTypes.Role, AppRoles.Viewer),
+            new Claim(ApiClientClaimTypes.ApplicationId, client.ApplicationId.Value.ToString()),
+            new Claim(ApiClientClaimTypes.Environment, client.Environment.Value.ToString())
         };
 
         var identity = new ClaimsIdentity(claims, ApiKeyAuthenticationDefaults.Scheme);

@@ -10,7 +10,6 @@ public partial class DbInitializer : Singleton
 {
     [Inject] private readonly IDbContextFactory<RpcProvidersDbContext> _dbContextFactory;
     [Inject] private readonly BootstrapAdminOptions _adminOptions;
-    [Inject] private readonly BootstrapViewerClientOptions _viewerClientOptions;
 
     protected override async Task InitializeAsync(CancellationToken cancellationToken)
     {
@@ -18,7 +17,6 @@ public partial class DbInitializer : Singleton
         await dbContext.Database.MigrateAsync(cancellationToken);
         await SeedRolesAsync(dbContext, cancellationToken);
         await SeedAdminAsync(dbContext, cancellationToken);
-        await SeedViewerClientAsync(dbContext, cancellationToken);
     }
 
     private static async Task SeedRolesAsync(RpcProvidersDbContext dbContext, CancellationToken cancellationToken)
@@ -58,26 +56,5 @@ public partial class DbInitializer : Singleton
         dbContext.Users.Add(user);
         await dbContext.SaveChangesAsync(cancellationToken);
         _logger.LogInformation("Bootstrapped admin user '{UserName}'.", user.UserName);
-    }
-
-    private async Task SeedViewerClientAsync(RpcProvidersDbContext dbContext, CancellationToken cancellationToken)
-    {
-        if (await dbContext.ApiClients.AnyAsync(cancellationToken))
-        {
-            return;
-        }
-
-        var now = DateTimeOffset.UtcNow;
-        dbContext.ApiClients.Add(new ApiClientEntity
-        {
-            Id = Guid.NewGuid(),
-            Name = _viewerClientOptions.Name,
-            ApiKeyHash = SecretHasher.Hash(_viewerClientOptions.ApiKey),
-            IsEnabled = true,
-            CreatedUtc = now,
-            UpdatedUtc = now
-        });
-        await dbContext.SaveChangesAsync(cancellationToken);
-        _logger.LogInformation("Bootstrapped viewer API client '{ClientName}'.", _viewerClientOptions.Name);
     }
 }

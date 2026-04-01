@@ -2,112 +2,135 @@
 @model Farsight.RPC.Providers.Pages.Providers.EditModel
 @{
     Layout = "/Pages/Shared/_Layout.cshtml";
-    ViewData["Title"] = "Edit Provider";
+    ViewData["Title"] = Model.Input.Id.HasValue ? "Edit Provider" : "New Provider";
+    ViewData["ActivePage"] = "Home";
 }
 
+<div class="actions" style="margin-bottom: 1rem;">
+    <a class="button secondary" asp-page="/Index" 
+       asp-route-selectedApplicationId="@Model.Input.ApplicationId"
+       asp-route-selectedChainId="@Model.Input.ChainId"
+       asp-route-selectedEnvironment="@Model.Input.Environment">← Back</a>
+</div>
+
 <div class="panel">
-    <h1>@(Model.Input.Id.HasValue ? "Edit Provider" : "Create Provider")</h1>
+    <h2 style="margin-bottom: 1rem;">@(Model.Input.Id.HasValue ? "Edit Provider" : "New Provider")</h2>
+    
     @if (!string.IsNullOrWhiteSpace(Model.StatusMessage))
     {
-        <div class="message @(Model.StatusIsError ? "error" : "success")">@Model.StatusMessage</div>
+        <div class="message @(Model.StatusIsError ? "error" : "success")" style="margin-bottom: 1rem;">@Model.StatusMessage</div>
     }
     @if (!string.IsNullOrWhiteSpace(Model.ProbeMessage))
     {
-        <div class="message @(Model.ProbeSucceeded ? "success" : "info")">@Model.ProbeMessage</div>
+        <div class="message @(Model.ProbeSucceeded ? "success" : "info")" style="margin-bottom: 1rem;">@Model.ProbeMessage</div>
     }
+
     <form method="post">
-        <div asp-validation-summary="All" class="message error"></div>
+        <div asp-validation-summary="All" class="message error" style="margin-bottom: 1rem;"></div>
+        
         <input asp-for="Input.Id" type="hidden" />
-        <div class="grid">
-            <div class="field">
-                <label asp-for="Input.Type"></label>
-                <select asp-for="Input.Type" asp-items="Model.TypeItems"></select>
+        
+        <!-- Address (Full Width) -->
+        <div class="field" style="margin-bottom: 1rem;">
+            <label asp-for="Input.Address" style="display: block; margin-bottom: 0.25rem; color: #9ca3af; font-size: 0.875rem;">Address</label>
+            <input asp-for="Input.Address" style="width: 100%; font-family: monospace;" placeholder="https://..." />
+            <span asp-validation-for="Input.Address" class="message error" style="margin-top: 0.25rem;"></span>
+        </div>
+
+        <!-- Provider & Type Row -->
+        <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+            <div class="field" style="flex: 2;">
+                <label style="display: block; margin-bottom: 0.25rem; color: #9ca3af; font-size: 0.875rem;">Provider</label>
+                <select asp-for="Input.ProviderId" style="width: 100%;">
+                    <option value="">Select provider</option>
+                    @foreach (var item in Model.Providers)
+                    {
+                        <option value="@item.Id">@item.Name</option>
+                    }
+                </select>
+                <span asp-validation-for="Input.ProviderId" class="message error" style="margin-top: 0.25rem;"></span>
             </div>
-            <div class="field">
-                <label asp-for="Input.Environment"></label>
-                <select asp-for="Input.Environment" asp-items="Model.EnvironmentItems"></select>
-            </div>
-            <div class="field">
-                <label asp-for="Input.Application"></label>
-                <input asp-for="Input.Application" list="application-options" autocomplete="off" />
-                <span asp-validation-for="Input.Application" class="message error"></span>
-            </div>
-            <div class="field">
-                <label asp-for="Input.Chain"></label>
-                <input asp-for="Input.Chain" list="chain-options" autocomplete="off" />
-                <span asp-validation-for="Input.Chain" class="message error"></span>
-            </div>
-            <div class="field">
-                <label asp-for="Input.Provider"></label>
-                <input asp-for="Input.Provider" />
-                <span asp-validation-for="Input.Provider" class="message error"></span>
-            </div>
-            <div class="field">
-                <label asp-for="Input.Address"></label>
-                <input asp-for="Input.Address" />
-                <span asp-validation-for="Input.Address" class="message error"></span>
-            </div>
-            <div class="field">
-                <label asp-for="Input.Priority"></label>
-                <input asp-for="Input.Priority" type="number" />
-                <span asp-validation-for="Input.Priority" class="message error"></span>
-            </div>
-            <div class="field">
-                <label asp-for="Input.IsEnabled"></label>
-                <input asp-for="Input.IsEnabled" type="checkbox" style="width:auto;" />
+            <div class="field" style="flex: 1;">
+                <label style="display: block; margin-bottom: 0.25rem; color: #9ca3af; font-size: 0.875rem;">Type</label>
+                <select asp-for="Input.Type" asp-items="Model.TypeItems" style="width: 100%;"></select>
             </div>
         </div>
 
+        <!-- App & Chain & Env Row -->
+        <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+            <div class="field" style="flex: 2;">
+                <label style="display: block; margin-bottom: 0.25rem; color: #9ca3af; font-size: 0.875rem;">Application</label>
+                <select asp-for="Input.ApplicationId" style="width: 100%;">
+                    <option value="">Select application</option>
+                    @foreach (var item in Model.Applications)
+                    {
+                        <option value="@item.Id">@item.Name</option>
+                    }
+                </select>
+                <span asp-validation-for="Input.ApplicationId" class="message error" style="margin-top: 0.25rem;"></span>
+            </div>
+            <div class="field" style="flex: 2;">
+                <label style="display: block; margin-bottom: 0.25rem; color: #9ca3af; font-size: 0.875rem;">Chain</label>
+                <select asp-for="Input.ChainId" style="width: 100%;">
+                    <option value="">Select chain</option>
+                    @foreach (var item in Model.Chains)
+                    {
+                        <option value="@item.Id">@item.Name</option>
+                    }
+                </select>
+                <span asp-validation-for="Input.ChainId" class="message error" style="margin-top: 0.25rem;"></span>
+            </div>
+            <div class="field" style="flex: 1;">
+                <label style="display: block; margin-bottom: 0.25rem; color: #9ca3af; font-size: 0.875rem;">Environment</label>
+                <select asp-for="Input.Environment" asp-items="Model.EnvironmentItems" style="width: 100%;"></select>
+            </div>
+        </div>
+
+        <!-- Archive-specific fields -->
         @if (Model.Input.Type == RpcEndpointType.Archive)
         {
-            <div class="grid">
-                <div class="field">
-                    <label asp-for="Input.IndexerStepSize"></label>
-                    <input asp-for="Input.IndexerStepSize" type="number" />
-                    <span asp-validation-for="Input.IndexerStepSize" class="message error"></span>
-                </div>
-                <div class="field">
-                    <label asp-for="Input.DexIndexStepSize"></label>
-                    <input asp-for="Input.DexIndexStepSize" type="number" />
-                    <span asp-validation-for="Input.DexIndexStepSize" class="message error"></span>
-                </div>
-                <div class="field">
-                    <label asp-for="Input.IndexBlockOffset"></label>
-                    <input asp-for="Input.IndexBlockOffset" type="number" />
-                    <span asp-validation-for="Input.IndexBlockOffset" class="message error"></span>
+            <div style="background: #111827; padding: 0.75rem; border-radius: 4px; margin-bottom: 1rem;">
+                <div style="color: #9ca3af; font-size: 0.875rem; margin-bottom: 0.5rem;">Archive Settings</div>
+                <div style="display: flex; gap: 0.5rem;">
+                    <div class="field" style="flex: 1;">
+                        <label style="display: block; margin-bottom: 0.25rem; color: #6b7280; font-size: 0.75rem;">Indexer Step</label>
+                        <input asp-for="Input.IndexerStepSize" type="number" style="width: 100%;" />
+                        <span asp-validation-for="Input.IndexerStepSize" class="message error" style="margin-top: 0.25rem;"></span>
+                    </div>
+                    <div class="field" style="flex: 1;">
+                        <label style="display: block; margin-bottom: 0.25rem; color: #6b7280; font-size: 0.75rem;">DEX Step</label>
+                        <input asp-for="Input.DexIndexStepSize" type="number" style="width: 100%;" />
+                        <span asp-validation-for="Input.DexIndexStepSize" class="message error" style="margin-top: 0.25rem;"></span>
+                    </div>
+                    <div class="field" style="flex: 1;">
+                        <label style="display: block; margin-bottom: 0.25rem; color: #6b7280; font-size: 0.75rem;">Block Offset</label>
+                        <input asp-for="Input.IndexBlockOffset" type="number" style="width: 100%;" />
+                        <span asp-validation-for="Input.IndexBlockOffset" class="message error" style="margin-top: 0.25rem;"></span>
+                    </div>
                 </div>
             </div>
         }
 
+        <!-- Tracing-specific fields -->
         @if (Model.Input.Type == RpcEndpointType.Tracing)
         {
-            <div class="field">
-                <label asp-for="Input.TracingMode"></label>
-                <select asp-for="Input.TracingMode" asp-items="Model.TracingModeItems"></select>
-                <span asp-validation-for="Input.TracingMode" class="message error"></span>
+            <div style="background: #111827; padding: 0.75rem; border-radius: 4px; margin-bottom: 1rem;">
+                <div style="color: #9ca3af; font-size: 0.875rem; margin-bottom: 0.5rem;">Tracing Settings</div>
+                <div class="field">
+                    <label style="display: block; margin-bottom: 0.25rem; color: #6b7280; font-size: 0.75rem;">Tracing Mode</label>
+                    <select asp-for="Input.TracingMode" asp-items="Model.TracingModeItems" style="width: 100%;"></select>
+                    <span asp-validation-for="Input.TracingMode" class="message error" style="margin-top: 0.25rem;"></span>
+                </div>
             </div>
         }
 
-        <datalist id="application-options">
-            @foreach (var application in Model.KnownApplications)
-            {
-                <option value="@application"></option>
-            }
-        </datalist>
-
-        <datalist id="chain-options">
-            @foreach (var chain in Model.KnownChains)
-            {
-                <option value="@chain"></option>
-            }
-        </datalist>
-
-        <div class="actions">
-            <button class="button" type="submit">Save</button>
-            <button class="button secondary" type="submit" asp-page-handler="Probe">Probe</button>
+        <!-- Actions -->
+        <div class="actions" style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid #374151;">
+            <button class="button" type="submit" style="min-width: 100px;">Save</button>
+            <button class="button secondary" type="submit" asp-page-handler="Probe" style="min-width: 100px;">Probe</button>
             @if (Model.Input.Id.HasValue)
             {
-                <button class="button danger" type="submit" asp-page-handler="Delete" onclick="return confirm('Hard delete this provider row?');">Delete</button>
+                <button class="button danger" type="submit" asp-page-handler="Delete" onclick="return confirm('Permanently delete this provider?');" style="margin-left: auto;">Delete</button>
             }
         </div>
     </form>

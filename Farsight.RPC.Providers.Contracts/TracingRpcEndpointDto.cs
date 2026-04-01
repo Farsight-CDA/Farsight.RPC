@@ -7,7 +7,6 @@ public sealed record TracingRpcEndpointDto(
     string Chain,
     string Provider,
     Uri Address,
-    int Priority,
-    bool IsEnabled,
     TracingMode TracingMode,
-    DateTimeOffset UpdatedUtc);
+    DateTimeOffset UpdatedUtc,
+    DateTimeOffset? ProbedUtc);

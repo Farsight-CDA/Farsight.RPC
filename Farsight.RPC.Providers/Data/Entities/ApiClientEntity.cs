@@ -1,12 +1,18 @@
+using Farsight.RPC.Providers.Contracts;
+
 namespace Farsight.RPC.Providers.Data.Entities;
 
 public sealed class ApiClientEntity
 {
     public Guid Id { get; set; }
 
-    public string Name { get; set; } = string.Empty;
+    public string ApiKey { get; set; } = string.Empty;
 
-    public string ApiKeyHash { get; set; } = string.Empty;
+    public Guid? ApplicationId { get; set; }
+
+    public ApplicationEntity? Application { get; set; }
+
+    public HostEnvironment? Environment { get; set; }
 
     public bool IsEnabled { get; set; } = true;
 

@@ -7,6 +7,5 @@ public sealed record RealTimeRpcEndpointDto(
     string Chain,
     string Provider,
     Uri Address,
-    int Priority,
-    bool IsEnabled,
-    DateTimeOffset UpdatedUtc);
+    DateTimeOffset UpdatedUtc,
+    DateTimeOffset? ProbedUtc);

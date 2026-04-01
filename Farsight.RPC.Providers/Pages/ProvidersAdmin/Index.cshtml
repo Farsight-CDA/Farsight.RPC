@@ -1,0 +1,58 @@
+@page
+@model Farsight.RPC.Providers.Pages.ProvidersAdmin.IndexModel
+@{
+    Layout = "/Pages/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Providers";
+    ViewData["ActivePage"] = "Providers";
+}
+
+<div class="actions" style="margin-bottom: 1rem;">
+    <a class="button secondary" asp-page="/Index">← Back to Home</a>
+</div>
+
+<div class="panel">
+    <h1>Providers</h1>
+    
+    @if (!string.IsNullOrWhiteSpace(Model.StatusMessage))
+    {
+        <div class="message @(Model.StatusIsError ? "error" : "success")" style="margin-bottom: 1rem;">@Model.StatusMessage</div>
+    }
+
+    <form method="post" style="margin-bottom: 1.5rem;">
+        <div style="display: flex; gap: 0.5rem; align-items: flex-end;">
+            <div style="flex: 2;">
+                <input asp-for="Name" placeholder="Provider name" style="width: 100%; margin-top: 0;" />
+            </div>
+            <div style="flex: 1;">
+                <input asp-for="RateLimit" type="number" placeholder="Rate limit (optional)" style="width: 100%; margin-top: 0;" />
+            </div>
+            <button class="button" type="submit">Add</button>
+        </div>
+    </form>
+
+    <table style="margin-top: 0;">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th style="text-align: right;">Rate Limit</th>
+                <th style="text-align: right;">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+        @foreach (var item in Model.ProviderRows)
+        {
+            <tr>
+                <td>@item.Provider</td>
+                <td style="text-align: right; color: #9ca3af;">
+                    @(item.RateLimit?.ToString() ?? "—")
+                </td>
+                <td style="text-align: right;">
+                    <form method="post" asp-page-handler="Delete" asp-route-id="@item.ProviderId" style="display: inline;" onsubmit="return confirm('Delete this provider?');">
+                        <button type="submit" class="button danger" style="padding: 0.3rem 0.6rem; font-size: 0.8rem;">Remove</button>
+                    </form>
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>

@@ -7,9 +7,8 @@ public sealed record ArchiveRpcEndpointDto(
     string Chain,
     string Provider,
     Uri Address,
-    int Priority,
-    bool IsEnabled,
     ulong IndexerStepSize,
     ulong? DexIndexStepSize,
     ulong IndexBlockOffset,
-    DateTimeOffset UpdatedUtc);
+    DateTimeOffset UpdatedUtc,
+    DateTimeOffset? ProbedUtc);

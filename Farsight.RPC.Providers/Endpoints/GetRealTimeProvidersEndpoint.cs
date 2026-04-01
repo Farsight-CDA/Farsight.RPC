@@ -1,3 +1,4 @@
+using Farsight.RPC.Providers.Auth;
 using Farsight.RPC.Providers.Contracts;
 using Farsight.RPC.Providers.Services;
 using FastEndpoints;
@@ -8,10 +9,10 @@ public sealed class GetRealTimeProvidersEndpoint(ProviderQueryService providerQu
 {
     public override void Configure()
     {
-        Get("/api/providers/{Environment}/{Application}/{Chain}/realtime");
+        Get("/api/providers/{Chain}/realtime");
         Policies(AuthorizationPolicies.ViewerOnly);
     }
 
     public override async Task HandleAsync(GetProvidersRequest req, CancellationToken ct)
-        => await Send.OkAsync(await providerQueryService.GetRealTimeAsync(req.Environment, req.Application, req.Chain, ct), ct);
+        => await Send.OkAsync(await providerQueryService.GetRealTimeAsync(ApiClientClaimTypes.GetRequiredEnvironment(User), ApiClientClaimTypes.GetRequiredApplicationId(User), req.Chain, ct), ct);
 }

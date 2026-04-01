@@ -10,9 +10,9 @@ internal sealed class RpcProvidersClient(HttpClient client, RpcProvidersClientOp
     private readonly HttpClient _client = client;
     private readonly RpcProvidersClientOptions _options = options;
 
-    public async Task<GetProvidersResult> GetProvidersAsync(HostEnvironment environment, string application, string chain, CancellationToken cancellationToken = default)
+    public async Task<GetProvidersResult> GetProvidersAsync(string chain, CancellationToken cancellationToken = default)
     {
-        var response = await _client.GetAsync($"/api/providers/{environment}/{Uri.EscapeDataString(application)}/{Uri.EscapeDataString(chain)}", cancellationToken);
+        var response = await _client.GetAsync($"/api/providers/{Uri.EscapeDataString(chain)}", cancellationToken);
 
         switch (response.StatusCode)
         {
@@ -30,9 +30,9 @@ internal sealed class RpcProvidersClient(HttpClient client, RpcProvidersClientOp
         }
     }
 
-    public async Task<GetRealTimeResult> GetRealTimeAsync(HostEnvironment environment, string application, string chain, CancellationToken cancellationToken = default)
+    public async Task<GetRealTimeResult> GetRealTimeAsync(string chain, CancellationToken cancellationToken = default)
     {
-        var response = await _client.GetAsync($"/api/providers/{environment}/{Uri.EscapeDataString(application)}/{Uri.EscapeDataString(chain)}/realtime", cancellationToken);
+        var response = await _client.GetAsync($"/api/providers/{Uri.EscapeDataString(chain)}/realtime", cancellationToken);
 
         switch (response.StatusCode)
         {
@@ -50,9 +50,9 @@ internal sealed class RpcProvidersClient(HttpClient client, RpcProvidersClientOp
         }
     }
 
-    public async Task<GetArchiveResult> GetArchiveAsync(HostEnvironment environment, string application, string chain, CancellationToken cancellationToken = default)
+    public async Task<GetArchiveResult> GetArchiveAsync(string chain, CancellationToken cancellationToken = default)
     {
-        var response = await _client.GetAsync($"/api/providers/{environment}/{Uri.EscapeDataString(application)}/{Uri.EscapeDataString(chain)}/archive", cancellationToken);
+        var response = await _client.GetAsync($"/api/providers/{Uri.EscapeDataString(chain)}/archive", cancellationToken);
 
         switch (response.StatusCode)
         {
@@ -70,9 +70,9 @@ internal sealed class RpcProvidersClient(HttpClient client, RpcProvidersClientOp
         }
     }
 
-    public async Task<GetTracingResult> GetTracingAsync(HostEnvironment environment, string application, string chain, CancellationToken cancellationToken = default)
+    public async Task<GetTracingResult> GetTracingAsync(string chain, CancellationToken cancellationToken = default)
     {
-        var response = await _client.GetAsync($"/api/providers/{environment}/{Uri.EscapeDataString(application)}/{Uri.EscapeDataString(chain)}/tracing", cancellationToken);
+        var response = await _client.GetAsync($"/api/providers/{Uri.EscapeDataString(chain)}/tracing", cancellationToken);
 
         switch (response.StatusCode)
         {

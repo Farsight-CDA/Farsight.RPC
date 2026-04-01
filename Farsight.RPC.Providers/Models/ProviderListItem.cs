@@ -10,10 +10,9 @@ public sealed record ProviderListItem(
     string Chain,
     string Provider,
     Uri Address,
-    int Priority,
-    bool IsEnabled,
     ulong? IndexerStepSize,
     ulong? DexIndexStepSize,
     ulong? IndexBlockOffset,
     TracingMode? TracingMode,
-    DateTimeOffset UpdatedUtc);
+    DateTimeOffset UpdatedUtc,
+    DateTimeOffset? ProbedUtc);

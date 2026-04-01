@@ -3,6 +3,7 @@ using System;
 using Farsight.RPC.Providers.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Farsight.RPC.Providers.Data.Migrations
 {
     [DbContext(typeof(RpcProvidersDbContext))]
-    partial class RpcProvidersDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260401151555_InitialReset")]
+    partial class InitialReset
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

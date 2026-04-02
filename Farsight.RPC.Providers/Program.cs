@@ -7,6 +7,7 @@ using Farsight.RPC.Providers.Validation;
 using FastEndpoints;
 using FluentValidation;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 
@@ -21,6 +22,13 @@ builder.Services.AddRazorPages(options =>
 });
 builder.Services.AddFastEndpoints();
 builder.Services.AddHttpClient();
+var dataProtectionKeysDirectory = builder.Configuration["DataProtection:KeysDirectory"]
+    ?? Environment.GetEnvironmentVariable("DataProtection__KeysDirectory")
+    ?? "/var/lib/farsight-rpc-providers/data-protection";
+Directory.CreateDirectory(dataProtectionKeysDirectory);
+builder.Services.AddDataProtection()
+    .SetApplicationName("Farsight.RPC.Providers")
+    .PersistKeysToFileSystem(new DirectoryInfo(dataProtectionKeysDirectory));
 builder.Services.AddDbContextFactory<RpcProvidersDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 builder.Services.AddScoped<IValidator<ProviderEditModel>, ProviderEditModelValidator>();
@@ -57,6 +65,10 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 });
 
 var app = builder.Build();
+var hasHttpsPortConfigured = !string.IsNullOrWhiteSpace(builder.Configuration["HTTPS_PORTS"])
+    || !string.IsNullOrWhiteSpace(builder.Configuration["ASPNETCORE_HTTPS_PORTS"])
+    || !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("HTTPS_PORTS"))
+    || !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("ASPNETCORE_HTTPS_PORTS"));
 
 if (!app.Environment.IsDevelopment())
 {
@@ -65,8 +77,16 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseForwardedHeaders();
-app.UseHttpsRedirection();
-app.UseStaticFiles();
+if (hasHttpsPortConfigured)
+{
+    app.UseHttpsRedirection();
+}
+
+if (!string.IsNullOrWhiteSpace(app.Environment.WebRootPath) && Directory.Exists(app.Environment.WebRootPath))
+{
+    app.UseStaticFiles();
+}
+
 app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();

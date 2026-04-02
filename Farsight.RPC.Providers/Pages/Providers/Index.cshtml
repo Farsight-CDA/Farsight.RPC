@@ -11,7 +11,7 @@
 </div>
 
 <div class="panel">
-    <h1>Provider Rows</h1>
+    <h1>RPC Endpoints</h1>
     <form method="get" class="grid">
         <div class="field">
             <label>Application</label>
@@ -43,9 +43,9 @@
         </div>
     </form>
     <div class="actions" style="margin-top: 1rem;">
-        <a class="button" asp-page="/Providers/Edit" asp-route-type="RealTime" asp-route-applicationId="@Model.Query.ApplicationId" asp-route-chainId="@Model.Query.ChainId" asp-route-environment="@Model.Query.Environment">Add RealTime</a>
-        <a class="button" asp-page="/Providers/Edit" asp-route-type="Archive" asp-route-applicationId="@Model.Query.ApplicationId" asp-route-chainId="@Model.Query.ChainId" asp-route-environment="@Model.Query.Environment">Add Archive</a>
-        <a class="button" asp-page="/Providers/Edit" asp-route-type="Tracing" asp-route-applicationId="@Model.Query.ApplicationId" asp-route-chainId="@Model.Query.ChainId" asp-route-environment="@Model.Query.Environment">Add Tracing</a>
+        <a class="button" asp-page="/Providers/Edit" asp-route-type="RealTime" asp-route-applicationId="@Model.Query.ApplicationId" asp-route-chainId="@Model.Query.ChainId" asp-route-environment="@Model.Query.Environment">Add Realtime RPC Endpoint</a>
+        <a class="button" asp-page="/Providers/Edit" asp-route-type="Archive" asp-route-applicationId="@Model.Query.ApplicationId" asp-route-chainId="@Model.Query.ChainId" asp-route-environment="@Model.Query.Environment">Add Archive RPC Endpoint</a>
+        <a class="button" asp-page="/Providers/Edit" asp-route-type="Tracing" asp-route-applicationId="@Model.Query.ApplicationId" asp-route-chainId="@Model.Query.ChainId" asp-route-environment="@Model.Query.Environment">Add Tracing RPC Endpoint</a>
         <a class="button secondary" asp-page="/Applications/Index">Applications</a>
         <a class="button secondary" asp-page="/Chains/Index">Chains</a>
         <a class="button secondary" asp-page="/ProvidersAdmin/Index">Providers</a>
@@ -77,7 +77,7 @@
             <td>@row.Address</td>
             <td>@row.UpdatedUtc</td>
             <td>@row.ProbedUtc</td>
-            <td><a class="button secondary" asp-page="/Providers/Edit" asp-route-type="@row.Type" asp-route-id="@row.Id">Edit</a></td>
+            <td><a class="button secondary" asp-page="/Providers/Edit" asp-route-type="@row.Type" asp-route-id="@row.Id">Edit RPC Endpoint</a></td>
         </tr>
     }
     </tbody>

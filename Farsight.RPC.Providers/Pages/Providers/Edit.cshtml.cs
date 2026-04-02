@@ -72,7 +72,7 @@ public sealed class EditModel(
         }
 
         await providerAdminService.SaveAsync(Input, cancellationToken);
-        StatusMessage = "Provider row saved.";
+        StatusMessage = "RPC endpoint saved.";
         return RedirectToPage("/Providers/Index");
     }
 

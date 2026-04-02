@@ -98,7 +98,7 @@
                 </div>
             }
             
-            <!-- Add Provider Button or Inline Form -->
+            <!-- Add RPC Endpoint Button or Inline Form -->
             @if (!Model.ShowAddForm)
             {
                 <div class="actions" style="margin-bottom: 1rem;">
@@ -106,7 +106,7 @@
                        asp-route-selectedApplicationId="@Model.SelectedApplicationId"
                        asp-route-selectedChainId="@Model.SelectedChainId"
                        asp-route-selectedEnvironment="@Model.SelectedEnvironment"
-                       asp-route-showAddForm="true">+ Add Provider</a>
+                       asp-route-showAddForm="true">+ Add RPC Endpoint</a>
                 </div>
             }
             else
@@ -147,7 +147,7 @@
 
             @if (Model.Providers.Count == 0 && !Model.ShowAddForm)
             {
-                <div class="message info">No providers configured for this selection.</div>
+                <div class="message info">No RPC endpoints configured for this selection.</div>
             }
             else if (Model.Providers.Count > 0)
             {
@@ -182,7 +182,7 @@
                                             asp-route-type="@provider.Type"
                                             class="button secondary" 
                                             style="padding: 0.4rem 0.6rem; font-size: 0.875rem;"
-                                            onclick="return confirm('Probe this provider?');">
+                                            onclick="return confirm('Probe this RPC endpoint?');">
                                         Probe
                                     </button>
                                 </form>
@@ -196,7 +196,7 @@
                                             asp-route-type="@provider.Type"
                                             class="button danger" 
                                             style="padding: 0.4rem 0.6rem; font-size: 0.875rem;"
-                                            onclick="return confirm('Are you sure you want to delete this provider? This action cannot be undone.');">
+                                            onclick="return confirm('Are you sure you want to delete this RPC endpoint? This action cannot be undone.');">
                                         Remove
                                     </button>
                                 </form>

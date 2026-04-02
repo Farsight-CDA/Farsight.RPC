@@ -36,22 +36,19 @@ builder.Services.AddAuthentication(options =>
         options.AccessDeniedPath = "/Login";
     })
     .AddScheme<ApiKeyAuthenticationOptions, ApiKeyAuthenticationHandler>(ApiKeyAuthenticationDefaults.Scheme, _ => { });
-builder.Services.AddAuthorization(options =>
-{
-    options.AddPolicy(AuthorizationPolicies.AdminOnly, policy =>
+builder.Services.AddAuthorizationBuilder()
+    .AddPolicy(AuthorizationPolicies.AdminOnly, policy =>
     {
         policy.AddAuthenticationSchemes(CookieAuthenticationDefaults.AuthenticationScheme);
         policy.RequireAuthenticatedUser();
         policy.RequireRole(AppRoles.Admin);
-    });
-
-    options.AddPolicy(AuthorizationPolicies.ViewerOnly, policy =>
+    })
+    .AddPolicy(AuthorizationPolicies.ViewerOnly, policy =>
     {
         policy.AddAuthenticationSchemes(ApiKeyAuthenticationDefaults.Scheme);
         policy.RequireAuthenticatedUser();
         policy.RequireRole(AppRoles.Viewer);
     });
-});
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
     options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedHost;

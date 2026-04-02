@@ -51,6 +51,21 @@
         .message.success { background: #14532d; }
         .message.error { background: #7f1d1d; }
         .message.info { background: #1e3a8a; }
+        .validation-message {
+            display: block;
+            margin-top: 0.25rem;
+            color: #fca5a5;
+            font-size: 0.875rem;
+        }
+        .validation-message:empty {
+            display: none;
+        }
+        .input-validation-error,
+        .input-validation-error:focus {
+            border-color: #f87171;
+            outline: none;
+            box-shadow: 0 0 0 1px #f87171;
+        }
         
         /* Stepper Styles */
         .stepper { 

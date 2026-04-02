@@ -33,9 +33,16 @@ public partial class RpcProbeService : Singleton
         client.Timeout = TimeSpan.FromSeconds(10);
         using var request = new HttpRequestMessage(HttpMethod.Get, uri);
         using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+        var endpointType = type switch
+        {
+            RpcEndpointType.RealTime => "Realtime RPC endpoint",
+            RpcEndpointType.Archive => "Archive RPC endpoint",
+            RpcEndpointType.Tracing => "Tracing RPC endpoint",
+            _ => "RPC endpoint"
+        };
         var message = response.IsSuccessStatusCode
-            ? $"{type} endpoint responded with HTTP {(int)response.StatusCode}."
-            : $"{type} endpoint responded with HTTP {(int)response.StatusCode}. Save is still allowed.";
+            ? $"{endpointType} responded with HTTP {(int)response.StatusCode} during probe."
+            : $"{endpointType} returned HTTP {(int)response.StatusCode} during probe. You can still save this RPC endpoint.";
         return new ProbeResult(response.IsSuccessStatusCode, message, null);
     }
 
@@ -46,6 +53,13 @@ public partial class RpcProbeService : Singleton
         timeoutCts.CancelAfter(TimeSpan.FromSeconds(10));
         await socket.ConnectAsync(uri, timeoutCts.Token);
         await socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "probe", timeoutCts.Token);
-        return new ProbeResult(true, $"{type} websocket endpoint accepted a connection.", null);
+        var endpointType = type switch
+        {
+            RpcEndpointType.RealTime => "Realtime RPC endpoint",
+            RpcEndpointType.Archive => "Archive RPC endpoint",
+            RpcEndpointType.Tracing => "Tracing RPC endpoint",
+            _ => "RPC endpoint"
+        };
+        return new ProbeResult(true, $"{endpointType} accepted a websocket connection.", null);
     }
 }

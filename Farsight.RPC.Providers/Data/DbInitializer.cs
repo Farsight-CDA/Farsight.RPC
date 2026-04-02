@@ -9,7 +9,7 @@ namespace Farsight.RPC.Providers.Data;
 public partial class DbInitializer : Singleton
 {
     [Inject] private readonly IDbContextFactory<RpcProvidersDbContext> _dbContextFactory;
-    [Inject] private readonly BootstrapAdminOptions _adminOptions;
+    [Inject] private readonly AdminLoginOptions _adminLoginOptions;
 
     protected override async Task InitializeAsync(CancellationToken cancellationToken)
     {
@@ -32,29 +32,44 @@ public partial class DbInitializer : Singleton
 
     private async Task SeedAdminAsync(RpcProvidersDbContext dbContext, CancellationToken cancellationToken)
     {
-        if (await dbContext.Users.AnyAsync(cancellationToken))
-        {
-            return;
-        }
-
         var adminRole = await dbContext.Roles.SingleAsync(x => x.Name == AppRoles.Admin, cancellationToken);
-        var user = new UserEntity
+        var user = await dbContext.Users
+            .Include(x => x.UserRoles)
+            .SingleOrDefaultAsync(x => x.UserName == _adminLoginOptions.User, cancellationToken);
+
+        var isNewUser = user is null;
+        user ??= new UserEntity
         {
             Id = Guid.NewGuid(),
-            UserName = _adminOptions.UserName,
+            UserName = _adminLoginOptions.User,
             IsEnabled = true
         };
-        user.PasswordHash = new PasswordHasher<UserEntity>().HashPassword(user, _adminOptions.Password);
-        user.UserRoles.Add(new UserRoleEntity
-        {
-            UserId = user.Id,
-            RoleId = adminRole.Id,
-            User = user,
-            Role = adminRole
-        });
 
-        dbContext.Users.Add(user);
+        user.UserName = _adminLoginOptions.User;
+        user.IsEnabled = true;
+        user.PasswordHash = new PasswordHasher<UserEntity>().HashPassword(user, _adminLoginOptions.Password);
+
+        if (!user.UserRoles.Any(x => x.RoleId == adminRole.Id))
+        {
+            user.UserRoles.Add(new UserRoleEntity
+            {
+                UserId = user.Id,
+                RoleId = adminRole.Id,
+                User = user,
+                Role = adminRole
+            });
+        }
+
+        if (isNewUser)
+        {
+            dbContext.Users.Add(user);
+        }
+
         await dbContext.SaveChangesAsync(cancellationToken);
-        _logger.LogInformation("Bootstrapped admin user '{UserName}'.", user.UserName);
+        _logger.LogInformation(
+            isNewUser
+                ? "Created configured admin user '{UserName}'."
+                : "Updated configured admin user '{UserName}'.",
+            user.UserName);
     }
 }

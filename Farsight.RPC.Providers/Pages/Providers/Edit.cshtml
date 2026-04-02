@@ -2,7 +2,7 @@
 @model Farsight.RPC.Providers.Pages.Providers.EditModel
 @{
     Layout = "/Pages/Shared/_Layout.cshtml";
-    ViewData["Title"] = Model.Input.Id.HasValue ? "Edit Provider" : "New Provider";
+    ViewData["Title"] = Model.Input.Id.HasValue ? "Edit RPC Endpoint" : "New RPC Endpoint";
     ViewData["ActivePage"] = "Home";
 }
 
@@ -14,7 +14,7 @@
 </div>
 
 <div class="panel">
-    <h2 style="margin-bottom: 1rem;">@(Model.Input.Id.HasValue ? "Edit Provider" : "New Provider")</h2>
+    <h2 style="margin-bottom: 1rem;">@(Model.Input.Id.HasValue ? "Edit RPC Endpoint" : "New RPC Endpoint")</h2>
     
     @if (!string.IsNullOrWhiteSpace(Model.StatusMessage))
     {
@@ -26,7 +26,10 @@
     }
 
     <form method="post">
-        <div asp-validation-summary="All" class="message error" style="margin-bottom: 1rem;"></div>
+        @if (!ViewContext.ModelState.IsValid)
+        {
+            <div asp-validation-summary="All" class="message error" style="margin-bottom: 1rem;"></div>
+        }
         
         <input asp-for="Input.Id" type="hidden" />
         
@@ -34,7 +37,7 @@
         <div class="field" style="margin-bottom: 1rem;">
             <label asp-for="Input.Address" style="display: block; margin-bottom: 0.25rem; color: #9ca3af; font-size: 0.875rem;">Address</label>
             <input asp-for="Input.Address" style="width: 100%; font-family: monospace;" placeholder="https://..." />
-            <span asp-validation-for="Input.Address" class="message error" style="margin-top: 0.25rem;"></span>
+            <span asp-validation-for="Input.Address" class="validation-message"></span>
         </div>
 
         <!-- Provider & Type Row -->
@@ -48,7 +51,7 @@
                         <option value="@item.Id">@item.Name</option>
                     }
                 </select>
-                <span asp-validation-for="Input.ProviderId" class="message error" style="margin-top: 0.25rem;"></span>
+                <span asp-validation-for="Input.ProviderId" class="validation-message"></span>
             </div>
             <div class="field" style="flex: 1;">
                 <label style="display: block; margin-bottom: 0.25rem; color: #9ca3af; font-size: 0.875rem;">Type</label>
@@ -67,7 +70,7 @@
                         <option value="@item.Id">@item.Name</option>
                     }
                 </select>
-                <span asp-validation-for="Input.ApplicationId" class="message error" style="margin-top: 0.25rem;"></span>
+                <span asp-validation-for="Input.ApplicationId" class="validation-message"></span>
             </div>
             <div class="field" style="flex: 2;">
                 <label style="display: block; margin-bottom: 0.25rem; color: #9ca3af; font-size: 0.875rem;">Chain</label>
@@ -78,7 +81,7 @@
                         <option value="@item.Id">@item.Name</option>
                     }
                 </select>
-                <span asp-validation-for="Input.ChainId" class="message error" style="margin-top: 0.25rem;"></span>
+                <span asp-validation-for="Input.ChainId" class="validation-message"></span>
             </div>
             <div class="field" style="flex: 1;">
                 <label style="display: block; margin-bottom: 0.25rem; color: #9ca3af; font-size: 0.875rem;">Environment</label>
@@ -95,17 +98,17 @@
                     <div class="field" style="flex: 1;">
                         <label style="display: block; margin-bottom: 0.25rem; color: #6b7280; font-size: 0.75rem;">Indexer Step</label>
                         <input asp-for="Input.IndexerStepSize" type="number" style="width: 100%;" />
-                        <span asp-validation-for="Input.IndexerStepSize" class="message error" style="margin-top: 0.25rem;"></span>
+                        <span asp-validation-for="Input.IndexerStepSize" class="validation-message"></span>
                     </div>
                     <div class="field" style="flex: 1;">
                         <label style="display: block; margin-bottom: 0.25rem; color: #6b7280; font-size: 0.75rem;">DEX Step</label>
                         <input asp-for="Input.DexIndexStepSize" type="number" style="width: 100%;" />
-                        <span asp-validation-for="Input.DexIndexStepSize" class="message error" style="margin-top: 0.25rem;"></span>
+                        <span asp-validation-for="Input.DexIndexStepSize" class="validation-message"></span>
                     </div>
                     <div class="field" style="flex: 1;">
                         <label style="display: block; margin-bottom: 0.25rem; color: #6b7280; font-size: 0.75rem;">Block Offset</label>
                         <input asp-for="Input.IndexBlockOffset" type="number" style="width: 100%;" />
-                        <span asp-validation-for="Input.IndexBlockOffset" class="message error" style="margin-top: 0.25rem;"></span>
+                        <span asp-validation-for="Input.IndexBlockOffset" class="validation-message"></span>
                     </div>
                 </div>
             </div>
@@ -119,7 +122,7 @@
                 <div class="field">
                     <label style="display: block; margin-bottom: 0.25rem; color: #6b7280; font-size: 0.75rem;">Tracing Mode</label>
                     <select asp-for="Input.TracingMode" asp-items="Model.TracingModeItems" style="width: 100%;"></select>
-                    <span asp-validation-for="Input.TracingMode" class="message error" style="margin-top: 0.25rem;"></span>
+                    <span asp-validation-for="Input.TracingMode" class="validation-message"></span>
                 </div>
             </div>
         }
@@ -130,7 +133,7 @@
             <button class="button secondary" type="submit" asp-page-handler="Probe" style="min-width: 100px;">Probe</button>
             @if (Model.Input.Id.HasValue)
             {
-                <button class="button danger" type="submit" asp-page-handler="Delete" onclick="return confirm('Permanently delete this provider?');" style="margin-left: auto;">Delete</button>
+                <button class="button danger" type="submit" asp-page-handler="Delete" onclick="return confirm('Permanently delete this RPC endpoint?');" style="margin-left: auto;">Delete</button>
             }
         </div>
     </form>

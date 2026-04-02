@@ -4,19 +4,19 @@ using FluentValidation;
 namespace Farsight.RPC.Providers;
 
 [ConfigOption<Validator>(SectionName = SectionName)]
-public sealed class BootstrapAdminOptions
+public sealed class AdminLoginOptions
 {
-    public const string SectionName = "BootstrapAdmin";
+    public const string SectionName = "AdminLogin";
 
-    public string UserName { get; set; } = "admin";
+    public string User { get; set; } = "admin";
 
     public string Password { get; set; } = "change-me";
 
-    public sealed class Validator : AbstractValidator<BootstrapAdminOptions>
+    public sealed class Validator : AbstractValidator<AdminLoginOptions>
     {
         public Validator()
         {
-            RuleFor(x => x.UserName).NotEmpty();
+            RuleFor(x => x.User).NotEmpty();
             RuleFor(x => x.Password).NotEmpty();
         }
     }

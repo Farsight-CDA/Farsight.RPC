@@ -371,7 +371,7 @@ namespace Farsight.RPC.Providers.Data.Migrations
                     b.HasOne("Farsight.RPC.Providers.Data.Entities.ChainEntity", "Chain")
                         .WithMany()
                         .HasForeignKey("ChainId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("Farsight.RPC.Providers.Data.Entities.ProviderEntity", "Provider")
@@ -409,7 +409,7 @@ namespace Farsight.RPC.Providers.Data.Migrations
                     b.HasOne("Farsight.RPC.Providers.Data.Entities.ChainEntity", "Chain")
                         .WithMany()
                         .HasForeignKey("ChainId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("Farsight.RPC.Providers.Data.Entities.ProviderEntity", "Provider")
@@ -436,7 +436,7 @@ namespace Farsight.RPC.Providers.Data.Migrations
                     b.HasOne("Farsight.RPC.Providers.Data.Entities.ChainEntity", "Chain")
                         .WithMany()
                         .HasForeignKey("ChainId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("Farsight.RPC.Providers.Data.Entities.ProviderEntity", "Provider")

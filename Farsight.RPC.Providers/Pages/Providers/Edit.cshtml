@@ -22,7 +22,7 @@
     }
     @if (!string.IsNullOrWhiteSpace(Model.ProbeMessage))
     {
-        <div class="message @(Model.ProbeSucceeded ? "success" : "info")" style="margin-bottom: 1rem;">@Model.ProbeMessage</div>
+        <div class="message @(Model.ProbeSucceeded ? "success" : "error")" style="margin-bottom: 1rem;">@Model.ProbeMessage</div>
     }
 
     <form method="post">

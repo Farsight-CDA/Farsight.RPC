@@ -71,9 +71,20 @@ public sealed class EditModel(
             return Page();
         }
 
-        await providerAdminService.SaveAsync(Input, cancellationToken);
-        StatusMessage = "RPC endpoint saved.";
-        return RedirectToPage("/Providers/Index");
+        try
+        {
+            await providerAdminService.SaveAsync(Input, cancellationToken);
+            StatusMessage = "RPC endpoint saved.";
+            return RedirectToPage("/Providers/Index");
+        }
+        catch (RpcEndpointSchemaOutOfDateException ex)
+        {
+            ModelState.AddModelError(string.Empty, ex.Message);
+            StatusMessage = ex.Message;
+            StatusIsError = true;
+            await LoadSuggestionsAsync(cancellationToken);
+            return Page();
+        }
     }
 
     public async Task<IActionResult> OnPostProbeAsync(CancellationToken cancellationToken)
@@ -87,7 +98,18 @@ public sealed class EditModel(
         }
 
         var wasNew = !Input.Id.HasValue;
-        await providerAdminService.SaveAsync(Input, cancellationToken);
+        try
+        {
+            await providerAdminService.SaveAsync(Input, cancellationToken);
+        }
+        catch (RpcEndpointSchemaOutOfDateException ex)
+        {
+            ModelState.AddModelError(string.Empty, ex.Message);
+            StatusMessage = ex.Message;
+            StatusIsError = true;
+            await LoadSuggestionsAsync(cancellationToken);
+            return Page();
+        }
 
         if (wasNew)
         {

@@ -112,7 +112,6 @@ public sealed class RpcProvidersDbContext(DbContextOptions<RpcProvidersDbContext
             entity.HasOne(x => x.Application).WithMany().HasForeignKey(x => x.ApplicationId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne(x => x.Chain).WithMany().HasForeignKey(x => x.ChainId).OnDelete(DeleteBehavior.Cascade);
             entity.HasOne(x => x.Provider).WithMany().HasForeignKey(x => x.ProviderId).OnDelete(DeleteBehavior.Restrict);
-            entity.HasIndex(x => new { x.Environment, x.ApplicationId, x.ChainId, x.ProviderId, x.Address }).IsUnique();
             entity.HasIndex(x => new { x.ApplicationId, x.Environment, x.ChainId });
             extra?.Invoke(entity);
         });

@@ -1,7 +1,9 @@
 using Farsight.Common;
 using Farsight.RPC.Providers.Contracts;
 using Farsight.RPC.Providers.Models;
+using System.Net;
 using System.Net.WebSockets;
+using System.Text;
 
 namespace Farsight.RPC.Providers.Services;
 
@@ -23,7 +25,7 @@ public partial class RpcProbeService : Singleton
         }
         catch (Exception ex)
         {
-            return new ProbeResult(false, ex.Message, null);
+            return new ProbeResult(false, BuildFailureMessage(ex), null);
         }
     }
 
@@ -42,7 +44,7 @@ public partial class RpcProbeService : Singleton
         };
         var message = response.IsSuccessStatusCode
             ? $"{endpointType} responded with HTTP {(int)response.StatusCode} during probe."
-            : $"{endpointType} returned HTTP {(int)response.StatusCode} during probe. You can still save this RPC endpoint.";
+            : await BuildHttpFailureMessageAsync(endpointType, response, cancellationToken);
         return new ProbeResult(response.IsSuccessStatusCode, message, null);
     }
 
@@ -61,5 +63,62 @@ public partial class RpcProbeService : Singleton
             _ => "RPC endpoint"
         };
         return new ProbeResult(true, $"{endpointType} accepted a websocket connection.", null);
+    }
+
+    private static async Task<string> BuildHttpFailureMessageAsync(string endpointType, HttpResponseMessage response, CancellationToken cancellationToken)
+    {
+        var message = new StringBuilder($"{endpointType} returned HTTP {(int)response.StatusCode}");
+        if (!string.IsNullOrWhiteSpace(response.ReasonPhrase))
+        {
+            message.Append(' ').Append(response.ReasonPhrase);
+        }
+
+        message.Append(" during probe. You can still save this RPC endpoint.");
+
+        if (response.Content is null)
+        {
+            return message.ToString();
+        }
+
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+        if (string.IsNullOrWhiteSpace(body))
+        {
+            return message.ToString();
+        }
+
+        message.AppendLine();
+        message.AppendLine();
+        message.AppendLine("Response body:");
+        message.Append(TrimForDisplay(body));
+        return message.ToString();
+    }
+
+    private static string BuildFailureMessage(Exception ex)
+    {
+        var message = ex switch
+        {
+            OperationCanceledException => "Probe timed out after 10 seconds.",
+            WebSocketException websocketEx => $"WebSocket probe failed: {websocketEx.Message}",
+            HttpRequestException httpRequestEx when httpRequestEx.StatusCode is HttpStatusCode statusCode
+                => $"HTTP probe failed with status {(int)statusCode} {statusCode}: {httpRequestEx.Message}",
+            HttpRequestException httpRequestEx => $"HTTP probe failed: {httpRequestEx.Message}",
+            _ => ex.Message
+        };
+
+        if (ex.InnerException is null)
+        {
+            return message;
+        }
+
+        return $"{message}{Environment.NewLine}Inner error: {ex.InnerException.Message}";
+    }
+
+    private static string TrimForDisplay(string value)
+    {
+        const int maxLength = 2000;
+        var trimmed = value.Trim();
+        return trimmed.Length <= maxLength
+            ? trimmed
+            : $"{trimmed[..maxLength]}...";
     }
 }

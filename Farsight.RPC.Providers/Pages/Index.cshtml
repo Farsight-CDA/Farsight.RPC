@@ -91,6 +91,10 @@
         <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #374151;">
             
             <!-- Probe Result Message -->
+            @if (!string.IsNullOrEmpty(Model.StatusMessage))
+            {
+                <div class="message @(Model.StatusIsError ? "error" : "success")" style="margin-bottom: 1rem;">@Model.StatusMessage</div>
+            }
             @if (!string.IsNullOrEmpty(Model.ProbeMessage))
             {
                 <div class="message @(Model.ProbeSucceeded ? "success" : "error")" style="margin-bottom: 1rem;">
@@ -113,6 +117,10 @@
             {
                 <div class="panel" style="background: #111827; margin-bottom: 1rem;">
                     <form method="post" asp-page-handler="AddProvider">
+                        @if (!ViewContext.ModelState.IsValid)
+                        {
+                            <div asp-validation-summary="All" class="message error" style="margin-bottom: 1rem;"></div>
+                        }
                         <input type="hidden" asp-for="SelectedApplicationId" />
                         <input type="hidden" asp-for="SelectedChainId" />
                         <input type="hidden" asp-for="SelectedEnvironment" />
@@ -141,6 +149,8 @@
                                asp-route-selectedChainId="@Model.SelectedChainId"
                                asp-route-selectedEnvironment="@Model.SelectedEnvironment">Cancel</a>
                         </div>
+                        <span asp-validation-for="NewProviderId" class="validation-message"></span>
+                        <span asp-validation-for="NewAddress" class="validation-message"></span>
                     </form>
                 </div>
             }

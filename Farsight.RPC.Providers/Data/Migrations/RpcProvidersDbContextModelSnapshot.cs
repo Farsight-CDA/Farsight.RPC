@@ -126,9 +126,6 @@ namespace Farsight.RPC.Providers.Data.Migrations
 
                     b.HasIndex("ApplicationId", "Environment", "ChainId");
 
-                    b.HasIndex("Environment", "ApplicationId", "ChainId", "ProviderId", "Address")
-                        .IsUnique();
-
                     b.ToTable("rpc_archive_endpoints", null, t =>
                         {
                             t.HasCheckConstraint("CK_rpc_archive_endpoints_Address_Scheme", "\"Address\" ~* '^(http|https|ws|wss)://'");
@@ -230,9 +227,6 @@ namespace Farsight.RPC.Providers.Data.Migrations
 
                     b.HasIndex("ApplicationId", "Environment", "ChainId");
 
-                    b.HasIndex("Environment", "ApplicationId", "ChainId", "ProviderId", "Address")
-                        .IsUnique();
-
                     b.ToTable("rpc_realtime_endpoints", null, t =>
                         {
                             t.HasCheckConstraint("CK_rpc_realtime_endpoints_Address_Scheme", "\"Address\" ~* '^(http|https|ws|wss)://'");
@@ -299,9 +293,6 @@ namespace Farsight.RPC.Providers.Data.Migrations
                     b.HasIndex("ProviderId");
 
                     b.HasIndex("ApplicationId", "Environment", "ChainId");
-
-                    b.HasIndex("Environment", "ApplicationId", "ChainId", "ProviderId", "Address")
-                        .IsUnique();
 
                     b.ToTable("rpc_tracing_endpoints", null, t =>
                         {

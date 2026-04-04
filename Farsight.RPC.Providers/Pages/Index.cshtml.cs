@@ -1,13 +1,17 @@
 using Farsight.RPC.Providers.Contracts;
 using Farsight.RPC.Providers.Models;
 using Farsight.RPC.Providers.Services;
+using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace Farsight.RPC.Providers.Pages;
 
-public sealed class IndexModel(ProviderAdminService providerAdminService, RpcProbeService rpcProbeService) : PageModel
+public sealed class IndexModel(
+    ProviderAdminService providerAdminService,
+    RpcProbeService rpcProbeService,
+    IValidator<ProviderEditModel> providerEditModelValidator) : PageModel
 {
     // Selection state
     [BindProperty(SupportsGet = true)]
@@ -43,6 +47,10 @@ public sealed class IndexModel(ProviderAdminService providerAdminService, RpcPro
     public string? ProbeMessage { get; set; }
     public bool ProbeSucceeded { get; set; }
 
+    public string? StatusMessage { get; private set; }
+
+    public bool StatusIsError { get; private set; }
+
     // Computed properties for flow state
     public bool HasSelectedApplication => SelectedApplicationId.HasValue;
     public bool HasSelectedChain => SelectedChainId.HasValue;
@@ -60,7 +68,7 @@ public sealed class IndexModel(ProviderAdminService providerAdminService, RpcPro
         if (TempData["ProbeMessage"] is string probeMessage)
         {
             ProbeMessage = probeMessage;
-            ProbeSucceeded = TempData["ProbeSucceeded"] as bool? ?? false;
+            ProbeSucceeded = TempData["ProbeSucceeded"] is bool probeSucceeded && probeSucceeded;
         }
 
         if (CanShowResults)
@@ -120,7 +128,41 @@ public sealed class IndexModel(ProviderAdminService providerAdminService, RpcPro
             Address = NewAddress
         };
 
-        await providerAdminService.SaveAsync(model, cancellationToken);
+        var validationResult = await providerEditModelValidator.ValidateAsync(model, cancellationToken);
+        if (!validationResult.IsValid)
+        {
+            foreach (var error in validationResult.Errors)
+            {
+                var key = error.PropertyName switch
+                {
+                    nameof(ProviderEditModel.ProviderId) => nameof(NewProviderId),
+                    nameof(ProviderEditModel.Address) => nameof(NewAddress),
+                    nameof(ProviderEditModel.Type) => nameof(NewProviderType),
+                    _ => string.Empty
+                };
+                ModelState.AddModelError(key, error.ErrorMessage);
+            }
+
+            StatusMessage = "Please correct the validation issues.";
+            StatusIsError = true;
+            ShowAddForm = true;
+            await LoadPageDataAsync(cancellationToken);
+            return Page();
+        }
+
+        try
+        {
+            await providerAdminService.SaveAsync(model, cancellationToken);
+        }
+        catch (RpcEndpointSchemaOutOfDateException ex)
+        {
+            ModelState.AddModelError(string.Empty, ex.Message);
+            StatusMessage = ex.Message;
+            StatusIsError = true;
+            ShowAddForm = true;
+            await LoadPageDataAsync(cancellationToken);
+            return Page();
+        }
 
         // Redirect back to results with form hidden
         return RedirectToPage(new 
@@ -203,5 +245,25 @@ public sealed class IndexModel(ProviderAdminService providerAdminService, RpcPro
         await providerAdminService.DeleteAsync(type, id, cancellationToken);
 
         return RedirectToPage(new { SelectedApplicationId, SelectedChainId, SelectedEnvironment });
+    }
+
+    private async Task LoadPageDataAsync(CancellationToken cancellationToken)
+    {
+        Applications = await providerAdminService.GetApplicationsAsync(cancellationToken);
+        Chains = await providerAdminService.GetChainsAsync(cancellationToken);
+        ProvidersList = await providerAdminService.GetProvidersAsync(cancellationToken);
+
+        if (!CanShowResults)
+        {
+            Providers = [];
+            return;
+        }
+
+        Providers = await providerAdminService.GetListAsync(new ProviderSelectionModel
+        {
+            ApplicationId = SelectedApplicationId!.Value,
+            Environment = SelectedEnvironment!.Value,
+            ChainId = SelectedChainId!.Value
+        }, cancellationToken);
     }
 }

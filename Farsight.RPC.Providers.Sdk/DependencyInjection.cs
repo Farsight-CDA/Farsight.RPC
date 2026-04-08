@@ -5,46 +5,48 @@ namespace Farsight.RPC.Providers.Sdk;
 
 public static class DependencyInjection
 {
+    internal const string HttpClientName = "Farsight.RPC.Providers";
+
+    private sealed record RegistrationOptions(RpcProvidersOptions Options);
+
     extension(IHostApplicationBuilder builder)
     {
-        public IHostApplicationBuilder AddFarsightRpcProviders(Action<RpcProvidersOptions>? configureOptions = default)
-        {
-            builder.Services.AddSingleton(_ =>
-            {
-                var options = new RpcProvidersOptions();
-                configureOptions?.Invoke(options);
-                return RpcProvidersClientOptions.Create(options);
-            });
-            builder.Services.AddHttpClient<IRpcProvidersClient, RpcProvidersClient>((provider, client) =>
-            {
-                var options = provider.GetRequiredService<RpcProvidersClientOptions>();
-                client.BaseAddress = options.ApiUrl;
-                if (!string.IsNullOrWhiteSpace(options.ApiKey))
-                {
-                    client.DefaultRequestHeaders.Remove(options.ApiKeyHeaderName);
-                    client.DefaultRequestHeaders.Add(options.ApiKeyHeaderName, options.ApiKey);
-                }
-            });
-            return builder;
-        }
-        public IHostApplicationBuilder AddFarsightRpcProviders(Action<IServiceProvider, RpcProvidersOptions> configureOptions)
+        public IHostApplicationBuilder AddFarsightRpcProviders(Action<RpcProvidersOptions>? configureOptions = default, Action<IHttpClientBuilder>? configureClient = default)
+            => builder.AddFarsightRpcProviders((_, options) => configureOptions?.Invoke(options), configureClient);
+
+        public IHostApplicationBuilder AddFarsightRpcProviders(Action<IServiceProvider, RpcProvidersOptions> configureOptions, Action<IHttpClientBuilder>? configureClient = default)
         {
             builder.Services.AddSingleton(sp =>
             {
                 var options = new RpcProvidersOptions();
                 configureOptions(sp, options);
-                return RpcProvidersClientOptions.Create(options);
-            });
-            builder.Services.AddHttpClient<IRpcProvidersClient, RpcProvidersClient>((provider, client) =>
-            {
-                var options = provider.GetRequiredService<RpcProvidersClientOptions>();
-                client.BaseAddress = options.ApiUrl;
-                if (!string.IsNullOrWhiteSpace(options.ApiKey))
+
+                if(String.IsNullOrWhiteSpace(options.ApiKeyHeaderName))
                 {
-                    client.DefaultRequestHeaders.Remove(options.ApiKeyHeaderName);
+                    options.ApiKeyHeaderName = "X-Api-Key";
+                }
+
+                options.SerializerOptions ??= new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web);
+
+                return new RegistrationOptions(options);
+            });
+
+            var clientBuilder = builder.Services.AddHttpClient(HttpClientName, (sp, client) =>
+            {
+                var options = sp.GetRequiredService<RegistrationOptions>().Options;
+                client.BaseAddress = options.ApiUrl;
+
+                if(!String.IsNullOrWhiteSpace(options.ApiKey))
+                {
                     client.DefaultRequestHeaders.Add(options.ApiKeyHeaderName, options.ApiKey);
                 }
             });
+
+            configureClient?.Invoke(clientBuilder);
+
+            builder.Services.AddSingleton<IRpcProvidersClient>(sp =>
+                ActivatorUtilities.CreateInstance<RpcProvidersClient>(sp, sp.GetRequiredService<RegistrationOptions>().Options));
+
             return builder;
         }
     }

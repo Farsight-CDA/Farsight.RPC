@@ -1,3 +1,4 @@
+using Farsight.RPC.Providers.Contracts;
 using Farsight.RPC.Providers.Data;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.EntityFrameworkCore;
@@ -15,7 +16,7 @@ public sealed class ApiKeyAuthenticationHandler(
 {
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
     {
-        if (!Request.Headers.TryGetValue("X-Api-Key", out var values) || string.IsNullOrWhiteSpace(values.FirstOrDefault()))
+        if (!Request.Headers.TryGetValue(ApiKeyHeaders.ApiKey, out var values) || string.IsNullOrWhiteSpace(values.FirstOrDefault()))
         {
             return AuthenticateResult.NoResult();
         }

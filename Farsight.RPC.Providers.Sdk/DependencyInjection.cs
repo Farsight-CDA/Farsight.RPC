@@ -1,3 +1,4 @@
+using Farsight.RPC.Providers.Contracts;
 using Farsight.RPC.Providers.Sdk.Client;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -21,11 +22,6 @@ public static class DependencyInjection
                 var options = new RpcProvidersOptions();
                 configureOptions(sp, options);
 
-                if(String.IsNullOrWhiteSpace(options.ApiKeyHeaderName))
-                {
-                    options.ApiKeyHeaderName = "X-Api-Key";
-                }
-
                 options.SerializerOptions ??= new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web);
 
                 return new RegistrationOptions(options);
@@ -38,7 +34,7 @@ public static class DependencyInjection
 
                 if(!String.IsNullOrWhiteSpace(options.ApiKey))
                 {
-                    client.DefaultRequestHeaders.Add(options.ApiKeyHeaderName, options.ApiKey);
+                    client.DefaultRequestHeaders.Add(ApiKeyHeaders.ApiKey, options.ApiKey);
                 }
             });
 

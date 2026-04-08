@@ -15,11 +15,13 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <TargetsForTfmSpecificBuildOutput>$(TargetsForTfmSpecificBuildOutput);IncludeProjectReferenceOutputsInPackage</TargetsForTfmSpecificBuildOutput>
   </PropertyGroup>
 
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
-    <Compile Include="..\Farsight.RPC.Providers.Contracts\*.cs" Link="Contracts\%(Filename)%(Extension)" />
+    <ProjectReference Include="..\Farsight.RPC.Providers.Contracts\Farsight.RPC.Providers.Contracts.csproj"
+                      PrivateAssets="all" />
     <None Include="README.md" Pack="true" PackagePath="/" />
   </ItemGroup>
 
@@ -29,5 +31,11 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
   </ItemGroup>
+
+  <Target Name="IncludeProjectReferenceOutputsInPackage" DependsOnTargets="ResolveReferences">
+    <ItemGroup>
+      <BuildOutputInPackage Include="@(ReferenceCopyLocalPaths->WithMetadataValue('ReferenceSourceTarget', 'ProjectReference'))" />
+    </ItemGroup>
+  </Target>
 
 </Project>

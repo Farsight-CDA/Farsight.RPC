@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Authentication;
 
-namespace Farsight.RPC.Api.Auth;
+namespace Farsight.Rpc.Api.Auth;
 
 public sealed class ApiKeyAuthenticationOptions : AuthenticationSchemeOptions
 {

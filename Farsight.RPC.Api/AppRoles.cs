@@ -1,4 +1,4 @@
-namespace Farsight.RPC.Api;
+namespace Farsight.Rpc.Api;
 
 public static class AppRoles
 {

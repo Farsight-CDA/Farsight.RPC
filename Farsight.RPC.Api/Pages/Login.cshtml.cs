@@ -1,10 +1,10 @@
-using Farsight.RPC.Api.Services;
+using Farsight.Rpc.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.ComponentModel.DataAnnotations;
 
-namespace Farsight.RPC.Api.Pages;
+namespace Farsight.Rpc.Api.Pages;
 
 [AllowAnonymous]
 public sealed class LoginModel(AdminAuthenticationService authenticationService) : PageModel

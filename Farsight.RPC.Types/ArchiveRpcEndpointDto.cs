@@ -1,4 +1,4 @@
-namespace Farsight.RPC.Types;
+namespace Farsight.Rpc.Types;
 
 public sealed record ArchiveRpcEndpointDto(
     Guid Id,

@@ -1,8 +1,8 @@
-using Farsight.RPC.Api.Persistence.Entities;
+using Farsight.Rpc.Api.Persistence.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-namespace Farsight.RPC.Api.Persistence;
+namespace Farsight.Rpc.Api.Persistence;
 
 public sealed class RpcProvidersDbContext(DbContextOptions<RpcProvidersDbContext> options) : DbContext(options)
 {

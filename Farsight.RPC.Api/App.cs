@@ -1,8 +1,8 @@
-using Farsight.RPC.Api.Auth;
-using Farsight.RPC.Api.Configuration;
-using Farsight.RPC.Api.Models;
-using Farsight.RPC.Api.Persistence;
-using Farsight.RPC.Api.Validation;
+using Farsight.Rpc.Api.Auth;
+using Farsight.Rpc.Api.Configuration;
+using Farsight.Rpc.Api.Models;
+using Farsight.Rpc.Api.Persistence;
+using Farsight.Rpc.Api.Validation;
 using FastEndpoints;
 using FluentValidation;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -13,7 +13,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using System.Net;
 
-namespace Farsight.RPC.Api;
+namespace Farsight.Rpc.Api;
 
 public static class App
 {
@@ -50,7 +50,7 @@ public static class App
         builder.Services.AddHttpClient();
 
         builder.Services.AddSingleton<IConfigureOptions<KeyManagementOptions>, DataProtectionKeyManagementConfigurator>();
-        builder.Services.AddDataProtection().SetApplicationName("Farsight.RPC.Api");
+        builder.Services.AddDataProtection().SetApplicationName("Farsight.Rpc.Api");
 
         builder.Services.AddDbContextFactory<RpcProvidersDbContext>((provider, options) =>
             options.UseNpgsql(provider.GetRequiredService<DatabaseConfiguration>().PostgresConnectionString));

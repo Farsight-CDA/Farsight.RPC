@@ -1,4 +1,4 @@
-namespace Farsight.RPC.Api.Auth;
+namespace Farsight.Rpc.Api.Auth;
 
 public static class ApiKeyAuthenticationDefaults
 {

@@ -3,7 +3,7 @@ using System;
 
 #nullable disable
 
-namespace Farsight.RPC.Api.Persistence.Migrations;
+namespace Farsight.Rpc.Api.Persistence.Migrations;
 
 /// <inheritdoc />
 public partial class InitialReset : Migration

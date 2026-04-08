@@ -1,7 +1,7 @@
-using Farsight.RPC.Types;
+using Farsight.Rpc.Types;
 using System.Security.Claims;
 
-namespace Farsight.RPC.Api.Auth;
+namespace Farsight.Rpc.Api.Auth;
 
 public static class ApiClientClaimTypes
 {

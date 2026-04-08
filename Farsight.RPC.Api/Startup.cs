@@ -1,8 +1,8 @@
 using Farsight.Common.Startup;
-using Farsight.RPC.Api.Persistence;
+using Farsight.Rpc.Api.Persistence;
 using Microsoft.EntityFrameworkCore;
 
-namespace Farsight.RPC.Api;
+namespace Farsight.Rpc.Api;
 
 public partial class Startup : FarsightStartup
 {

@@ -1,4 +1,4 @@
-name: Publish Farsight.RPC.Sdk
+name: Publish Farsight.Rpc.Sdk
 
 on:
   push:
@@ -20,13 +20,13 @@ jobs:
           dotnet-version: "10.x"
 
       - name: Restore dependencies
-        run: dotnet restore Farsight.RPC.slnx
+        run: dotnet restore Farsight.Rpc.slnx
 
       - name: Calculate next package version
         id: version
         shell: bash
         run: |
-          project_path="Farsight.RPC.Sdk/Farsight.RPC.Sdk.csproj"
+          project_path="Farsight.Rpc.Sdk/Farsight.Rpc.Sdk.csproj"
           version="$(dotnet msbuild "$project_path" -nologo -getProperty:Version)"
 
           if [[ -z "$version" ]]; then
@@ -47,10 +47,10 @@ jobs:
           echo "version=$package_version" >> "$GITHUB_OUTPUT"
 
       - name: Build solution
-        run: dotnet build Farsight.RPC.slnx --configuration Release --no-restore -warnaserror
+        run: dotnet build Farsight.Rpc.slnx --configuration Release --no-restore -warnaserror
 
       - name: Pack SDK package
-        run: dotnet pack Farsight.RPC.Sdk/Farsight.RPC.Sdk.csproj --configuration Release --no-build --output ./nupkgs -p:Version=${{ steps.version.outputs.version }}
+        run: dotnet pack Farsight.Rpc.Sdk/Farsight.Rpc.Sdk.csproj --configuration Release --no-build --output ./nupkgs -p:Version=${{ steps.version.outputs.version }}
 
       - name: Publish to farsight-packages
         env:

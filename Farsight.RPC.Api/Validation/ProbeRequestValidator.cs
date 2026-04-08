@@ -1,7 +1,7 @@
-using Farsight.RPC.Api.Models;
+using Farsight.Rpc.Api.Models;
 using FluentValidation;
 
-namespace Farsight.RPC.Api.Validation;
+namespace Farsight.Rpc.Api.Validation;
 
 public sealed class ProbeRequestValidator : AbstractValidator<ProbeRequest>
 {

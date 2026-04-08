@@ -1,11 +1,11 @@
-using Farsight.RPC.Api.Auth;
-using Farsight.RPC.Types;
-using Farsight.RPC.Api.Persistence;
-using Farsight.RPC.Api.Services;
+using Farsight.Rpc.Api.Auth;
+using Farsight.Rpc.Types;
+using Farsight.Rpc.Api.Persistence;
+using Farsight.Rpc.Api.Services;
 using FastEndpoints;
 using Microsoft.EntityFrameworkCore;
 
-namespace Farsight.RPC.Api.Endpoints;
+namespace Farsight.Rpc.Api.Endpoints;
 
 public sealed class GetTracingProvidersEndpoint(RpcProvidersDbContext dbContext) : Endpoint<GetProvidersRequest, IReadOnlyList<TracingRpcEndpointDto>>
 {

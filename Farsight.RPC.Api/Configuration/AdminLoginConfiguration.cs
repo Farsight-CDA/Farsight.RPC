@@ -1,7 +1,7 @@
 using Farsight.Common;
 using FluentValidation;
 
-namespace Farsight.RPC.Api.Configuration;
+namespace Farsight.Rpc.Api.Configuration;
 
 [ConfigOption<Validator>(SectionName = SECTION_NAME)]
 public sealed class AdminLoginConfiguration

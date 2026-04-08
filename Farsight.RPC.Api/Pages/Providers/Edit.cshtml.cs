@@ -1,12 +1,12 @@
-using Farsight.RPC.Types;
-using Farsight.RPC.Api.Models;
-using Farsight.RPC.Api.Services;
+using Farsight.Rpc.Types;
+using Farsight.Rpc.Api.Models;
+using Farsight.Rpc.Api.Services;
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Mvc.Rendering;
 
-namespace Farsight.RPC.Api.Pages.Providers;
+namespace Farsight.Rpc.Api.Pages.Providers;
 
 public sealed class EditModel(
     ProviderAdminService providerAdminService,

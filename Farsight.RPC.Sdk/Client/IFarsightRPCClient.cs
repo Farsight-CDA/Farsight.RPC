@@ -1,8 +1,8 @@
-using Farsight.RPC.Types;
+using Farsight.Rpc.Types;
 
-namespace Farsight.RPC.Sdk.Client;
+namespace Farsight.Rpc.Sdk.Client;
 
-public interface IFarsightRPCClient
+public interface IFarsightRpcClient
 {
     Task<GetProvidersResult> GetProvidersAsync(string chain, CancellationToken cancellationToken = default);
 

@@ -1,6 +1,6 @@
 {
   "profiles": {
-    "Farsight.RPC.Api": {
+    "Farsight.Rpc.Api": {
       "commandName": "Project",
       "launchBrowser": true,
       "environmentVariables": {

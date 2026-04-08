@@ -1,12 +1,12 @@
 using Farsight.Common;
-using Farsight.RPC.Types;
-using Farsight.RPC.Api.Models;
-using Farsight.RPC.Api.Persistence;
-using Farsight.RPC.Api.Persistence.Entities;
+using Farsight.Rpc.Types;
+using Farsight.Rpc.Api.Models;
+using Farsight.Rpc.Api.Persistence;
+using Farsight.Rpc.Api.Persistence.Entities;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Cryptography;
 
-namespace Farsight.RPC.Api.Services;
+namespace Farsight.Rpc.Api.Services;
 
 public partial class ProviderAdminService : Singleton
 {

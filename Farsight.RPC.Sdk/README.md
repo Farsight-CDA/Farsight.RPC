@@ -1,4 +1,4 @@
-# Farsight.RPC.Sdk
+# Farsight.Rpc.Sdk
 
 Read-only SDK for loading RPC provider configuration from the Farsight RPC API service.
 
@@ -12,10 +12,10 @@ builder.AddFarsightRpcProviders(options =>
 });
 
 var providers = await serviceProvider
-    .GetRequiredService<Farsight.RPC.Sdk.Client.IRpcProvidersClient>()
+    .GetRequiredService<Farsight.Rpc.Sdk.Client.IRpcProvidersClient>()
     .GetProvidersAsync("ethereum");
 
 var rateLimits = await serviceProvider
-    .GetRequiredService<Farsight.RPC.Sdk.Client.IRpcProvidersClient>()
+    .GetRequiredService<Farsight.Rpc.Sdk.Client.IRpcProvidersClient>()
     .GetRateLimitsAsync();
 ```

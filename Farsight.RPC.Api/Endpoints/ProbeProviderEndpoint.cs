@@ -1,8 +1,8 @@
-using Farsight.RPC.Api.Models;
-using Farsight.RPC.Api.Services;
+using Farsight.Rpc.Api.Models;
+using Farsight.Rpc.Api.Services;
 using FastEndpoints;
 
-namespace Farsight.RPC.Api.Endpoints;
+namespace Farsight.Rpc.Api.Endpoints;
 
 public sealed class ProbeProviderEndpoint(RpcProbeService rpcProbeService) : Endpoint<ProbeRequest, ProbeResult>
 {

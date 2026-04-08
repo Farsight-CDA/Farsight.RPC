@@ -1,4 +1,4 @@
-namespace Farsight.RPC.Api.Persistence.Entities;
+namespace Farsight.Rpc.Api.Persistence.Entities;
 
 public sealed class ApplicationEntity
 {

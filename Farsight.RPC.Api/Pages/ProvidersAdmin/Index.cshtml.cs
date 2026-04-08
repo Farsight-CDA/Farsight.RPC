@@ -1,9 +1,9 @@
-using Farsight.RPC.Api.Models;
-using Farsight.RPC.Api.Services;
+using Farsight.Rpc.Api.Models;
+using Farsight.Rpc.Api.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 
-namespace Farsight.RPC.Api.Pages.ProvidersAdmin;
+namespace Farsight.Rpc.Api.Pages.ProvidersAdmin;
 
 public sealed class IndexModel(ProviderAdminService providerAdminService) : PageModel
 {

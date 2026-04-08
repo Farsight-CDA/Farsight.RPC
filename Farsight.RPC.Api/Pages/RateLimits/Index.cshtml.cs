@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 
-namespace Farsight.RPC.Api.Pages.RateLimits;
+namespace Farsight.Rpc.Api.Pages.RateLimits;
 
 public sealed class IndexModel : PageModel
 {

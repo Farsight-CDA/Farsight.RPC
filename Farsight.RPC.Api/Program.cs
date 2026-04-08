@@ -1,5 +1,5 @@
 using Farsight.Common;
-using Farsight.RPC.Api;
+using Farsight.Rpc.Api;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddApplication<Startup>();

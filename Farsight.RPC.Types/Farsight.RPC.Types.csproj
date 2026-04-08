@@ -4,8 +4,8 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <RootNamespace>Farsight.RPC.Types</RootNamespace>
-    <AssemblyName>Farsight.RPC.Types</AssemblyName>
+    <RootNamespace>Farsight.Rpc.Types</RootNamespace>
+    <AssemblyName>Farsight.Rpc.Types</AssemblyName>
   </PropertyGroup>
 
   <ItemGroup>

@@ -1,25 +1,25 @@
-using Farsight.RPC.Sdk.Client;
-using Farsight.RPC.Types;
+using Farsight.Rpc.Sdk.Client;
+using Farsight.Rpc.Types;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-namespace Farsight.RPC.Sdk;
+namespace Farsight.Rpc.Sdk;
 
 public static class DependencyInjection
 {
-    internal const string HTTP_CLIENT_NAME = "Farsight.RPC.Api";
+    internal const string HTTP_CLIENT_NAME = "Farsight.Rpc.Api";
 
-    private sealed record RegistrationOptions(FarsightRPCOptions Options);
+    private sealed record RegistrationOptions(FarsightRpcOptions Options);
 
     extension(IHostApplicationBuilder builder)
     {
-        public IHostApplicationBuilder AddFarsightRPC(Action<FarsightRPCOptions>? configureOptions = default, Action<IHttpClientBuilder>? configureClient = default)
-            => builder.AddFarsightRPC((_, options) => configureOptions?.Invoke(options), configureClient);
+        public IHostApplicationBuilder AddFarsightRpc(Action<FarsightRpcOptions>? configureOptions = default, Action<IHttpClientBuilder>? configureClient = default)
+            => builder.AddFarsightRpc((_, options) => configureOptions?.Invoke(options), configureClient);
 
-        public IHostApplicationBuilder AddFarsightRPC(Action<IServiceProvider, FarsightRPCOptions> configureOptions, Action<IHttpClientBuilder>? configureClient = default)
+        public IHostApplicationBuilder AddFarsightRpc(Action<IServiceProvider, FarsightRpcOptions> configureOptions, Action<IHttpClientBuilder>? configureClient = default)
         {
             builder.Services.AddSingleton(sp =>
             {
-                var options = new FarsightRPCOptions();
+                var options = new FarsightRpcOptions();
                 configureOptions(sp, options);
 
                 options.SerializerOptions ??= new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web);
@@ -40,8 +40,8 @@ public static class DependencyInjection
 
             configureClient?.Invoke(clientBuilder);
 
-            builder.Services.AddSingleton<IFarsightRPCClient>(sp =>
-                ActivatorUtilities.CreateInstance<FarsightRPCClient>(sp, sp.GetRequiredService<RegistrationOptions>().Options));
+            builder.Services.AddSingleton<IFarsightRpcClient>(sp =>
+                ActivatorUtilities.CreateInstance<FarsightRpcClient>(sp, sp.GetRequiredService<RegistrationOptions>().Options));
 
             return builder;
         }

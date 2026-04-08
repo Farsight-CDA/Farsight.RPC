@@ -1,6 +1,6 @@
-using Farsight.RPC.Types;
+using Farsight.Rpc.Types;
 
-namespace Farsight.RPC.Api.Persistence.Entities;
+namespace Farsight.Rpc.Api.Persistence.Entities;
 
 public sealed class TracingEndpointEntity : ProviderEndpointEntity
 {

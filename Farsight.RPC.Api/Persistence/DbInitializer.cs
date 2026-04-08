@@ -1,7 +1,7 @@
 using Farsight.Common;
 using Microsoft.EntityFrameworkCore;
 
-namespace Farsight.RPC.Api.Persistence;
+namespace Farsight.Rpc.Api.Persistence;
 
 public partial class DbInitializer : Singleton
 {

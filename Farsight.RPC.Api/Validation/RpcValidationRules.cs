@@ -1,4 +1,4 @@
-namespace Farsight.RPC.Api.Validation;
+namespace Farsight.Rpc.Api.Validation;
 
 public static class RpcValidationRules
 {

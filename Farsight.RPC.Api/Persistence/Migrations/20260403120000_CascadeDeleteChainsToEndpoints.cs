@@ -1,10 +1,10 @@
-using Farsight.RPC.Api.Persistence;
+using Farsight.Rpc.Api.Persistence;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace Farsight.RPC.Api.Persistence.Migrations;
+namespace Farsight.Rpc.Api.Persistence.Migrations;
 
 [DbContext(typeof(RpcProvidersDbContext))]
 [Migration("20260403120000_CascadeDeleteChainsToEndpoints")]

@@ -1,7 +1,7 @@
 ﻿using Farsight.Common;
 using System.ComponentModel.DataAnnotations;
 
-namespace Farsight.RPC.Api.Configuration;
+namespace Farsight.Rpc.Api.Configuration;
 
 [ConfigOption(SectionName = SECTION_NAME)]
 public sealed class ApiBindingConfiguration

@@ -1,12 +1,12 @@
-using Farsight.RPC.Types;
-using Farsight.RPC.Api.Persistence;
+using Farsight.Rpc.Types;
+using Farsight.Rpc.Api.Persistence;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using System.Security.Claims;
 using System.Text.Encodings.Web;
 
-namespace Farsight.RPC.Api.Auth;
+namespace Farsight.Rpc.Api.Auth;
 
 public sealed class ApiKeyAuthenticationHandler(
     IOptionsMonitor<ApiKeyAuthenticationOptions> options,

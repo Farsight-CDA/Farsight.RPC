@@ -1,8 +1,8 @@
 using System.Text.Json;
 
-namespace Farsight.RPC.Sdk.Client;
+namespace Farsight.Rpc.Sdk.Client;
 
-public sealed class FarsightRPCOptions
+public sealed class FarsightRpcOptions
 {
     public Uri ApiUrl { get; set; } = new Uri("https://rpc-provider.farsight-cda.de");
 

@@ -1,5 +1,5 @@
 <Solution>
-  <Project Path="Farsight.RPC.Api/Farsight.RPC.Api.csproj" />
-  <Project Path="Farsight.RPC.Types/Farsight.RPC.Types.csproj" />
-  <Project Path="Farsight.RPC.Sdk/Farsight.RPC.Sdk.csproj" />
+  <Project Path="Farsight.Rpc.Api/Farsight.Rpc.Api.csproj" />
+  <Project Path="Farsight.Rpc.Types/Farsight.Rpc.Types.csproj" />
+  <Project Path="Farsight.Rpc.Sdk/Farsight.Rpc.Sdk.csproj" />
 </Solution>

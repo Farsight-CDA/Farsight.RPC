@@ -1,9 +1,9 @@
-using Farsight.RPC.Types;
-using Farsight.RPC.Api.Persistence;
+using Farsight.Rpc.Types;
+using Farsight.Rpc.Api.Persistence;
 using FastEndpoints;
 using Microsoft.EntityFrameworkCore;
 
-namespace Farsight.RPC.Api.Endpoints;
+namespace Farsight.Rpc.Api.Endpoints;
 
 public sealed class GetRateLimitsEndpoint(RpcProvidersDbContext dbContext) : EndpointWithoutRequest<IReadOnlyList<ProviderRateLimitDto>>
 {

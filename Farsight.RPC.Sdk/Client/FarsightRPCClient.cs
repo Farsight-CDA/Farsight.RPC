@@ -1,14 +1,14 @@
-using Farsight.RPC.Types;
+using Farsight.Rpc.Types;
 using System.Net;
 using System.Net.Http.Json;
-using static Farsight.RPC.Sdk.Client.IFarsightRPCClient;
+using static Farsight.Rpc.Sdk.Client.IFarsightRpcClient;
 
-namespace Farsight.RPC.Sdk.Client;
+namespace Farsight.Rpc.Sdk.Client;
 
-internal sealed class FarsightRPCClient(IHttpClientFactory httpClientFactory, FarsightRPCOptions options) : IFarsightRPCClient
+internal sealed class FarsightRpcClient(IHttpClientFactory httpClientFactory, FarsightRpcOptions options) : IFarsightRpcClient
 {
     private readonly IHttpClientFactory _httpClientFactory = httpClientFactory;
-    private readonly FarsightRPCOptions _options = options;
+    private readonly FarsightRpcOptions _options = options;
 
     private HttpClient CreateClient() => _httpClientFactory.CreateClient(DependencyInjection.HTTP_CLIENT_NAME);
 

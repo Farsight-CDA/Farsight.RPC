@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.DataProtection.KeyManagement;
 using Microsoft.AspNetCore.DataProtection.Repositories;
 using Microsoft.Extensions.Options;
 
-namespace Farsight.RPC.Api.Configuration;
+namespace Farsight.Rpc.Api.Configuration;
 
 internal sealed class DataProtectionKeyManagementConfigurator(
     DataProtectionStorageOptions dataProtectionStorageOptions,

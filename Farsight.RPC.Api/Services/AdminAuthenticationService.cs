@@ -1,12 +1,12 @@
 using Farsight.Common;
-using Farsight.RPC.Api.Configuration;
+using Farsight.Rpc.Api.Configuration;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 
-namespace Farsight.RPC.Api.Services;
+namespace Farsight.Rpc.Api.Services;
 
 public partial class AdminAuthenticationService : Singleton
 {

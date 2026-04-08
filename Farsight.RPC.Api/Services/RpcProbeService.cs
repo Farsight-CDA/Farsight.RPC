@@ -1,11 +1,11 @@
 using Farsight.Common;
-using Farsight.RPC.Types;
-using Farsight.RPC.Api.Models;
+using Farsight.Rpc.Types;
+using Farsight.Rpc.Api.Models;
 using System.Net;
 using System.Net.WebSockets;
 using System.Text;
 
-namespace Farsight.RPC.Api.Services;
+namespace Farsight.Rpc.Api.Services;
 
 public partial class RpcProbeService : Singleton
 {

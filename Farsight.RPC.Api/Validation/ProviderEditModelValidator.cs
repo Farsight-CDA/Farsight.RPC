@@ -1,8 +1,8 @@
-using Farsight.RPC.Types;
-using Farsight.RPC.Api.Models;
+using Farsight.Rpc.Types;
+using Farsight.Rpc.Api.Models;
 using FluentValidation;
 
-namespace Farsight.RPC.Api.Validation;
+namespace Farsight.Rpc.Api.Validation;
 
 public sealed class ProviderEditModelValidator : AbstractValidator<ProviderEditModel>
 {

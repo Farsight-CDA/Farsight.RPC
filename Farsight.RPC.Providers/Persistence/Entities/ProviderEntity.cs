@@ -1,6 +1,6 @@
-namespace Farsight.RPC.Providers.Data.Entities;
+namespace Farsight.RPC.Providers.Persistence.Entities;
 
-public sealed class ApplicationEntity
+public sealed class ProviderEntity
 {
     public Guid Id { get; set; }
 

@@ -31,4 +31,8 @@
     <ProjectReference Include="..\Farsight.RPC.Providers.Contracts\Farsight.RPC.Providers.Contracts.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Configuration\" />
+  </ItemGroup>
+
 </Project>

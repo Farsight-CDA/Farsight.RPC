@@ -1,5 +1,5 @@
 using Farsight.RPC.Providers.Contracts;
-using Farsight.RPC.Providers.Data;
+using Farsight.RPC.Providers.Persistence;
 using FastEndpoints;
 using Microsoft.EntityFrameworkCore;
 

@@ -1,8 +1,8 @@
 using Farsight.Common;
 using Farsight.RPC.Providers.Auth;
 using Farsight.RPC.Providers.Contracts;
-using Farsight.RPC.Providers.Data;
-using Farsight.RPC.Providers.Data.Entities;
+using Farsight.RPC.Providers.Persistence;
+using Farsight.RPC.Providers.Persistence.Entities;
 using Farsight.RPC.Providers.Models;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Cryptography;

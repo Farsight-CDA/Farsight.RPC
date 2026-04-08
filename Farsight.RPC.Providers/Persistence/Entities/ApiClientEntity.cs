@@ -1,6 +1,6 @@
 using Farsight.RPC.Providers.Contracts;
 
-namespace Farsight.RPC.Providers.Data.Entities;
+namespace Farsight.RPC.Providers.Persistence.Entities;
 
 public sealed class ApiClientEntity
 {

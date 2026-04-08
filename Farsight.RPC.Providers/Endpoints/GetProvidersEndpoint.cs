@@ -1,6 +1,6 @@
 using Farsight.RPC.Providers.Auth;
 using Farsight.RPC.Providers.Contracts;
-using Farsight.RPC.Providers.Data;
+using Farsight.RPC.Providers.Persistence;
 using FastEndpoints;
 using Microsoft.EntityFrameworkCore;
 
@@ -16,8 +16,8 @@ public sealed class GetProvidersEndpoint(RpcProvidersDbContext dbContext) : Endp
 
     public override async Task HandleAsync(GetProvidersRequest req, CancellationToken ct)
     {
-        HostEnvironment environment = ApiClientClaimTypes.GetRequiredEnvironment(User);
-        Guid applicationId = ApiClientClaimTypes.GetRequiredApplicationId(User);
+        var environment = ApiClientClaimTypes.GetRequiredEnvironment(User);
+        var applicationId = ApiClientClaimTypes.GetRequiredApplicationId(User);
         string normalizedChain = req.Chain.Trim().ToLowerInvariant();
 
         var realTime = await dbContext.RealTimeEndpoints.AsNoTracking()

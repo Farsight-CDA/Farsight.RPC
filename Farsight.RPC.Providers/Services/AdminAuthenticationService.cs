@@ -1,5 +1,5 @@
 using Farsight.Common;
-using Farsight.RPC.Providers.Data;
+using Farsight.RPC.Providers.Persistence;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Identity;
@@ -26,7 +26,7 @@ public partial class AdminAuthenticationService : Singleton
             return false;
         }
 
-        var result = new PasswordHasher<Data.Entities.UserEntity>().VerifyHashedPassword(user, user.PasswordHash, password);
+        var result = new PasswordHasher<Persistence.Entities.UserEntity>().VerifyHashedPassword(user, user.PasswordHash, password);
         if(result == PasswordVerificationResult.Failed)
         {
             return false;

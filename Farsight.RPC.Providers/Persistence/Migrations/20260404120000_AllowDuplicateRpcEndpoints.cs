@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace Farsight.RPC.Providers.Data.Migrations;
+namespace Farsight.RPC.Providers.Persistence.Migrations;
 
 public partial class AllowDuplicateRpcEndpoints : Migration
 {

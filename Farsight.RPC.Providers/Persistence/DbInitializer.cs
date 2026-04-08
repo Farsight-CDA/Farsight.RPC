@@ -1,10 +1,9 @@
 using Farsight.Common;
-using Farsight.RPC.Providers.Auth;
-using Farsight.RPC.Providers.Data.Entities;
+using Farsight.RPC.Providers.Persistence.Entities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
-namespace Farsight.RPC.Providers.Data;
+namespace Farsight.RPC.Providers.Persistence;
 
 public partial class DbInitializer : Singleton
 {

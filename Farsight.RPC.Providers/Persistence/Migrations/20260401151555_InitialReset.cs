@@ -3,7 +3,7 @@ using System;
 
 #nullable disable
 
-namespace Farsight.RPC.Providers.Data.Migrations;
+namespace Farsight.RPC.Providers.Persistence.Migrations;
 
 /// <inheritdoc />
 public partial class InitialReset : Migration

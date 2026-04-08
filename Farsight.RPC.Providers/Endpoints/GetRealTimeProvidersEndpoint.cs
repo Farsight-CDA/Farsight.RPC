@@ -1,6 +1,6 @@
 using Farsight.RPC.Providers.Auth;
 using Farsight.RPC.Providers.Contracts;
-using Farsight.RPC.Providers.Data;
+using Farsight.RPC.Providers.Persistence;
 using Farsight.RPC.Providers.Services;
 using FastEndpoints;
 using Microsoft.EntityFrameworkCore;

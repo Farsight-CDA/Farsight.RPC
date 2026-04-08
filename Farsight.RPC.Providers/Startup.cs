@@ -1,5 +1,5 @@
 using Farsight.Common.Startup;
-using Farsight.RPC.Providers.Data;
+using Farsight.RPC.Providers.Persistence;
 using Microsoft.EntityFrameworkCore;
 
 namespace Farsight.RPC.Providers;

@@ -1,4 +1,5 @@
 using Farsight.Common;
+using Farsight.RPC.Providers.Configuration;
 using Farsight.RPC.Providers.Persistence.Entities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -8,7 +9,7 @@ namespace Farsight.RPC.Providers.Persistence;
 public partial class DbInitializer : Singleton
 {
     [Inject] private readonly IDbContextFactory<RpcProvidersDbContext> _dbContextFactory;
-    [Inject] private readonly AdminLoginOptions _adminLoginOptions;
+    [Inject] private readonly AdminLoginConfiguration _adminLoginOptions;
 
     protected override async Task InitializeAsync(CancellationToken cancellationToken)
     {
@@ -65,10 +66,14 @@ public partial class DbInitializer : Singleton
         }
 
         await dbContext.SaveChangesAsync(cancellationToken);
-        _logger.LogInformation(
-            isNewUser
-                ? "Created configured admin user '{UserName}'."
-                : "Updated configured admin user '{UserName}'.",
-            user.UserName);
+
+        if(isNewUser)
+        {
+            _logger.LogInformation("Created configured admin user '{UserName}'.", user.UserName);
+        }
+        else
+        {
+            _logger.LogInformation("Updated configured admin user '{UserName}'.", user.UserName);
+        }
     }
 }

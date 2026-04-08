@@ -41,7 +41,7 @@ public sealed class GetProvidersEndpoint(RpcProvidersDbContext dbContext) : Endp
             .Select(x => new TracingRpcEndpointDto(x.Id, x.Environment, x.Application.Name, x.Chain.Name, x.Provider.Name, x.Address, x.TracingMode, x.UpdatedUtc, x.ProbedUtc))
             .ToListAsync(ct);
 
-        string application = realTime.FirstOrDefault()?.Application ?? archive.FirstOrDefault()?.Application ?? tracing.FirstOrDefault()?.Application ?? string.Empty;
+        string application = realTime.FirstOrDefault()?.Application ?? archive.FirstOrDefault()?.Application ?? tracing.FirstOrDefault()?.Application ?? String.Empty;
         await Send.OkAsync(new RpcProviderSetDto(environment, application, normalizedChain, realTime, archive, tracing), ct);
     }
 }

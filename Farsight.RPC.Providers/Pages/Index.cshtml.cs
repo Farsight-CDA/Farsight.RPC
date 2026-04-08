@@ -4,7 +4,6 @@ using Farsight.RPC.Providers.Services;
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace Farsight.RPC.Providers.Pages;
 
@@ -175,12 +174,9 @@ public sealed class IndexModel(
     public string ShortenAddress(Uri address, int maxLength = 40)
     {
         string url = address.ToString();
-        if(url.Length <= maxLength)
-        {
-            return url;
-        }
-
-        return url.Substring(0, maxLength - 3) + "...";
+        return url.Length <= maxLength
+            ? url
+            : String.Concat(url.AsSpan(0, maxLength - 3), "...");
     }
 
     // Helper methods to track what changed (compare with form values before bind)

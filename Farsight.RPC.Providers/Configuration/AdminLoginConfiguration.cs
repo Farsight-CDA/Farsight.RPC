@@ -1,10 +1,10 @@
 using Farsight.Common;
 using FluentValidation;
 
-namespace Farsight.RPC.Providers;
+namespace Farsight.RPC.Providers.Configuration;
 
 [ConfigOption<Validator>(SectionName = SECTION_NAME)]
-public sealed class AdminLoginOptions
+public sealed class AdminLoginConfiguration
 {
     public const string SECTION_NAME = "AdminLogin";
 
@@ -12,7 +12,7 @@ public sealed class AdminLoginOptions
 
     public string Password { get; set; } = "change-me";
 
-    public sealed class Validator : AbstractValidator<AdminLoginOptions>
+    public sealed class Validator : AbstractValidator<AdminLoginConfiguration>
     {
         public Validator()
         {

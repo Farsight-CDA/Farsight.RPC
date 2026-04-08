@@ -1,4 +1,5 @@
 using Farsight.RPC.Providers.Auth;
+using Farsight.RPC.Providers.Configuration;
 using Farsight.RPC.Providers.Models;
 using Farsight.RPC.Providers.Persistence;
 using Farsight.RPC.Providers.Validation;
@@ -6,8 +7,11 @@ using FastEndpoints;
 using FluentValidation;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.DataProtection.KeyManagement;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using System.Net;
 
 namespace Farsight.RPC.Providers;
 
@@ -15,6 +19,26 @@ public static class App
 {
     public static void ConfigureServices(WebApplicationBuilder builder)
     {
+        var bindingConfiguration = builder.Configuration
+            .GetRequiredSection("ApiBinding")
+            .Get<ApiBindingConfiguration>() ?? throw new InvalidOperationException("The ApiBinding configuration section is required.");
+
+        builder.WebHost.ConfigureKestrel(x =>
+        {
+            if(String.Equals(bindingConfiguration.ListeningAddress, "localhost", StringComparison.OrdinalIgnoreCase))
+            {
+                x.ListenLocalhost(bindingConfiguration.Port);
+                return;
+            }
+
+            if(!IPAddress.TryParse(bindingConfiguration.ListeningAddress, out var address))
+            {
+                throw new InvalidOperationException($"ApiBinding:ListeningAddress '{bindingConfiguration.ListeningAddress}' must be 'localhost' or a valid IP address.");
+            }
+
+            x.Listen(address, bindingConfiguration.Port);
+        });
+
         builder.Services.AddRazorPages(options =>
         {
             options.Conventions.AuthorizeFolder("/");
@@ -25,17 +49,11 @@ public static class App
         builder.Services.AddFastEndpoints();
         builder.Services.AddHttpClient();
 
-        string dataProtectionKeysDirectory = builder.Configuration["DataProtection:KeysDirectory"]
-            ?? Environment.GetEnvironmentVariable("DataProtection__KeysDirectory")
-            ?? "/var/lib/farsight-rpc-providers/data-protection";
-        Directory.CreateDirectory(dataProtectionKeysDirectory);
+        builder.Services.AddSingleton<IConfigureOptions<KeyManagementOptions>, DataProtectionKeyManagementConfigurator>();
+        builder.Services.AddDataProtection().SetApplicationName("Farsight.RPC.Providers");
 
-        builder.Services.AddDataProtection()
-            .SetApplicationName("Farsight.RPC.Providers")
-            .PersistKeysToFileSystem(new DirectoryInfo(dataProtectionKeysDirectory));
-
-        builder.Services.AddDbContextFactory<RpcProvidersDbContext>(options =>
-            options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+        builder.Services.AddDbContextFactory<RpcProvidersDbContext>((provider, options) =>
+            options.UseNpgsql(provider.GetRequiredService<DatabaseConfiguration>().PostgresConnectionString));
 
         builder.Services.AddScoped<IValidator<ProviderEditModel>, ProviderEditModelValidator>();
         builder.Services.AddScoped<IValidator<ProbeRequest>, ProbeRequestValidator>();
@@ -76,11 +94,6 @@ public static class App
 
     public static void Configure(WebApplication app)
     {
-        bool hasHttpsPortConfigured = !String.IsNullOrWhiteSpace(app.Configuration["HTTPS_PORTS"])
-            || !String.IsNullOrWhiteSpace(app.Configuration["ASPNETCORE_HTTPS_PORTS"])
-            || !String.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("HTTPS_PORTS"))
-            || !String.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("ASPNETCORE_HTTPS_PORTS"));
-
         if(!app.Environment.IsDevelopment())
         {
             app.UseExceptionHandler("/Error");
@@ -88,10 +101,6 @@ public static class App
         }
 
         app.UseForwardedHeaders();
-        if(hasHttpsPortConfigured)
-        {
-            app.UseHttpsRedirection();
-        }
 
         if(!String.IsNullOrWhiteSpace(app.Environment.WebRootPath) && Directory.Exists(app.Environment.WebRootPath))
         {

@@ -19,7 +19,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <FrameworkReference Include="Microsoft.AspNetCore.App" />
     <ProjectReference Include="..\Farsight.RPC.Providers.Contracts\Farsight.RPC.Providers.Contracts.csproj"
                       PrivateAssets="all" />
     <None Include="README.md" Pack="true" PackagePath="/" />

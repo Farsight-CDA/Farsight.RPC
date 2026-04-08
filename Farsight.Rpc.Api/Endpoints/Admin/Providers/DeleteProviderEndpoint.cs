@@ -20,11 +20,6 @@ public sealed class DeleteProviderEndpoint(RpcProvidersDbContext dbContext) : En
     public override async Task HandleAsync(Request req, CancellationToken ct)
     {
         var provider = await dbContext.Providers.SingleAsync(x => x.Id == req.Id, ct);
-        var rateLimit = await dbContext.ProviderRateLimits.SingleOrDefaultAsync(x => x.ProviderId == req.Id, ct);
-        if(rateLimit is not null)
-        {
-            dbContext.ProviderRateLimits.Remove(rateLimit);
-        }
         dbContext.Providers.Remove(provider);
         await dbContext.SaveChangesAsync(ct);
         await Send.NoContentAsync(ct);

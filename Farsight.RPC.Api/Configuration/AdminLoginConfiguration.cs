@@ -9,7 +9,6 @@ public sealed class AdminLoginConfiguration
     public const string SECTION_NAME = "AdminLogin";
 
     public string User { get; set; } = "admin";
-
     public string Password { get; set; } = "change-me";
 
     public sealed class Validator : AbstractValidator<AdminLoginConfiguration>

@@ -9,11 +9,14 @@ public sealed class AdminLoginEndpoint(AdminAuthenticationService adminAuthentic
     public sealed class Request
     {
         public string UserName { get; set; } = String.Empty;
-
         public string Password { get; set; } = String.Empty;
     }
 
-    public new sealed record Response(string Token, string UserName, DateTimeOffset ExpiresUtc);
+    public new sealed record Response(
+        string Token,
+        string UserName,
+        DateTimeOffset ExpiresUtc
+    );
 
     public override void Configure()
     {

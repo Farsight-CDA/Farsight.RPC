@@ -69,12 +69,12 @@ export const createChain = (name: string) => apiFetch<void>("/api/admin/chains",
 export const deleteChain = (id: string) => apiFetch<void>(`/api/admin/chains/${id}`, { method: "DELETE" });
 
 export const getProviders = () => apiFetch<ProviderRateLimitRow[]>("/api/admin/providers");
-export const createProvider = (name: string, rateLimit: number | null) => apiFetch<void>("/api/admin/providers", {
+export const createProvider = (name: string, rateLimit: number) => apiFetch<void>("/api/admin/providers", {
   method: "POST",
   body: JSON.stringify({ name, rateLimit }),
 });
 export const deleteProvider = (id: string) => apiFetch<void>(`/api/admin/providers/${id}`, { method: "DELETE" });
-export const saveProviderRateLimit = (id: string, rateLimit: number | null) => apiFetch<void>(`/api/admin/providers/${id}/rate-limit`, {
+export const saveProviderRateLimit = (id: string, rateLimit: number) => apiFetch<void>(`/api/admin/providers/${id}/rate-limit`, {
   method: "PUT",
   body: JSON.stringify({ id, rateLimit }),
 });

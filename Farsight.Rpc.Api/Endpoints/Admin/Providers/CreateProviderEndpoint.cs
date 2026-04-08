@@ -12,8 +12,7 @@ public sealed class CreateProviderEndpoint(RpcProvidersDbContext dbContext) : En
     public sealed class Request
     {
         public string Name { get; set; } = String.Empty;
-
-        public int? RateLimit { get; set; }
+        public int RateLimit { get; set; }
     }
 
     public override void Configure()
@@ -38,17 +37,8 @@ public sealed class CreateProviderEndpoint(RpcProvidersDbContext dbContext) : En
             return;
         }
 
-        if(req.RateLimit.HasValue && req.RateLimit.Value <= 0)
-        {
-            throw new ArgumentOutOfRangeException(nameof(req.RateLimit), "Rate limit must be greater than 0.");
-        }
-
-        var provider = new ProviderEntity { Id = Guid.NewGuid(), Name = normalizedName };
+        var provider = new ProviderEntity { Id = Guid.NewGuid(), Name = normalizedName, RateLimit = req.RateLimit };
         dbContext.Providers.Add(provider);
-        if(req.RateLimit.HasValue)
-        {
-            dbContext.ProviderRateLimits.Add(new ProviderRateLimitEntity { ProviderId = provider.Id, RateLimit = req.RateLimit.Value });
-        }
 
         await dbContext.SaveChangesAsync(ct);
         await Send.NoContentAsync(ct);

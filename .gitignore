@@ -290,6 +290,12 @@ FakesAssemblies/
 .ntvs_analysis.dat
 node_modules/
 
+# Frontend build outputs
+**/.output/
+**/.vinxi/
+**/.vite/
+**/dist/
+
 # Visual Studio 6 build log
 *.plg
 

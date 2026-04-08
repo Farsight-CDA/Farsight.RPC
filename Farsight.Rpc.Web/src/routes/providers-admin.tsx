@@ -24,7 +24,12 @@ export default function ProvidersAdminPage() {
   const submit = async (event: SubmitEvent) => {
     event.preventDefault();
     try {
-      await createProvider(name(), rateLimit() ? Number(rateLimit()) : null);
+      const parsedRateLimit = Number(rateLimit());
+      if(!Number.isInteger(parsedRateLimit) || parsedRateLimit <= 0) {
+        throw new Error("Rate limit must be greater than 0.");
+      }
+
+      await createProvider(name(), parsedRateLimit);
       setName("");
       setRateLimit("");
       setMessage("Provider created.");
@@ -38,7 +43,12 @@ export default function ProvidersAdminPage() {
 
   const saveRateLimit = async (row: ProviderRateLimitRow, value: string) => {
     try {
-      await saveProviderRateLimit(row.providerId, value ? Number(value) : null);
+      const parsedRateLimit = Number(value);
+      if(!Number.isInteger(parsedRateLimit) || parsedRateLimit <= 0) {
+        throw new Error("Rate limit must be greater than 0.");
+      }
+
+      await saveProviderRateLimit(row.providerId, parsedRateLimit);
       setMessage(`Updated rate limit for ${row.provider}.`);
       setError(null);
       await load();
@@ -73,7 +83,7 @@ export default function ProvidersAdminPage() {
         <h2>New Provider</h2>
         <form class="row" onSubmit={submit}>
           <input class="input" value={name()} onInput={(event) => setName(event.currentTarget.value)} placeholder="Alchemy" />
-          <input class="input" type="number" value={rateLimit()} onInput={(event) => setRateLimit(event.currentTarget.value)} placeholder="Rate limit" />
+          <input class="input" type="number" min="1" required value={rateLimit()} onInput={(event) => setRateLimit(event.currentTarget.value)} placeholder="Rate limit" />
           <button class="button" type="submit">Add Provider</button>
         </form>
       </section>
@@ -82,11 +92,11 @@ export default function ProvidersAdminPage() {
           <thead><tr><th>Name</th><th>Rate Limit</th><th>Actions</th></tr></thead>
           <tbody>
             <For each={rows()}>{(row) => {
-              const [currentRateLimit, setCurrentRateLimit] = createSignal(row.rateLimit?.toString() ?? "");
+              const [currentRateLimit, setCurrentRateLimit] = createSignal(row.rateLimit.toString());
               return (
                 <tr>
                   <td>{row.provider}</td>
-                  <td><input class="input" type="number" value={currentRateLimit()} onInput={(event) => setCurrentRateLimit(event.currentTarget.value)} /></td>
+                  <td><input class="input" type="number" min="1" required value={currentRateLimit()} onInput={(event) => setCurrentRateLimit(event.currentTarget.value)} /></td>
                   <td>
                     <div class="actions">
                       <button class="button secondary" type="button" onClick={() => saveRateLimit(row, currentRateLimit())}>Save</button>

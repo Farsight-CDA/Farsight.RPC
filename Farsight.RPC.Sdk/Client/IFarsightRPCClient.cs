@@ -16,7 +16,9 @@ public interface IFarsightRpcClient
 
     public abstract record GetProvidersResult
     {
-        public sealed record Success(RpcProviderSetDto Providers) : GetProvidersResult;
+        public sealed record Success(
+            RpcProviderSetDto Providers
+        ) : GetProvidersResult;
 
         public sealed record NotFound : GetProvidersResult;
 
@@ -25,7 +27,9 @@ public interface IFarsightRpcClient
 
     public abstract record GetRealTimeResult
     {
-        public sealed record Success(IReadOnlyList<RealTimeRpcEndpointDto> Endpoints) : GetRealTimeResult;
+        public sealed record Success(
+            IReadOnlyList<RealTimeRpcEndpointDto> Endpoints
+        ) : GetRealTimeResult;
 
         public sealed record NotFound : GetRealTimeResult;
 
@@ -34,7 +38,9 @@ public interface IFarsightRpcClient
 
     public abstract record GetArchiveResult
     {
-        public sealed record Success(IReadOnlyList<ArchiveRpcEndpointDto> Endpoints) : GetArchiveResult;
+        public sealed record Success(
+            IReadOnlyList<ArchiveRpcEndpointDto> Endpoints
+        ) : GetArchiveResult;
 
         public sealed record NotFound : GetArchiveResult;
 
@@ -43,7 +49,9 @@ public interface IFarsightRpcClient
 
     public abstract record GetTracingResult
     {
-        public sealed record Success(IReadOnlyList<TracingRpcEndpointDto> Endpoints) : GetTracingResult;
+        public sealed record Success(
+            IReadOnlyList<TracingRpcEndpointDto> Endpoints
+        ) : GetTracingResult;
 
         public sealed record NotFound : GetTracingResult;
 
@@ -52,7 +60,9 @@ public interface IFarsightRpcClient
 
     public abstract record GetRateLimitsResult
     {
-        public sealed record Success(IReadOnlyList<ProviderRateLimitDto> RateLimits) : GetRateLimitsResult;
+        public sealed record Success(
+            IReadOnlyList<ProviderRateLimitDto> RateLimits
+        ) : GetRateLimitsResult;
 
         public sealed record Unavailable : GetRateLimitsResult;
     }

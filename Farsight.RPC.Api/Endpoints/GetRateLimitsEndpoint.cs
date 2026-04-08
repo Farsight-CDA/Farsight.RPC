@@ -15,9 +15,9 @@ public sealed class GetRateLimitsEndpoint(RpcProvidersDbContext dbContext) : End
 
     public override async Task HandleAsync(CancellationToken ct)
     {
-        var rateLimits = await dbContext.ProviderRateLimits.AsNoTracking()
-            .OrderBy(x => x.Provider.Name)
-            .Select(x => new ProviderRateLimitDto(x.Provider.Name, x.RateLimit))
+        var rateLimits = await dbContext.Providers.AsNoTracking()
+            .OrderBy(x => x.Name)
+            .Select(x => new ProviderRateLimitDto(x.Name, x.RateLimit))
             .ToListAsync(ct);
 
         await Send.OkAsync(rateLimits, ct);

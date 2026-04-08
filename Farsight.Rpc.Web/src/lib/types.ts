@@ -62,7 +62,7 @@ export interface ApiClientCreateResult {
 export interface ProviderRateLimitRow {
   providerId: string;
   provider: string;
-  rateLimit: number | null;
+  rateLimit: number;
 }
 
 export interface AdminLoginResponse {

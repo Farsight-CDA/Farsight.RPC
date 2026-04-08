@@ -16,12 +16,7 @@ public sealed class GetProviderRateLimitsEndpoint(RpcProvidersDbContext dbContex
 
     public override async Task HandleAsync(CancellationToken ct)
         => await Send.OkAsync(await dbContext.Providers.AsNoTracking()
-            .GroupJoin(
-                dbContext.ProviderRateLimits.AsNoTracking(),
-                provider => provider.Id,
-                rateLimit => rateLimit.ProviderId,
-                (provider, rateLimits) => new { provider, rateLimit = rateLimits.Select(x => (int?) x.RateLimit).FirstOrDefault() })
-            .OrderBy(x => x.provider.Name)
-            .Select(x => new ProviderRateLimitRow(x.provider.Id, x.provider.Name, x.rateLimit))
+            .OrderBy(x => x.Name)
+            .Select(x => new ProviderRateLimitRow(x.Id, x.Name, x.RateLimit))
             .ToListAsync(ct), ct);
 }

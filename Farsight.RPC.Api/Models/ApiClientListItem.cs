@@ -10,6 +10,10 @@ public sealed record ApiClientListItem(
     HostEnvironment? Environment,
     bool IsEnabled,
     DateTimeOffset CreatedUtc,
-    DateTimeOffset UpdatedUtc);
+    DateTimeOffset UpdatedUtc
+);
 
-public sealed record ApiClientCreateResult(Guid Id, string ApiKey);
+public sealed record ApiClientCreateResult(
+    Guid Id,
+    string ApiKey
+);

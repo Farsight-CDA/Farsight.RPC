@@ -8,7 +8,9 @@ public static class DependencyInjection
 {
     internal const string HTTP_CLIENT_NAME = "Farsight.Rpc.Api";
 
-    private sealed record RegistrationOptions(FarsightRpcOptions Options);
+    private sealed record RegistrationOptions(
+        FarsightRpcOptions Options
+    );
 
     extension(IHostApplicationBuilder builder)
     {

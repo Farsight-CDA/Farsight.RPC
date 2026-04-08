@@ -11,9 +11,7 @@ public sealed class GetSavedEndpointsEndpoint(RpcProvidersDbContext dbContext) :
     public sealed class Request
     {
         public Guid? ApplicationId { get; set; }
-
         public HostEnvironment Environment { get; set; } = HostEnvironment.Development;
-
         public Guid? ChainId { get; set; }
     }
 

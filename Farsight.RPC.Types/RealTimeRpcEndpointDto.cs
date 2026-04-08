@@ -8,4 +8,5 @@ public sealed record RealTimeRpcEndpointDto(
     string Provider,
     Uri Address,
     DateTimeOffset UpdatedUtc,
-    DateTimeOffset? ProbedUtc);
+    DateTimeOffset? ProbedUtc
+);

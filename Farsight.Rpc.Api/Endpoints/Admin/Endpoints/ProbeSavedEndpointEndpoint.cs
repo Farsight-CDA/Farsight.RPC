@@ -11,7 +11,6 @@ public sealed class ProbeSavedEndpointEndpoint(RpcProvidersDbContext dbContext, 
     public sealed class Request
     {
         public RpcEndpointType Type { get; set; }
-
         public Guid Id { get; set; }
     }
 

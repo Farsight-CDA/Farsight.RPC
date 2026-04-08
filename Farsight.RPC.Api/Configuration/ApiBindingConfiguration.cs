@@ -10,7 +10,6 @@ public sealed class ApiBindingConfiguration
 
     [Required]
     public required string ListeningAddress { get; init; }
-
     [Range(1, 65535)]
     public int Port { get; init; }
 }

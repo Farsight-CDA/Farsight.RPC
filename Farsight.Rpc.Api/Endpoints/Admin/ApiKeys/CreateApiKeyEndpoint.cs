@@ -12,7 +12,6 @@ public sealed class CreateApiKeyEndpoint(RpcProvidersDbContext dbContext) : Endp
     public sealed class Request
     {
         public Guid ApplicationId { get; set; }
-
         public HostEnvironment Environment { get; set; }
     }
 

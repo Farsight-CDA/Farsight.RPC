@@ -46,4 +46,6 @@ public sealed class GetProvidersEndpoint(RpcProvidersDbContext dbContext) : Endp
     }
 }
 
-public sealed record GetProvidersRequest(string Chain);
+public sealed record GetProvidersRequest(
+    string Chain
+);

@@ -15,4 +15,5 @@ public sealed record ProviderListItem(
     ulong? IndexBlockOffset,
     TracingMode? TracingMode,
     DateTimeOffset UpdatedUtc,
-    DateTimeOffset? ProbedUtc);
+    DateTimeOffset? ProbedUtc
+);

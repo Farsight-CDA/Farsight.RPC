@@ -10,7 +10,6 @@ public sealed class RpcProvidersDbContext(DbContextOptions<RpcProvidersDbContext
     public DbSet<ApplicationEntity> Applications => Set<ApplicationEntity>();
     public DbSet<ChainEntity> Chains => Set<ChainEntity>();
     public DbSet<ProviderEntity> Providers => Set<ProviderEntity>();
-    public DbSet<ProviderRateLimitEntity> ProviderRateLimits => Set<ProviderRateLimitEntity>();
     public DbSet<RealTimeEndpointEntity> RealTimeEndpoints => Set<RealTimeEndpointEntity>();
     public DbSet<ArchiveEndpointEntity> ArchiveEndpoints => Set<ArchiveEndpointEntity>();
     public DbSet<TracingEndpointEntity> TracingEndpoints => Set<TracingEndpointEntity>();
@@ -30,16 +29,16 @@ public sealed class RpcProvidersDbContext(DbContextOptions<RpcProvidersDbContext
 
         ConfigureLookupEntity<ApplicationEntity>(modelBuilder, "applications");
         ConfigureLookupEntity<ChainEntity>(modelBuilder, "chains");
-        ConfigureLookupEntity<ProviderEntity>(modelBuilder, "providers");
-
-        modelBuilder.Entity<ProviderRateLimitEntity>(entity =>
+        modelBuilder.Entity<ProviderEntity>(entity =>
         {
-            entity.ToTable("provider_rate_limits", tableBuilder =>
+            entity.ToTable("providers", tableBuilder =>
             {
-                tableBuilder.HasCheckConstraint("CK_provider_rate_limits_RateLimit_Positive", "\"RateLimit\" > 0");
+                tableBuilder.HasCheckConstraint("CK_providers_Name_NotEmpty", "btrim(\"Name\") <> ''");
+                tableBuilder.HasCheckConstraint("CK_providers_RateLimit_Positive", "\"RateLimit\" > 0");
             });
-            entity.HasKey(x => x.ProviderId);
-            entity.HasOne(x => x.Provider).WithOne().HasForeignKey<ProviderRateLimitEntity>(x => x.ProviderId).OnDelete(DeleteBehavior.Cascade);
+            entity.Property(x => x.Name).HasColumnType("citext");
+            entity.HasKey(x => x.Id);
+            entity.HasIndex(x => x.Name).IsUnique();
         });
 
         ConfigureProviderEntity<RealTimeEndpointEntity>(modelBuilder, "rpc_realtime_endpoints");

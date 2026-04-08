@@ -6,4 +6,5 @@ public sealed record RpcProviderSetDto(
     string Chain,
     IReadOnlyList<RealTimeRpcEndpointDto> RealTime,
     IReadOnlyList<ArchiveRpcEndpointDto> Archive,
-    IReadOnlyList<TracingRpcEndpointDto> Tracing);
+    IReadOnlyList<TracingRpcEndpointDto> Tracing
+);

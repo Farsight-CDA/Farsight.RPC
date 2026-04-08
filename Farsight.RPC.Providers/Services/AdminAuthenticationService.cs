@@ -1,46 +1,44 @@
 using Farsight.Common;
-using Farsight.RPC.Providers.Persistence;
+using Farsight.RPC.Providers.Configuration;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace Farsight.RPC.Providers.Services;
 
 public partial class AdminAuthenticationService : Singleton
 {
-    [Inject] private readonly IDbContextFactory<RpcProvidersDbContext> _dbContextFactory;
+    [Inject] private readonly AdminLoginConfiguration _adminLoginOptions;
 
     public async Task<bool> SignInAsync(HttpContext httpContext, string userName, string password, CancellationToken cancellationToken)
     {
-        await using var dbContext = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
-        var user = await dbContext.Users
-            .AsNoTracking()
-            .Include(x => x.UserRoles)
-            .ThenInclude(x => x.Role)
-            .SingleOrDefaultAsync(x => x.UserName == userName && x.IsEnabled, cancellationToken);
-
-        if(user is null)
-        {
-            return false;
-        }
-
-        var result = new PasswordHasher<Persistence.Entities.UserEntity>().VerifyHashedPassword(user, user.PasswordHash, password);
-        if(result == PasswordVerificationResult.Failed)
+        if(!IsValidUserName(userName) || !IsValidPassword(password))
         {
             return false;
         }
 
         var claims = new List<Claim>
         {
-            new(ClaimTypes.NameIdentifier, user.Id.ToString()),
-            new(ClaimTypes.Name, user.UserName)
+            new(ClaimTypes.NameIdentifier, AppRoles.ADMIN),
+            new(ClaimTypes.Name, _adminLoginOptions.User),
+            new(ClaimTypes.Role, AppRoles.ADMIN)
         };
-        claims.AddRange(user.UserRoles.Select(x => new Claim(ClaimTypes.Role, x.Role.Name)));
 
         var principal = new ClaimsPrincipal(new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme));
         await httpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal);
         return true;
     }
+
+    private bool IsValidPassword(string password)
+    {
+        byte[] providedPassword = Encoding.UTF8.GetBytes(password);
+        byte[] configuredPassword = Encoding.UTF8.GetBytes(_adminLoginOptions.Password);
+        return providedPassword.Length == configuredPassword.Length
+            && CryptographicOperations.FixedTimeEquals(providedPassword, configuredPassword);
+    }
+
+    private bool IsValidUserName(string userName)
+        => String.Equals(userName, _adminLoginOptions.User, StringComparison.Ordinal);
 }

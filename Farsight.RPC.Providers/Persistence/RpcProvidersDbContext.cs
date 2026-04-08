@@ -6,9 +6,6 @@ namespace Farsight.RPC.Providers.Persistence;
 
 public sealed class RpcProvidersDbContext(DbContextOptions<RpcProvidersDbContext> options) : DbContext(options)
 {
-    public DbSet<UserEntity> Users => Set<UserEntity>();
-    public DbSet<RoleEntity> Roles => Set<RoleEntity>();
-    public DbSet<UserRoleEntity> UserRoles => Set<UserRoleEntity>();
     public DbSet<ApiClientEntity> ApiClients => Set<ApiClientEntity>();
     public DbSet<ApplicationEntity> Applications => Set<ApplicationEntity>();
     public DbSet<ChainEntity> Chains => Set<ChainEntity>();
@@ -21,30 +18,6 @@ public sealed class RpcProvidersDbContext(DbContextOptions<RpcProvidersDbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.HasPostgresExtension("citext");
-
-        modelBuilder.Entity<UserEntity>(entity =>
-        {
-            entity.ToTable("users");
-            entity.HasKey(x => x.Id);
-            entity.Property(x => x.UserName).HasMaxLength(200);
-            entity.HasIndex(x => x.UserName).IsUnique();
-        });
-
-        modelBuilder.Entity<RoleEntity>(entity =>
-        {
-            entity.ToTable("roles");
-            entity.HasKey(x => x.Id);
-            entity.Property(x => x.Name).HasMaxLength(100);
-            entity.HasIndex(x => x.Name).IsUnique();
-        });
-
-        modelBuilder.Entity<UserRoleEntity>(entity =>
-        {
-            entity.ToTable("user_roles");
-            entity.HasKey(x => new { x.UserId, x.RoleId });
-            entity.HasOne(x => x.User).WithMany(x => x.UserRoles).HasForeignKey(x => x.UserId);
-            entity.HasOne(x => x.Role).WithMany(x => x.UserRoles).HasForeignKey(x => x.RoleId);
-        });
 
         modelBuilder.Entity<ApiClientEntity>(entity =>
         {

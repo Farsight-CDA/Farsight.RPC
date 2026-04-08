@@ -1,9 +1,8 @@
 using Farsight.Common;
-using Farsight.RPC.Providers.Auth;
 using Farsight.RPC.Providers.Contracts;
+using Farsight.RPC.Providers.Models;
 using Farsight.RPC.Providers.Persistence;
 using Farsight.RPC.Providers.Persistence.Entities;
-using Farsight.RPC.Providers.Models;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Cryptography;
 
@@ -91,7 +90,7 @@ public partial class ProviderAdminService : Singleton
             .Where(x => x.ApplicationId == appId && x.ChainId == chainId && x.Environment == selection.Environment)
             .Select(x => new ProviderListItem(x.Id, RpcEndpointType.Tracing, x.Environment, x.Application.Name, x.Chain.Name, x.Provider.Name, x.Address, null, null, null, x.TracingMode, x.UpdatedUtc, x.ProbedUtc)).ToListAsync(cancellationToken));
 
-        return rows.OrderBy(x => x.Type).ThenBy(x => x.Provider).ThenByDescending(x => x.ProbedUtc).ThenByDescending(x => x.UpdatedUtc).ToArray();
+        return [.. rows.OrderBy(x => x.Type).ThenBy(x => x.Provider).ThenByDescending(x => x.ProbedUtc).ThenByDescending(x => x.UpdatedUtc)];
     }
 
     public async Task<IReadOnlyList<LookupItem>> GetApplicationsAsync(CancellationToken cancellationToken)

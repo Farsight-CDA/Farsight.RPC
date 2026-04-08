@@ -4,6 +4,7 @@ using Farsight.Rpc.Api.Persistence.Entities;
 using Farsight.Rpc.Api.Services;
 using Farsight.Rpc.Types;
 using FastEndpoints;
+using System.Security.Cryptography;
 
 namespace Farsight.Rpc.Api.Endpoints.Admin.ApiKeys;
 
@@ -30,7 +31,9 @@ public sealed class CreateApiKeyEndpoint(RpcProvidersDbContext dbContext) : Endp
         }
 
         var now = DateTimeOffset.UtcNow;
-        string apiKey = AdminEndpointDbHelpers.GenerateApiKey();
+        Span<byte> buffer = stackalloc byte[32];
+        RandomNumberGenerator.Fill(buffer);
+        string apiKey = $"frpc_{Convert.ToHexString(buffer).ToLowerInvariant()}";
         var client = new ApiClientEntity
         {
             Id = Guid.NewGuid(),

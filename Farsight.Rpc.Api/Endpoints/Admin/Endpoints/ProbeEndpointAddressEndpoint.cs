@@ -2,13 +2,13 @@ using Farsight.Rpc.Api.Models;
 using Farsight.Rpc.Api.Services;
 using FastEndpoints;
 
-namespace Farsight.Rpc.Api.Endpoints.Admin.Providers;
+namespace Farsight.Rpc.Api.Endpoints.Admin.Endpoints;
 
-public sealed class ProbeProviderEndpoint(RpcProbeService rpcProbeService) : Endpoint<ProbeRequest, ProbeResult>
+public sealed class ProbeEndpointAddressEndpoint(RpcProbeService rpcProbeService) : Endpoint<ProbeRequest, ProbeResult>
 {
     public override void Configure()
     {
-        Post("/api/admin/providers/probe");
+        Post("/api/admin/endpoints/probe");
         Policies(AuthorizationPolicies.ADMIN_ONLY);
     }
 

@@ -94,7 +94,7 @@ export const createEndpoint = (model: ProviderEditModel) => apiFetch<void>("/api
 export const updateEndpoint = (model: ProviderEditModel) => apiFetch<void>("/api/admin/endpoints", { method: "PUT", body: JSON.stringify(model) });
 export const deleteEndpoint = (type: RpcEndpointType, id: string) => apiFetch<void>(`/api/admin/endpoints/${type}/${id}`, { method: "DELETE" });
 export const probeSavedEndpoint = (type: RpcEndpointType, id: string) => apiFetch<ProbeResult>(`/api/admin/endpoints/${type}/${id}/probe`, { method: "POST" });
-export const probeEndpointAddress = (type: RpcEndpointType, address: string) => apiFetch<ProbeResult>("/api/admin/providers/probe", {
+export const probeEndpointAddress = (type: RpcEndpointType, address: string) => apiFetch<ProbeResult>("/api/admin/endpoints/probe", {
   method: "POST",
   body: JSON.stringify({ type, address }),
 });

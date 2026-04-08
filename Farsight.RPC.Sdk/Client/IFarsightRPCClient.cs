@@ -2,7 +2,7 @@ using Farsight.RPC.Types;
 
 namespace Farsight.RPC.Sdk.Client;
 
-public interface IRpcProvidersClient
+public interface IFarsightRPCClient
 {
     Task<GetProvidersResult> GetProvidersAsync(string chain, CancellationToken cancellationToken = default);
 

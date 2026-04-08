@@ -5,7 +5,7 @@ using FastEndpoints;
 
 namespace Farsight.Rpc.Api.Endpoints.Admin.Endpoints;
 
-public sealed class CreateAdminEndpointEndpoint(RpcProvidersDbContext dbContext) : Endpoint<ProviderEditModel>
+public sealed class CreateSavedEndpointEndpoint(RpcProvidersDbContext dbContext) : Endpoint<ProviderEditModel>
 {
     public override void Configure()
     {

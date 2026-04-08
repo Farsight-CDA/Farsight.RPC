@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Farsight.Rpc.Api.Endpoints.Admin.Providers;
 
-public sealed class GetAdminProvidersEndpoint(RpcProvidersDbContext dbContext) : EndpointWithoutRequest<IReadOnlyList<ProviderRateLimitRow>>
+public sealed class GetProviderRateLimitsEndpoint(RpcProvidersDbContext dbContext) : EndpointWithoutRequest<IReadOnlyList<ProviderRateLimitRow>>
 {
     public override void Configure()
     {

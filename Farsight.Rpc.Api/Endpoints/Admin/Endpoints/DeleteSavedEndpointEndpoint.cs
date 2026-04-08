@@ -5,7 +5,7 @@ using FastEndpoints;
 
 namespace Farsight.Rpc.Api.Endpoints.Admin.Endpoints;
 
-public sealed class DeleteAdminEndpointEndpoint(RpcProvidersDbContext dbContext) : Endpoint<DeleteAdminEndpointEndpoint.Request>
+public sealed class DeleteSavedEndpointEndpoint(RpcProvidersDbContext dbContext) : Endpoint<DeleteSavedEndpointEndpoint.Request>
 {
     public sealed class Request
     {

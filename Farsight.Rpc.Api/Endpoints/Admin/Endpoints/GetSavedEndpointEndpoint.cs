@@ -6,7 +6,7 @@ using FastEndpoints;
 
 namespace Farsight.Rpc.Api.Endpoints.Admin.Endpoints;
 
-public sealed class GetAdminEndpointEndpoint(RpcProvidersDbContext dbContext) : Endpoint<GetAdminEndpointEndpoint.Request, ProviderEditModel>
+public sealed class GetSavedEndpointEndpoint(RpcProvidersDbContext dbContext) : Endpoint<GetSavedEndpointEndpoint.Request, ProviderEditModel>
 {
     public sealed class Request
     {

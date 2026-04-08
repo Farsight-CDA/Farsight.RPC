@@ -6,7 +6,7 @@ using FastEndpoints;
 
 namespace Farsight.Rpc.Api.Endpoints.Admin.Endpoints;
 
-public sealed class ProbeSavedAdminEndpoint(RpcProvidersDbContext dbContext, RpcProbeService rpcProbeService) : Endpoint<ProbeSavedAdminEndpoint.Request, ProbeResult>
+public sealed class ProbeSavedEndpointEndpoint(RpcProvidersDbContext dbContext, RpcProbeService rpcProbeService) : Endpoint<ProbeSavedEndpointEndpoint.Request, ProbeResult>
 {
     public sealed class Request
     {

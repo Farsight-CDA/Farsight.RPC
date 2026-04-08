@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace Farsight.RPC.Providers.Pages.Admin;
 
-[Authorize(Policy = AuthorizationPolicies.AdminOnly)]
+[Authorize(Policy = AuthorizationPolicies.ADMIN_ONLY)]
 public sealed class IndexModel(ProviderAdminService providerAdminService) : PageModel
 {
     [BindProperty]
@@ -40,7 +40,7 @@ public sealed class IndexModel(ProviderAdminService providerAdminService) : Page
     public async Task<IActionResult> OnPostAsync(CancellationToken cancellationToken)
     {
         var result = await providerAdminService.CreateApiClientAsync(ApplicationId, Environment, cancellationToken);
-        if (result is null)
+        if(result is null)
         {
             StatusMessage = ApplicationId == Guid.Empty ? "Application is required." : "Could not generate API key.";
             StatusIsError = true;

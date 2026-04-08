@@ -2,6 +2,6 @@ namespace Farsight.RPC.Providers;
 
 public static class AppRoles
 {
-    public const string Admin = "Admin";
-    public const string Viewer = "Viewer";
+    public const string ADMIN = "Admin";
+    public const string VIEWER = "Viewer";
 }

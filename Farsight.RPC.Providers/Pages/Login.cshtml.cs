@@ -20,12 +20,12 @@ public sealed class LoginModel(AdminAuthenticationService authenticationService)
 
     public async Task<IActionResult> OnPostAsync(CancellationToken cancellationToken)
     {
-        if (!ModelState.IsValid)
+        if(!ModelState.IsValid)
         {
             return Page();
         }
 
-        if (await authenticationService.SignInAsync(HttpContext, Input.UserName, Input.Password, cancellationToken))
+        if(await authenticationService.SignInAsync(HttpContext, Input.UserName, Input.Password, cancellationToken))
         {
             return RedirectToPage("/Index");
         }
@@ -37,9 +37,9 @@ public sealed class LoginModel(AdminAuthenticationService authenticationService)
     public sealed class InputModel
     {
         [Required]
-        public string UserName { get; set; } = string.Empty;
+        public string UserName { get; set; } = String.Empty;
 
         [Required]
-        public string Password { get; set; } = string.Empty;
+        public string Password { get; set; } = String.Empty;
     }
 }

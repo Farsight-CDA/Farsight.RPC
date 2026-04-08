@@ -23,7 +23,7 @@ public partial class RpcProbeService : Singleton
                 _ => new ProbeResult(false, $"Unsupported URI scheme '{uri.Scheme}'.", null)
             };
         }
-        catch (Exception ex)
+        catch(Exception ex)
         {
             return new ProbeResult(false, BuildFailureMessage(ex), null);
         }
@@ -35,15 +35,15 @@ public partial class RpcProbeService : Singleton
         client.Timeout = TimeSpan.FromSeconds(10);
         using var request = new HttpRequestMessage(HttpMethod.Get, uri);
         using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
-        var endpointType = type switch
+        string endpointType = type switch
         {
             RpcEndpointType.RealTime => "Realtime RPC endpoint",
             RpcEndpointType.Archive => "Archive RPC endpoint",
             RpcEndpointType.Tracing => "Tracing RPC endpoint",
             _ => "RPC endpoint"
         };
-        var message = response.IsSuccessStatusCode
-            ? $"{endpointType} responded with HTTP {(int)response.StatusCode} during probe."
+        string message = response.IsSuccessStatusCode
+            ? $"{endpointType} responded with HTTP {(int) response.StatusCode} during probe."
             : await BuildHttpFailureMessageAsync(endpointType, response, cancellationToken);
         return new ProbeResult(response.IsSuccessStatusCode, message, null);
     }
@@ -55,7 +55,7 @@ public partial class RpcProbeService : Singleton
         timeoutCts.CancelAfter(TimeSpan.FromSeconds(10));
         await socket.ConnectAsync(uri, timeoutCts.Token);
         await socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "probe", timeoutCts.Token);
-        var endpointType = type switch
+        string endpointType = type switch
         {
             RpcEndpointType.RealTime => "Realtime RPC endpoint",
             RpcEndpointType.Archive => "Archive RPC endpoint",
@@ -67,21 +67,21 @@ public partial class RpcProbeService : Singleton
 
     private static async Task<string> BuildHttpFailureMessageAsync(string endpointType, HttpResponseMessage response, CancellationToken cancellationToken)
     {
-        var message = new StringBuilder($"{endpointType} returned HTTP {(int)response.StatusCode}");
-        if (!string.IsNullOrWhiteSpace(response.ReasonPhrase))
+        var message = new StringBuilder($"{endpointType} returned HTTP {(int) response.StatusCode}");
+        if(!String.IsNullOrWhiteSpace(response.ReasonPhrase))
         {
             message.Append(' ').Append(response.ReasonPhrase);
         }
 
         message.Append(" during probe. You can still save this RPC endpoint.");
 
-        if (response.Content is null)
+        if(response.Content is null)
         {
             return message.ToString();
         }
 
-        var body = await response.Content.ReadAsStringAsync(cancellationToken);
-        if (string.IsNullOrWhiteSpace(body))
+        string body = await response.Content.ReadAsStringAsync(cancellationToken);
+        if(String.IsNullOrWhiteSpace(body))
         {
             return message.ToString();
         }
@@ -95,17 +95,17 @@ public partial class RpcProbeService : Singleton
 
     private static string BuildFailureMessage(Exception ex)
     {
-        var message = ex switch
+        string message = ex switch
         {
             OperationCanceledException => "Probe timed out after 10 seconds.",
             WebSocketException websocketEx => $"WebSocket probe failed: {websocketEx.Message}",
             HttpRequestException httpRequestEx when httpRequestEx.StatusCode is HttpStatusCode statusCode
-                => $"HTTP probe failed with status {(int)statusCode} {statusCode}: {httpRequestEx.Message}",
+                => $"HTTP probe failed with status {(int) statusCode} {statusCode}: {httpRequestEx.Message}",
             HttpRequestException httpRequestEx => $"HTTP probe failed: {httpRequestEx.Message}",
             _ => ex.Message
         };
 
-        if (ex.InnerException is null)
+        if(ex.InnerException is null)
         {
             return message;
         }
@@ -115,10 +115,10 @@ public partial class RpcProbeService : Singleton
 
     private static string TrimForDisplay(string value)
     {
-        const int maxLength = 2000;
-        var trimmed = value.Trim();
-        return trimmed.Length <= maxLength
+        const int MAX_LENGTH = 2000;
+        string trimmed = value.Trim();
+        return trimmed.Length <= MAX_LENGTH
             ? trimmed
-            : $"{trimmed[..maxLength]}...";
+            : $"{trimmed[..MAX_LENGTH]}...";
     }
 }

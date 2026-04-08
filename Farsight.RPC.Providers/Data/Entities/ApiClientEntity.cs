@@ -6,7 +6,7 @@ public sealed class ApiClientEntity
 {
     public Guid Id { get; set; }
 
-    public string ApiKey { get; set; } = string.Empty;
+    public string ApiKey { get; set; } = String.Empty;
 
     public Guid? ApplicationId { get; set; }
 

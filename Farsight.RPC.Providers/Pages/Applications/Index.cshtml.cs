@@ -7,7 +7,7 @@ namespace Farsight.RPC.Providers.Pages.Applications;
 
 public sealed class IndexModel(ProviderAdminService providerAdminService) : PageModel
 {
-    [BindProperty] public string Name { get; set; } = string.Empty;
+    [BindProperty] public string Name { get; set; } = String.Empty;
     public IReadOnlyList<LookupItem> Items { get; private set; } = [];
 
     public async Task OnGetAsync(CancellationToken cancellationToken) => Items = await providerAdminService.GetApplicationsAsync(cancellationToken);

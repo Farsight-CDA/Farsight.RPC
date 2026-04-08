@@ -10,12 +10,11 @@ internal sealed class RpcProvidersClient(IHttpClientFactory httpClientFactory, R
     private readonly IHttpClientFactory _httpClientFactory = httpClientFactory;
     private readonly RpcProvidersOptions _options = options;
 
-    private HttpClient CreateClient() => _httpClientFactory.CreateClient(DependencyInjection.HttpClientName);
+    private HttpClient CreateClient() => _httpClientFactory.CreateClient(DependencyInjection.HTTP_CLIENT_NAME);
 
     public async Task<GetProvidersResult> GetProvidersAsync(string chain, CancellationToken cancellationToken = default)
     {
         using var response = await CreateClient().GetAsync($"/api/providers/{Uri.EscapeDataString(chain)}", cancellationToken);
-
         switch(response.StatusCode)
         {
             case HttpStatusCode.NotFound:
@@ -35,7 +34,6 @@ internal sealed class RpcProvidersClient(IHttpClientFactory httpClientFactory, R
     public async Task<GetRealTimeResult> GetRealTimeAsync(string chain, CancellationToken cancellationToken = default)
     {
         using var response = await CreateClient().GetAsync($"/api/providers/{Uri.EscapeDataString(chain)}/realtime", cancellationToken);
-
         switch(response.StatusCode)
         {
             case HttpStatusCode.NotFound:
@@ -55,7 +53,6 @@ internal sealed class RpcProvidersClient(IHttpClientFactory httpClientFactory, R
     public async Task<GetArchiveResult> GetArchiveAsync(string chain, CancellationToken cancellationToken = default)
     {
         using var response = await CreateClient().GetAsync($"/api/providers/{Uri.EscapeDataString(chain)}/archive", cancellationToken);
-
         switch(response.StatusCode)
         {
             case HttpStatusCode.NotFound:
@@ -75,7 +72,6 @@ internal sealed class RpcProvidersClient(IHttpClientFactory httpClientFactory, R
     public async Task<GetTracingResult> GetTracingAsync(string chain, CancellationToken cancellationToken = default)
     {
         using var response = await CreateClient().GetAsync($"/api/providers/{Uri.EscapeDataString(chain)}/tracing", cancellationToken);
-
         switch(response.StatusCode)
         {
             case HttpStatusCode.NotFound:
@@ -95,7 +91,6 @@ internal sealed class RpcProvidersClient(IHttpClientFactory httpClientFactory, R
     public async Task<GetRateLimitsResult> GetRateLimitsAsync(CancellationToken cancellationToken = default)
     {
         using var response = await CreateClient().GetAsync("/api/rate-limits", cancellationToken);
-
         switch(response.StatusCode)
         {
             case HttpStatusCode.ServiceUnavailable:

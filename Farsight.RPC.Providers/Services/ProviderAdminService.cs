@@ -34,7 +34,7 @@ public partial class ProviderAdminService : Singleton
     public async Task SaveAsync(ProviderEditModel model, CancellationToken cancellationToken)
     {
         var now = DateTimeOffset.UtcNow;
-        switch (model.Type)
+        switch(model.Type)
         {
             case RpcEndpointType.RealTime:
                 await SaveRealTimeAsync(model, now, cancellationToken);
@@ -53,7 +53,7 @@ public partial class ProviderAdminService : Singleton
     public async Task DeleteAsync(RpcEndpointType type, Guid id, CancellationToken cancellationToken)
     {
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
-        switch (type)
+        switch(type)
         {
             case RpcEndpointType.RealTime:
                 await DeleteEntityAsync(dbContext.RealTimeEndpoints, dbContext, id, cancellationToken);
@@ -71,7 +71,7 @@ public partial class ProviderAdminService : Singleton
 
     public async Task<IReadOnlyList<ProviderListItem>> GetListAsync(ProviderSelectionModel selection, CancellationToken cancellationToken)
     {
-        if (!selection.ApplicationId.HasValue || !selection.ChainId.HasValue)
+        if(!selection.ApplicationId.HasValue || !selection.ChainId.HasValue)
         {
             return [];
         }
@@ -126,14 +126,14 @@ public partial class ProviderAdminService : Singleton
 
     public async Task<ApiClientCreateResult?> CreateApiClientAsync(Guid applicationId, HostEnvironment environment, CancellationToken cancellationToken)
     {
-        if (applicationId == Guid.Empty)
+        if(applicationId == Guid.Empty)
         {
             return null;
         }
 
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
         var now = DateTimeOffset.UtcNow;
-        var apiKey = GenerateApiKey();
+        string apiKey = GenerateApiKey();
 
         var client = new ApiClientEntity
         {
@@ -167,7 +167,7 @@ public partial class ProviderAdminService : Singleton
                 dbContext.ProviderRateLimits.AsNoTracking(),
                 provider => provider.Id,
                 rateLimit => rateLimit.ProviderId,
-                (provider, rateLimits) => new { provider, rateLimit = rateLimits.Select(x => (int?)x.RateLimit).FirstOrDefault() })
+                (provider, rateLimits) => new { provider, rateLimit = rateLimits.Select(x => (int?) x.RateLimit).FirstOrDefault() })
             .OrderBy(x => x.provider.Name)
             .Select(x => new ProviderRateLimitRow(x.provider.Id, x.provider.Name, x.rateLimit))
             .ToListAsync(cancellationToken);
@@ -178,9 +178,9 @@ public partial class ProviderAdminService : Singleton
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
         var entity = await dbContext.ProviderRateLimits.SingleOrDefaultAsync(x => x.ProviderId == providerId, cancellationToken);
 
-        if (!rateLimit.HasValue)
+        if(!rateLimit.HasValue)
         {
-            if (entity is not null)
+            if(entity is not null)
             {
                 dbContext.ProviderRateLimits.Remove(entity);
                 await dbContext.SaveChangesAsync(cancellationToken);
@@ -188,12 +188,12 @@ public partial class ProviderAdminService : Singleton
             return;
         }
 
-        if (rateLimit.Value <= 0)
+        if(rateLimit.Value <= 0)
         {
             throw new ArgumentOutOfRangeException(nameof(rateLimit), "Rate limit must be greater than 0.");
         }
 
-        if (entity is null)
+        if(entity is null)
         {
             dbContext.ProviderRateLimits.Add(new ProviderRateLimitEntity { ProviderId = providerId, RateLimit = rateLimit.Value });
         }
@@ -214,14 +214,14 @@ public partial class ProviderAdminService : Singleton
     public async Task<bool> SaveChainAsync(string name, CancellationToken cancellationToken)
     {
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
-        var normalizedName = name.Trim().ToLowerInvariant();
-        if (string.IsNullOrWhiteSpace(normalizedName))
+        string normalizedName = name.Trim().ToLowerInvariant();
+        if(String.IsNullOrWhiteSpace(normalizedName))
         {
             return false;
         }
 
-        var exists = await dbContext.Chains.AsNoTracking().AnyAsync(x => x.Name == normalizedName, cancellationToken);
-        if (exists)
+        bool exists = await dbContext.Chains.AsNoTracking().AnyAsync(x => x.Name == normalizedName, cancellationToken);
+        if(exists)
         {
             return false;
         }
@@ -234,19 +234,19 @@ public partial class ProviderAdminService : Singleton
     public async Task<bool> SaveProviderAsync(string name, int? rateLimit, CancellationToken cancellationToken)
     {
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
-        var normalizedName = name.Trim();
-        if (string.IsNullOrWhiteSpace(normalizedName))
+        string normalizedName = name.Trim();
+        if(String.IsNullOrWhiteSpace(normalizedName))
         {
             return false;
         }
 
-        var exists = await dbContext.Providers.AsNoTracking().AnyAsync(x => x.Name == normalizedName, cancellationToken);
-        if (exists)
+        bool exists = await dbContext.Providers.AsNoTracking().AnyAsync(x => x.Name == normalizedName, cancellationToken);
+        if(exists)
         {
             return false;
         }
 
-        if (rateLimit.HasValue && rateLimit.Value <= 0)
+        if(rateLimit.HasValue && rateLimit.Value <= 0)
         {
             throw new ArgumentOutOfRangeException(nameof(rateLimit), "Rate limit must be greater than 0.");
         }
@@ -254,7 +254,7 @@ public partial class ProviderAdminService : Singleton
         var provider = new ProviderEntity { Id = Guid.NewGuid(), Name = normalizedName };
         dbContext.Providers.Add(provider);
 
-        if (rateLimit.HasValue)
+        if(rateLimit.HasValue)
         {
             dbContext.ProviderRateLimits.Add(new ProviderRateLimitEntity { ProviderId = provider.Id, RateLimit = rateLimit.Value });
         }
@@ -267,7 +267,7 @@ public partial class ProviderAdminService : Singleton
     {
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
         DateTimeOffset? probedUtc = succeeded ? DateTimeOffset.UtcNow : null;
-        switch (type)
+        switch(type)
         {
             case RpcEndpointType.RealTime:
                 (await dbContext.RealTimeEndpoints.SingleAsync(x => x.Id == id, cancellationToken)).ProbedUtc = probedUtc;
@@ -287,7 +287,11 @@ public partial class ProviderAdminService : Singleton
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
         var entity = model.Id.HasValue ? await dbContext.RealTimeEndpoints.SingleAsync(x => x.Id == model.Id.Value, cancellationToken) : new RealTimeEndpointEntity { Id = Guid.NewGuid() };
         ApplyCommon(entity, model, now);
-        if (!model.Id.HasValue) dbContext.RealTimeEndpoints.Add(entity);
+        if(!model.Id.HasValue)
+        {
+            dbContext.RealTimeEndpoints.Add(entity);
+        }
+
         await dbContext.SaveChangesAsync(cancellationToken);
     }
 
@@ -299,7 +303,11 @@ public partial class ProviderAdminService : Singleton
         entity.IndexerStepSize = model.IndexerStepSize ?? 0;
         entity.DexIndexStepSize = model.DexIndexStepSize;
         entity.IndexBlockOffset = model.IndexBlockOffset ?? 0;
-        if (!model.Id.HasValue) dbContext.ArchiveEndpoints.Add(entity);
+        if(!model.Id.HasValue)
+        {
+            dbContext.ArchiveEndpoints.Add(entity);
+        }
+
         await dbContext.SaveChangesAsync(cancellationToken);
     }
 
@@ -309,7 +317,11 @@ public partial class ProviderAdminService : Singleton
         var entity = model.Id.HasValue ? await dbContext.TracingEndpoints.SingleAsync(x => x.Id == model.Id.Value, cancellationToken) : new TracingEndpointEntity { Id = Guid.NewGuid() };
         ApplyCommon(entity, model, now);
         entity.TracingMode = model.TracingMode;
-        if (!model.Id.HasValue) dbContext.TracingEndpoints.Add(entity);
+        if(!model.Id.HasValue)
+        {
+            dbContext.TracingEndpoints.Add(entity);
+        }
+
         await dbContext.SaveChangesAsync(cancellationToken);
     }
 
@@ -328,7 +340,7 @@ public partial class ProviderAdminService : Singleton
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
         var provider = await dbContext.Providers.SingleAsync(x => x.Id == id, cancellationToken);
         var rateLimit = await dbContext.ProviderRateLimits.SingleOrDefaultAsync(x => x.ProviderId == id, cancellationToken);
-        if (rateLimit is not null)
+        if(rateLimit is not null)
         {
             dbContext.ProviderRateLimits.Remove(rateLimit);
         }

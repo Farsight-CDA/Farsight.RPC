@@ -2,7 +2,7 @@ namespace Farsight.RPC.Providers.Validation;
 
 public static class RpcValidationRules
 {
-    private static readonly HashSet<string> AllowedSchemes = new(StringComparer.OrdinalIgnoreCase)
+    private static readonly HashSet<string> _allowedSchemes = new(StringComparer.OrdinalIgnoreCase)
     {
         Uri.UriSchemeHttp,
         Uri.UriSchemeHttps,
@@ -11,7 +11,7 @@ public static class RpcValidationRules
     };
 
     public static bool BeValidRpcAddress(string? value)
-        => !string.IsNullOrWhiteSpace(value)
+        => !String.IsNullOrWhiteSpace(value)
            && Uri.TryCreate(value.Trim(), UriKind.Absolute, out var uri)
-           && AllowedSchemes.Contains(uri.Scheme);
+           && _allowedSchemes.Contains(uri.Scheme);
 }

@@ -6,7 +6,7 @@ namespace Farsight.RPC.Providers.Sdk;
 
 public static class DependencyInjection
 {
-    internal const string HttpClientName = "Farsight.RPC.Providers";
+    internal const string HTTP_CLIENT_NAME = "Farsight.RPC.Providers";
 
     private sealed record RegistrationOptions(RpcProvidersOptions Options);
 
@@ -27,14 +27,14 @@ public static class DependencyInjection
                 return new RegistrationOptions(options);
             });
 
-            var clientBuilder = builder.Services.AddHttpClient(HttpClientName, (sp, client) =>
+            var clientBuilder = builder.Services.AddHttpClient(HTTP_CLIENT_NAME, (sp, client) =>
             {
                 var options = sp.GetRequiredService<RegistrationOptions>().Options;
                 client.BaseAddress = options.ApiUrl;
 
                 if(!String.IsNullOrWhiteSpace(options.ApiKey))
                 {
-                    client.DefaultRequestHeaders.Add(ApiKeyHeaders.ApiKey, options.ApiKey);
+                    client.DefaultRequestHeaders.Add(ApiKeyHeaders.API_KEY, options.ApiKey);
                 }
             });
 

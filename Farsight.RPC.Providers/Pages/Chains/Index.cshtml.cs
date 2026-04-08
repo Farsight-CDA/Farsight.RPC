@@ -7,7 +7,7 @@ namespace Farsight.RPC.Providers.Pages.Chains;
 
 public sealed class IndexModel(ProviderAdminService providerAdminService) : PageModel
 {
-    [BindProperty] public string Name { get; set; } = string.Empty;
+    [BindProperty] public string Name { get; set; } = String.Empty;
     public IReadOnlyList<LookupItem> Items { get; private set; } = [];
     public string? StatusMessage { get; private set; }
     public bool StatusIsError { get; private set; }
@@ -16,12 +16,12 @@ public sealed class IndexModel(ProviderAdminService providerAdminService) : Page
 
     public async Task<IActionResult> OnPostAsync(CancellationToken cancellationToken)
     {
-        if (await providerAdminService.SaveChainAsync(Name, cancellationToken))
+        if(await providerAdminService.SaveChainAsync(Name, cancellationToken))
         {
             return RedirectToPage();
         }
 
-        StatusMessage = string.IsNullOrWhiteSpace(Name)
+        StatusMessage = String.IsNullOrWhiteSpace(Name)
             ? "Chain name is required."
             : "Chain already exists.";
         StatusIsError = true;

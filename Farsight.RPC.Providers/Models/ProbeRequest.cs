@@ -6,5 +6,5 @@ public sealed class ProbeRequest
 {
     public RpcEndpointType Type { get; set; }
 
-    public string Address { get; set; } = string.Empty;
+    public string Address { get; set; } = String.Empty;
 }

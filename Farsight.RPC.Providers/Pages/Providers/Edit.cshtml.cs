@@ -39,10 +39,10 @@ public sealed class EditModel(
 
     public async Task<IActionResult> OnGetAsync(Guid? id, RpcEndpointType type = RpcEndpointType.RealTime, Guid? applicationId = null, Guid? chainId = null, HostEnvironment environment = HostEnvironment.Development, CancellationToken cancellationToken = default)
     {
-        if (id.HasValue)
+        if(id.HasValue)
         {
             var model = await providerAdminService.GetEditModelAsync(type, id.Value, cancellationToken);
-            if (model is null)
+            if(model is null)
             {
                 return NotFound();
             }
@@ -63,7 +63,7 @@ public sealed class EditModel(
 
     public async Task<IActionResult> OnPostAsync(CancellationToken cancellationToken)
     {
-        if (!await ValidateInputAsync(cancellationToken))
+        if(!await ValidateInputAsync(cancellationToken))
         {
             StatusMessage = "Please correct the validation issues.";
             StatusIsError = true;
@@ -77,9 +77,9 @@ public sealed class EditModel(
             StatusMessage = "RPC endpoint saved.";
             return RedirectToPage("/Providers/Index");
         }
-        catch (RpcEndpointSchemaOutOfDateException ex)
+        catch(RpcEndpointSchemaOutOfDateException ex)
         {
-            ModelState.AddModelError(string.Empty, ex.Message);
+            ModelState.AddModelError(String.Empty, ex.Message);
             StatusMessage = ex.Message;
             StatusIsError = true;
             await LoadSuggestionsAsync(cancellationToken);
@@ -89,7 +89,7 @@ public sealed class EditModel(
 
     public async Task<IActionResult> OnPostProbeAsync(CancellationToken cancellationToken)
     {
-        if (!await ValidateInputAsync(cancellationToken))
+        if(!await ValidateInputAsync(cancellationToken))
         {
             StatusMessage = "Please correct the validation issues before probing.";
             StatusIsError = true;
@@ -97,21 +97,21 @@ public sealed class EditModel(
             return Page();
         }
 
-        var wasNew = !Input.Id.HasValue;
+        bool wasNew = !Input.Id.HasValue;
         try
         {
             await providerAdminService.SaveAsync(Input, cancellationToken);
         }
-        catch (RpcEndpointSchemaOutOfDateException ex)
+        catch(RpcEndpointSchemaOutOfDateException ex)
         {
-            ModelState.AddModelError(string.Empty, ex.Message);
+            ModelState.AddModelError(String.Empty, ex.Message);
             StatusMessage = ex.Message;
             StatusIsError = true;
             await LoadSuggestionsAsync(cancellationToken);
             return Page();
         }
 
-        if (wasNew)
+        if(wasNew)
         {
             var saved = await providerAdminService.GetListAsync(new ProviderSelectionModel
             {
@@ -123,12 +123,12 @@ public sealed class EditModel(
             Input.Id = saved
                 .Where(x => x.Type == Input.Type && x.Address.ToString() == Input.Address)
                 .OrderByDescending(x => x.UpdatedUtc)
-                .Select(x => (Guid?)x.Id)
+                .Select(x => (Guid?) x.Id)
                 .FirstOrDefault();
         }
 
         var probeRequest = new ProbeRequest { Address = Input.Address, Type = Input.Type };
-        if (!await ValidateProbeAsync(probeRequest, cancellationToken))
+        if(!await ValidateProbeAsync(probeRequest, cancellationToken))
         {
             StatusMessage = "Please correct the validation issues before probing.";
             StatusIsError = true;
@@ -137,7 +137,7 @@ public sealed class EditModel(
         }
 
         var result = await rpcProbeService.ProbeAsync(probeRequest, cancellationToken);
-        if (Input.Id.HasValue)
+        if(Input.Id.HasValue)
         {
             await providerAdminService.UpdateProbeResultAsync(Input.Type, Input.Id.Value, result.Succeeded, cancellationToken);
         }
@@ -149,7 +149,7 @@ public sealed class EditModel(
 
     public async Task<IActionResult> OnPostDeleteAsync(CancellationToken cancellationToken)
     {
-        if (!Input.Id.HasValue)
+        if(!Input.Id.HasValue)
         {
             return RedirectToPage("/Providers/Index");
         }
@@ -177,13 +177,13 @@ public sealed class EditModel(
     {
         ModelState.Clear();
         var validationResult = await probeRequestValidator.ValidateAsync(probeRequest, cancellationToken);
-        foreach (var error in validationResult.Errors)
+        foreach(var error in validationResult.Errors)
         {
-            var key = error.PropertyName switch
+            string key = error.PropertyName switch
             {
                 nameof(ProbeRequest.Address) => $"{nameof(Input)}.{nameof(Input.Address)}",
                 nameof(ProbeRequest.Type) => $"{nameof(Input)}.{nameof(Input.Type)}",
-                _ => string.Empty
+                _ => String.Empty
             };
             ModelState.AddModelError(key, error.ErrorMessage);
         }
@@ -193,10 +193,10 @@ public sealed class EditModel(
 
     private void AddValidationErrors(IEnumerable<FluentValidation.Results.ValidationFailure> errors)
     {
-        foreach (var error in errors)
+        foreach(var error in errors)
         {
-            var key = string.IsNullOrWhiteSpace(error.PropertyName)
-                ? string.Empty
+            string key = String.IsNullOrWhiteSpace(error.PropertyName)
+                ? String.Empty
                 : $"{nameof(Input)}.{error.PropertyName}";
             ModelState.AddModelError(key, error.ErrorMessage);
         }

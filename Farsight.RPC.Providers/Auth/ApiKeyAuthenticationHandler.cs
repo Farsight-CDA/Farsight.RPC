@@ -16,23 +16,23 @@ public sealed class ApiKeyAuthenticationHandler(
 {
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
     {
-        if (!Request.Headers.TryGetValue(ApiKeyHeaders.ApiKey, out var values) || string.IsNullOrWhiteSpace(values.FirstOrDefault()))
+        if(!Request.Headers.TryGetValue(ApiKeyHeaders.API_KEY, out var values) || String.IsNullOrWhiteSpace(values.FirstOrDefault()))
         {
             return AuthenticateResult.NoResult();
         }
 
-        var providedKey = values.First()!;
+        string providedKey = values.First()!;
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(Context.RequestAborted);
         var client = await dbContext.ApiClients
             .AsNoTracking()
             .SingleOrDefaultAsync(x => x.ApiKey == providedKey && x.IsEnabled, Context.RequestAborted);
 
-        if (client is null)
+        if(client is null)
         {
             return AuthenticateResult.Fail("Invalid API key.");
         }
 
-        if (!client.ApplicationId.HasValue || !client.Environment.HasValue)
+        if(!client.ApplicationId.HasValue || !client.Environment.HasValue)
         {
             return AuthenticateResult.Fail("API key is not scoped to an application and environment.");
         }
@@ -41,14 +41,14 @@ public sealed class ApiKeyAuthenticationHandler(
         {
             new Claim(ClaimTypes.NameIdentifier, client.Id.ToString()),
             new Claim(ClaimTypes.Name, client.ApiKey),
-            new Claim(ClaimTypes.Role, AppRoles.Viewer),
-            new Claim(ApiClientClaimTypes.ApplicationId, client.ApplicationId.Value.ToString()),
-            new Claim(ApiClientClaimTypes.Environment, client.Environment.Value.ToString())
+            new Claim(ClaimTypes.Role, AppRoles.VIEWER),
+            new Claim(ApiClientClaimTypes.APPLICATION_ID, client.ApplicationId.Value.ToString()),
+            new Claim(ApiClientClaimTypes.ENVIRONMENT, client.Environment.Value.ToString())
         };
 
-        var identity = new ClaimsIdentity(claims, ApiKeyAuthenticationDefaults.Scheme);
+        var identity = new ClaimsIdentity(claims, ApiKeyAuthenticationDefaults.SCHEME);
         var principal = new ClaimsPrincipal(identity);
-        var ticket = new AuthenticationTicket(principal, ApiKeyAuthenticationDefaults.Scheme);
+        var ticket = new AuthenticationTicket(principal, ApiKeyAuthenticationDefaults.SCHEME);
         return AuthenticateResult.Success(ticket);
     }
 }

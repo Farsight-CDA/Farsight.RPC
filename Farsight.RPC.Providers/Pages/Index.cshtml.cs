@@ -16,10 +16,10 @@ public sealed class IndexModel(
     // Selection state
     [BindProperty(SupportsGet = true)]
     public Guid? SelectedApplicationId { get; set; }
-    
+
     [BindProperty(SupportsGet = true)]
     public Guid? SelectedChainId { get; set; }
-    
+
     [BindProperty(SupportsGet = true)]
     public HostEnvironment? SelectedEnvironment { get; set; }
 
@@ -32,12 +32,12 @@ public sealed class IndexModel(
     // Inline add form properties
     [BindProperty]
     public RpcEndpointType NewProviderType { get; set; } = RpcEndpointType.RealTime;
-    
+
     [BindProperty]
     public Guid NewProviderId { get; set; }
-    
+
     [BindProperty]
-    public string NewAddress { get; set; } = string.Empty;
+    public string NewAddress { get; set; } = String.Empty;
 
     // Show inline form flag
     [BindProperty(SupportsGet = true)]
@@ -56,8 +56,6 @@ public sealed class IndexModel(
     public bool HasSelectedChain => SelectedChainId.HasValue;
     public bool HasSelectedEnvironment => SelectedEnvironment.HasValue;
     public bool CanShowResults => HasSelectedApplication && HasSelectedChain && HasSelectedEnvironment;
-    public int CurrentStep => GetCurrentStep();
-
     public async Task OnGetAsync(CancellationToken cancellationToken)
     {
         Applications = await providerAdminService.GetApplicationsAsync(cancellationToken);
@@ -65,13 +63,13 @@ public sealed class IndexModel(
         ProvidersList = await providerAdminService.GetProvidersAsync(cancellationToken);
 
         // Load probe result from TempData
-        if (TempData["ProbeMessage"] is string probeMessage)
+        if(TempData["ProbeMessage"] is string probeMessage)
         {
             ProbeMessage = probeMessage;
             ProbeSucceeded = TempData["ProbeSucceeded"] is bool probeSucceeded && probeSucceeded;
         }
 
-        if (CanShowResults)
+        if(CanShowResults)
         {
             var query = new ProviderSelectionModel
             {
@@ -86,26 +84,26 @@ public sealed class IndexModel(
     public IActionResult OnPost()
     {
         // Determine what changed and reset downstream selections
-        var changedApp = SelectedApplicationId != GetPreviousApplicationId();
-        var changedChain = SelectedChainId != GetPreviousChainId();
+        bool changedApp = SelectedApplicationId != GetPreviousApplicationId();
+        bool changedChain = SelectedChainId != GetPreviousChainId();
 
-        if (changedApp)
+        if(changedApp)
         {
             // App changed - reset everything downstream
             SelectedChainId = null;
             SelectedEnvironment = null;
         }
-        else if (changedChain)
+        else if(changedChain)
         {
             // Chain changed - reset environment
             SelectedEnvironment = null;
         }
 
         // Redirect with current state (some values may be null)
-        return RedirectToPage(new 
-        { 
-            SelectedApplicationId, 
-            SelectedChainId, 
+        return RedirectToPage(new
+        {
+            SelectedApplicationId,
+            SelectedChainId,
             SelectedEnvironment,
             ShowAddForm
         });
@@ -113,7 +111,7 @@ public sealed class IndexModel(
 
     public async Task<IActionResult> OnPostAddProviderAsync(CancellationToken cancellationToken)
     {
-        if (!CanShowResults)
+        if(!CanShowResults)
         {
             return RedirectToPage();
         }
@@ -129,16 +127,16 @@ public sealed class IndexModel(
         };
 
         var validationResult = await providerEditModelValidator.ValidateAsync(model, cancellationToken);
-        if (!validationResult.IsValid)
+        if(!validationResult.IsValid)
         {
-            foreach (var error in validationResult.Errors)
+            foreach(var error in validationResult.Errors)
             {
-                var key = error.PropertyName switch
+                string key = error.PropertyName switch
                 {
                     nameof(ProviderEditModel.ProviderId) => nameof(NewProviderId),
                     nameof(ProviderEditModel.Address) => nameof(NewAddress),
                     nameof(ProviderEditModel.Type) => nameof(NewProviderType),
-                    _ => string.Empty
+                    _ => String.Empty
                 };
                 ModelState.AddModelError(key, error.ErrorMessage);
             }
@@ -154,9 +152,9 @@ public sealed class IndexModel(
         {
             await providerAdminService.SaveAsync(model, cancellationToken);
         }
-        catch (RpcEndpointSchemaOutOfDateException ex)
+        catch(RpcEndpointSchemaOutOfDateException ex)
         {
-            ModelState.AddModelError(string.Empty, ex.Message);
+            ModelState.AddModelError(String.Empty, ex.Message);
             StatusMessage = ex.Message;
             StatusIsError = true;
             ShowAddForm = true;
@@ -165,34 +163,30 @@ public sealed class IndexModel(
         }
 
         // Redirect back to results with form hidden
-        return RedirectToPage(new 
-        { 
-            SelectedApplicationId, 
-            SelectedChainId, 
+        return RedirectToPage(new
+        {
+            SelectedApplicationId,
+            SelectedChainId,
             SelectedEnvironment,
             ShowAddForm = false
         });
     }
 
-    private int GetCurrentStep()
-    {
-        if (!HasSelectedApplication) return 1;
-        if (!HasSelectedChain) return 2;
-        if (!HasSelectedEnvironment) return 3;
-        return 4;
-    }
-
     public string ShortenAddress(Uri address, int maxLength = 40)
     {
-        var url = address.ToString();
-        if (url.Length <= maxLength) return url;
+        string url = address.ToString();
+        if(url.Length <= maxLength)
+        {
+            return url;
+        }
+
         return url.Substring(0, maxLength - 3) + "...";
     }
 
     // Helper methods to track what changed (compare with form values before bind)
     private Guid? GetPreviousApplicationId()
     {
-        if (Request.Form.TryGetValue("PreviousApplicationId", out var value) && 
+        if(Request.Form.TryGetValue("PreviousApplicationId", out var value) &&
             Guid.TryParse(value, out var id))
         {
             return id;
@@ -202,7 +196,7 @@ public sealed class IndexModel(
 
     private Guid? GetPreviousChainId()
     {
-        if (Request.Form.TryGetValue("PreviousChainId", out var value) && 
+        if(Request.Form.TryGetValue("PreviousChainId", out var value) &&
             Guid.TryParse(value, out var id))
         {
             return id;
@@ -212,14 +206,14 @@ public sealed class IndexModel(
 
     public async Task<IActionResult> OnPostProbeAsync(Guid id, RpcEndpointType type, CancellationToken cancellationToken)
     {
-        if (!CanShowResults)
+        if(!CanShowResults)
         {
             return RedirectToPage();
         }
 
         // Get the provider details to probe
         var provider = await providerAdminService.GetEditModelAsync(type, id, cancellationToken);
-        if (provider is null)
+        if(provider is null)
         {
             return RedirectToPage(new { SelectedApplicationId, SelectedChainId, SelectedEnvironment });
         }
@@ -227,7 +221,7 @@ public sealed class IndexModel(
         var probeRequest = new ProbeRequest { Address = provider.Address, Type = type };
         var result = await rpcProbeService.ProbeAsync(probeRequest, cancellationToken);
         await providerAdminService.UpdateProbeResultAsync(type, id, result.Succeeded, cancellationToken);
-        
+
         // Store result in TempData to show after redirect
         TempData["ProbeMessage"] = result.Message;
         TempData["ProbeSucceeded"] = result.Succeeded;
@@ -237,7 +231,7 @@ public sealed class IndexModel(
 
     public async Task<IActionResult> OnPostDeleteAsync(Guid id, RpcEndpointType type, CancellationToken cancellationToken)
     {
-        if (!CanShowResults)
+        if(!CanShowResults)
         {
             return RedirectToPage();
         }
@@ -253,7 +247,7 @@ public sealed class IndexModel(
         Chains = await providerAdminService.GetChainsAsync(cancellationToken);
         ProvidersList = await providerAdminService.GetProvidersAsync(cancellationToken);
 
-        if (!CanShowResults)
+        if(!CanShowResults)
         {
             Providers = [];
             return;

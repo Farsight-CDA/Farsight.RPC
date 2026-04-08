@@ -7,7 +7,7 @@ namespace Farsight.RPC.Providers.Pages.ProvidersAdmin;
 
 public sealed class IndexModel(ProviderAdminService providerAdminService) : PageModel
 {
-    [BindProperty] public string Name { get; set; } = string.Empty;
+    [BindProperty] public string Name { get; set; } = String.Empty;
     [BindProperty] public int? RateLimit { get; set; }
     [TempData] public string? StatusMessage { get; set; }
     [TempData] public bool StatusIsError { get; set; }
@@ -22,7 +22,7 @@ public sealed class IndexModel(ProviderAdminService providerAdminService) : Page
 
     public async Task<IActionResult> OnPostAsync(CancellationToken cancellationToken)
     {
-        if (RateLimit.HasValue && RateLimit.Value <= 0)
+        if(RateLimit.HasValue && RateLimit.Value <= 0)
         {
             StatusMessage = "Rate limit must be greater than 0 when provided.";
             StatusIsError = true;
@@ -30,9 +30,9 @@ public sealed class IndexModel(ProviderAdminService providerAdminService) : Page
             return Page();
         }
 
-        if (!await providerAdminService.SaveProviderAsync(Name, RateLimit, cancellationToken))
+        if(!await providerAdminService.SaveProviderAsync(Name, RateLimit, cancellationToken))
         {
-            StatusMessage = string.IsNullOrWhiteSpace(Name) ? "Provider name is required." : "Provider already exists.";
+            StatusMessage = String.IsNullOrWhiteSpace(Name) ? "Provider name is required." : "Provider already exists.";
             StatusIsError = true;
             await OnGetAsync(cancellationToken);
             return Page();
@@ -43,7 +43,7 @@ public sealed class IndexModel(ProviderAdminService providerAdminService) : Page
 
     public async Task<IActionResult> OnPostSaveRateLimitAsync(Guid providerId, int? rateLimit, CancellationToken cancellationToken)
     {
-        if (rateLimit.HasValue && rateLimit.Value <= 0)
+        if(rateLimit.HasValue && rateLimit.Value <= 0)
         {
             StatusMessage = "Rate limit must be greater than 0 or left empty.";
             StatusIsError = true;

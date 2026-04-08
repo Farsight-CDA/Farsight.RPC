@@ -25,7 +25,7 @@ public static class App
         builder.Services.AddFastEndpoints();
         builder.Services.AddHttpClient();
 
-        var dataProtectionKeysDirectory = builder.Configuration["DataProtection:KeysDirectory"]
+        string dataProtectionKeysDirectory = builder.Configuration["DataProtection:KeysDirectory"]
             ?? Environment.GetEnvironmentVariable("DataProtection__KeysDirectory")
             ?? "/var/lib/farsight-rpc-providers/data-protection";
         Directory.CreateDirectory(dataProtectionKeysDirectory);
@@ -49,20 +49,20 @@ public static class App
                 options.LoginPath = "/Login";
                 options.AccessDeniedPath = "/Login";
             })
-            .AddScheme<ApiKeyAuthenticationOptions, ApiKeyAuthenticationHandler>(ApiKeyAuthenticationDefaults.Scheme, _ => { });
+            .AddScheme<ApiKeyAuthenticationOptions, ApiKeyAuthenticationHandler>(ApiKeyAuthenticationDefaults.SCHEME, _ => { });
 
         builder.Services.AddAuthorizationBuilder()
-            .AddPolicy(AuthorizationPolicies.AdminOnly, policy =>
+            .AddPolicy(AuthorizationPolicies.ADMIN_ONLY, policy =>
             {
                 policy.AddAuthenticationSchemes(CookieAuthenticationDefaults.AuthenticationScheme);
                 policy.RequireAuthenticatedUser();
-                policy.RequireRole(AppRoles.Admin);
+                policy.RequireRole(AppRoles.ADMIN);
             })
-            .AddPolicy(AuthorizationPolicies.ViewerOnly, policy =>
+            .AddPolicy(AuthorizationPolicies.VIEWER_ONLY, policy =>
             {
-                policy.AddAuthenticationSchemes(ApiKeyAuthenticationDefaults.Scheme);
+                policy.AddAuthenticationSchemes(ApiKeyAuthenticationDefaults.SCHEME);
                 policy.RequireAuthenticatedUser();
-                policy.RequireRole(AppRoles.Viewer);
+                policy.RequireRole(AppRoles.VIEWER);
             });
 
         builder.Services.Configure<ForwardedHeadersOptions>(options =>
@@ -75,24 +75,24 @@ public static class App
 
     public static void Configure(WebApplication app)
     {
-        var hasHttpsPortConfigured = !string.IsNullOrWhiteSpace(app.Configuration["HTTPS_PORTS"])
-            || !string.IsNullOrWhiteSpace(app.Configuration["ASPNETCORE_HTTPS_PORTS"])
-            || !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("HTTPS_PORTS"))
-            || !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("ASPNETCORE_HTTPS_PORTS"));
+        bool hasHttpsPortConfigured = !String.IsNullOrWhiteSpace(app.Configuration["HTTPS_PORTS"])
+            || !String.IsNullOrWhiteSpace(app.Configuration["ASPNETCORE_HTTPS_PORTS"])
+            || !String.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("HTTPS_PORTS"))
+            || !String.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("ASPNETCORE_HTTPS_PORTS"));
 
-        if (!app.Environment.IsDevelopment())
+        if(!app.Environment.IsDevelopment())
         {
             app.UseExceptionHandler("/Error");
             app.UseHsts();
         }
 
         app.UseForwardedHeaders();
-        if (hasHttpsPortConfigured)
+        if(hasHttpsPortConfigured)
         {
             app.UseHttpsRedirection();
         }
 
-        if (!string.IsNullOrWhiteSpace(app.Environment.WebRootPath) && Directory.Exists(app.Environment.WebRootPath))
+        if(!String.IsNullOrWhiteSpace(app.Environment.WebRootPath) && Directory.Exists(app.Environment.WebRootPath))
         {
             app.UseStaticFiles();
         }

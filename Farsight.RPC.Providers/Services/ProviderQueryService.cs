@@ -14,14 +14,14 @@ public partial class ProviderQueryService : Singleton
         var realTime = await GetRealTimeAsync(environment, applicationId, chain, cancellationToken);
         var archive = await GetArchiveAsync(environment, applicationId, chain, cancellationToken);
         var tracing = await GetTracingAsync(environment, applicationId, chain, cancellationToken);
-        var application = realTime.FirstOrDefault()?.Application ?? archive.FirstOrDefault()?.Application ?? tracing.FirstOrDefault()?.Application ?? string.Empty;
+        string application = realTime.FirstOrDefault()?.Application ?? archive.FirstOrDefault()?.Application ?? tracing.FirstOrDefault()?.Application ?? String.Empty;
         return new RpcProviderSetDto(environment, application, chain, realTime, archive, tracing);
     }
 
     public async Task<List<RealTimeRpcEndpointDto>> GetRealTimeAsync(HostEnvironment environment, Guid applicationId, string chain, CancellationToken cancellationToken)
     {
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
-        var normalizedChain = chain.Trim().ToLowerInvariant();
+        string normalizedChain = chain.Trim().ToLowerInvariant();
         return await dbContext.RealTimeEndpoints.AsNoTracking()
             .Include(x => x.Application).Include(x => x.Chain).Include(x => x.Provider)
             .Where(x => x.Environment == environment && x.ApplicationId == applicationId && x.Chain.Name == normalizedChain)
@@ -33,7 +33,7 @@ public partial class ProviderQueryService : Singleton
     public async Task<List<ArchiveRpcEndpointDto>> GetArchiveAsync(HostEnvironment environment, Guid applicationId, string chain, CancellationToken cancellationToken)
     {
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
-        var normalizedChain = chain.Trim().ToLowerInvariant();
+        string normalizedChain = chain.Trim().ToLowerInvariant();
         return await dbContext.ArchiveEndpoints.AsNoTracking()
             .Include(x => x.Application).Include(x => x.Chain).Include(x => x.Provider)
             .Where(x => x.Environment == environment && x.ApplicationId == applicationId && x.Chain.Name == normalizedChain)
@@ -45,7 +45,7 @@ public partial class ProviderQueryService : Singleton
     public async Task<List<TracingRpcEndpointDto>> GetTracingAsync(HostEnvironment environment, Guid applicationId, string chain, CancellationToken cancellationToken)
     {
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
-        var normalizedChain = chain.Trim().ToLowerInvariant();
+        string normalizedChain = chain.Trim().ToLowerInvariant();
         return await dbContext.TracingEndpoints.AsNoTracking()
             .Include(x => x.Application).Include(x => x.Chain).Include(x => x.Provider)
             .Where(x => x.Environment == environment && x.ApplicationId == applicationId && x.Chain.Name == normalizedChain)

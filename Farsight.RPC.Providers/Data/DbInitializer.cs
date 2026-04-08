@@ -21,23 +21,23 @@ public partial class DbInitializer : Singleton
 
     private static async Task SeedRolesAsync(RpcProvidersDbContext dbContext, CancellationToken cancellationToken)
     {
-        if (!await dbContext.Roles.AnyAsync(cancellationToken))
+        if(!await dbContext.Roles.AnyAsync(cancellationToken))
         {
             dbContext.Roles.AddRange(
-                new RoleEntity { Id = Guid.NewGuid(), Name = AppRoles.Admin },
-                new RoleEntity { Id = Guid.NewGuid(), Name = AppRoles.Viewer });
+            new RoleEntity { Id = Guid.NewGuid(), Name = AppRoles.ADMIN },
+                new RoleEntity { Id = Guid.NewGuid(), Name = AppRoles.VIEWER });
             await dbContext.SaveChangesAsync(cancellationToken);
         }
     }
 
     private async Task SeedAdminAsync(RpcProvidersDbContext dbContext, CancellationToken cancellationToken)
     {
-        var adminRole = await dbContext.Roles.SingleAsync(x => x.Name == AppRoles.Admin, cancellationToken);
+        var adminRole = await dbContext.Roles.SingleAsync(x => x.Name == AppRoles.ADMIN, cancellationToken);
         var user = await dbContext.Users
             .Include(x => x.UserRoles)
             .SingleOrDefaultAsync(x => x.UserName == _adminLoginOptions.User, cancellationToken);
 
-        var isNewUser = user is null;
+        bool isNewUser = user is null;
         user ??= new UserEntity
         {
             Id = Guid.NewGuid(),
@@ -49,7 +49,7 @@ public partial class DbInitializer : Singleton
         user.IsEnabled = true;
         user.PasswordHash = new PasswordHasher<UserEntity>().HashPassword(user, _adminLoginOptions.Password);
 
-        if (!user.UserRoles.Any(x => x.RoleId == adminRole.Id))
+        if(!user.UserRoles.Any(x => x.RoleId == adminRole.Id))
         {
             user.UserRoles.Add(new UserRoleEntity
             {
@@ -60,7 +60,7 @@ public partial class DbInitializer : Singleton
             });
         }
 
-        if (isNewUser)
+        if(isNewUser)
         {
             dbContext.Users.Add(user);
         }

@@ -3,10 +3,10 @@ using FluentValidation;
 
 namespace Farsight.RPC.Providers;
 
-[ConfigOption<Validator>(SectionName = SectionName)]
+[ConfigOption<Validator>(SectionName = SECTION_NAME)]
 public sealed class AdminLoginOptions
 {
-    public const string SectionName = "AdminLogin";
+    public const string SECTION_NAME = "AdminLogin";
 
     public string User { get; set; } = "admin";
 

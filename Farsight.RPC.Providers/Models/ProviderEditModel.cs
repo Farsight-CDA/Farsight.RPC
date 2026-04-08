@@ -16,7 +16,7 @@ public sealed class ProviderEditModel
 
     public Guid ProviderId { get; set; }
 
-    public string Address { get; set; } = string.Empty;
+    public string Address { get; set; } = String.Empty;
 
     public ulong? IndexerStepSize { get; set; }
 

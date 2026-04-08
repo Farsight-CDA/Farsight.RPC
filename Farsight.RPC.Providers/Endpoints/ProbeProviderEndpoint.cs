@@ -9,7 +9,7 @@ public sealed class ProbeProviderEndpoint(RpcProbeService rpcProbeService) : End
     public override void Configure()
     {
         Post("/api/admin/providers/probe");
-        Policies(AuthorizationPolicies.AdminOnly);
+        Policies(AuthorizationPolicies.ADMIN_ONLY);
     }
 
     public override async Task HandleAsync(ProbeRequest req, CancellationToken ct)

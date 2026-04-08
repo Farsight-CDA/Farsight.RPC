@@ -21,13 +21,13 @@ public partial class AdminAuthenticationService : Singleton
             .ThenInclude(x => x.Role)
             .SingleOrDefaultAsync(x => x.UserName == userName && x.IsEnabled, cancellationToken);
 
-        if (user is null)
+        if(user is null)
         {
             return false;
         }
 
         var result = new PasswordHasher<Data.Entities.UserEntity>().VerifyHashedPassword(user, user.PasswordHash, password);
-        if (result == PasswordVerificationResult.Failed)
+        if(result == PasswordVerificationResult.Failed)
         {
             return false;
         }

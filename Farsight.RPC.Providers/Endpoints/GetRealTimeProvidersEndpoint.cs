@@ -10,7 +10,7 @@ public sealed class GetRealTimeProvidersEndpoint(ProviderQueryService providerQu
     public override void Configure()
     {
         Get("/api/providers/{Chain}/realtime");
-        Policies(AuthorizationPolicies.ViewerOnly);
+        Policies(AuthorizationPolicies.VIEWER_ONLY);
     }
 
     public override async Task HandleAsync(GetProvidersRequest req, CancellationToken ct)

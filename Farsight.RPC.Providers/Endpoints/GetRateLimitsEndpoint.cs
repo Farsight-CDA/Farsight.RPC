@@ -1,6 +1,6 @@
-using FastEndpoints;
 using Farsight.RPC.Providers.Contracts;
 using Farsight.RPC.Providers.Services;
+using FastEndpoints;
 
 namespace Farsight.RPC.Providers.Endpoints;
 
@@ -9,7 +9,7 @@ public sealed class GetRateLimitsEndpoint(ProviderQueryService providerQueryServ
     public override void Configure()
     {
         Get("/api/rate-limits");
-        Policies(AuthorizationPolicies.ViewerOnly);
+        Policies(AuthorizationPolicies.VIEWER_ONLY);
     }
 
     public override async Task HandleAsync(CancellationToken ct)

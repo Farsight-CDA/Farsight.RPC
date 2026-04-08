@@ -36,6 +36,7 @@ public static class App
 
         builder.Services.AddDbContextFactory<RpcProvidersDbContext>(options =>
             options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+
         builder.Services.AddScoped<IValidator<ProviderEditModel>, ProviderEditModelValidator>();
         builder.Services.AddScoped<IValidator<ProbeRequest>, ProbeRequestValidator>();
 

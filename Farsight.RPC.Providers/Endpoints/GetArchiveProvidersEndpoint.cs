@@ -1,11 +1,13 @@
 using Farsight.RPC.Providers.Auth;
 using Farsight.RPC.Providers.Contracts;
+using Farsight.RPC.Providers.Data;
 using Farsight.RPC.Providers.Services;
 using FastEndpoints;
+using Microsoft.EntityFrameworkCore;
 
 namespace Farsight.RPC.Providers.Endpoints;
 
-public sealed class GetArchiveProvidersEndpoint(ProviderQueryService providerQueryService) : Endpoint<GetProvidersRequest, IReadOnlyList<ArchiveRpcEndpointDto>>
+public sealed class GetArchiveProvidersEndpoint(RpcProvidersDbContext dbContext) : Endpoint<GetProvidersRequest, IReadOnlyList<ArchiveRpcEndpointDto>>
 {
     public override void Configure()
     {
@@ -14,5 +16,15 @@ public sealed class GetArchiveProvidersEndpoint(ProviderQueryService providerQue
     }
 
     public override async Task HandleAsync(GetProvidersRequest req, CancellationToken ct)
-        => await Send.OkAsync(await providerQueryService.GetArchiveAsync(ApiClientClaimTypes.GetRequiredEnvironment(User), ApiClientClaimTypes.GetRequiredApplicationId(User), req.Chain, ct), ct);
+    {
+        string normalizedChain = req.Chain.Trim().ToLowerInvariant();
+        var providers = await dbContext.ArchiveEndpoints.AsNoTracking()
+            .Where(x => x.Environment == ApiClientClaimTypes.GetRequiredEnvironment(User) && x.ApplicationId == ApiClientClaimTypes.GetRequiredApplicationId(User) && x.Chain.Name == normalizedChain)
+            .OrderByDescending(x => x.ProbedUtc)
+            .ThenByDescending(x => x.UpdatedUtc)
+            .Select(x => new ArchiveRpcEndpointDto(x.Id, x.Environment, x.Application.Name, x.Chain.Name, x.Provider.Name, x.Address, x.IndexerStepSize, x.DexIndexStepSize, x.IndexBlockOffset, x.UpdatedUtc, x.ProbedUtc))
+            .ToListAsync(ct);
+
+        await Send.OkAsync(providers, ct);
+    }
 }

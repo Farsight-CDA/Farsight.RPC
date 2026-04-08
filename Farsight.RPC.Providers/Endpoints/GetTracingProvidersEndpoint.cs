@@ -1,11 +1,13 @@
 using Farsight.RPC.Providers.Auth;
 using Farsight.RPC.Providers.Contracts;
+using Farsight.RPC.Providers.Data;
 using Farsight.RPC.Providers.Services;
 using FastEndpoints;
+using Microsoft.EntityFrameworkCore;
 
 namespace Farsight.RPC.Providers.Endpoints;
 
-public sealed class GetTracingProvidersEndpoint(ProviderQueryService providerQueryService) : Endpoint<GetProvidersRequest, IReadOnlyList<TracingRpcEndpointDto>>
+public sealed class GetTracingProvidersEndpoint(RpcProvidersDbContext dbContext) : Endpoint<GetProvidersRequest, IReadOnlyList<TracingRpcEndpointDto>>
 {
     public override void Configure()
     {
@@ -14,5 +16,15 @@ public sealed class GetTracingProvidersEndpoint(ProviderQueryService providerQue
     }
 
     public override async Task HandleAsync(GetProvidersRequest req, CancellationToken ct)
-        => await Send.OkAsync(await providerQueryService.GetTracingAsync(ApiClientClaimTypes.GetRequiredEnvironment(User), ApiClientClaimTypes.GetRequiredApplicationId(User), req.Chain, ct), ct);
+    {
+        string normalizedChain = req.Chain.Trim().ToLowerInvariant();
+        var providers = await dbContext.TracingEndpoints.AsNoTracking()
+            .Where(x => x.Environment == ApiClientClaimTypes.GetRequiredEnvironment(User) && x.ApplicationId == ApiClientClaimTypes.GetRequiredApplicationId(User) && x.Chain.Name == normalizedChain)
+            .OrderByDescending(x => x.ProbedUtc)
+            .ThenByDescending(x => x.UpdatedUtc)
+            .Select(x => new TracingRpcEndpointDto(x.Id, x.Environment, x.Application.Name, x.Chain.Name, x.Provider.Name, x.Address, x.TracingMode, x.UpdatedUtc, x.ProbedUtc))
+            .ToListAsync(ct);
+
+        await Send.OkAsync(providers, ct);
+    }
 }

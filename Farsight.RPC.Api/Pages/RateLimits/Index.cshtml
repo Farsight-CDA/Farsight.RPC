@@ -1,0 +1,17 @@
+@page
+@model Farsight.RPC.Api.Pages.RateLimits.IndexModel
+@{
+    Layout = "/Pages/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Rate Limits";
+    ViewData["ActivePage"] = "RateLimits";
+}
+
+<div class="actions" style="margin-bottom: 1rem;">
+    <a class="button secondary" asp-page="/ProvidersAdmin/Index">← Back to Providers</a>
+</div>
+
+<div class="panel">
+    <h1>Rate Limits moved</h1>
+    <p>Provider definitions and rate limits are managed together now.</p>
+    <a class="button" asp-page="/ProvidersAdmin/Index">Open Providers</a>
+</div>

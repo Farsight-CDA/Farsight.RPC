@@ -1,0 +1,30 @@
+{
+  "_server-fns-CT9cwr8v.js": {
+    "file": "assets/server-fns-CT9cwr8v.js",
+    "name": "server-fns",
+    "dynamicImports": [
+      "src/app.tsx"
+    ]
+  },
+  "src/app.tsx": {
+    "file": "assets/app-1j3tNlt-.js",
+    "name": "app",
+    "src": "src/app.tsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "_server-fns-CT9cwr8v.js"
+    ],
+    "css": [
+      "assets/app-CfwEKjV3.css"
+    ]
+  },
+  "virtual:$vinxi/handler/server-fns": {
+    "file": "server-fns.js",
+    "name": "server-fns",
+    "src": "virtual:$vinxi/handler/server-fns",
+    "isEntry": true,
+    "imports": [
+      "_server-fns-CT9cwr8v.js"
+    ]
+  }
+}

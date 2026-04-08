@@ -5,13 +5,12 @@ using Farsight.Rpc.Api.Persistence;
 using Farsight.Rpc.Api.Validation;
 using FastEndpoints;
 using FluentValidation;
-using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.DataProtection;
-using Microsoft.AspNetCore.DataProtection.KeyManagement;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
 using System.Net;
+using System.Text;
 
 namespace Farsight.Rpc.Api;
 
@@ -39,41 +38,41 @@ public static class App
             x.Listen(address, bindingConfiguration.Port);
         });
 
-        builder.Services.AddRazorPages(options =>
-        {
-            options.Conventions.AuthorizeFolder("/");
-            options.Conventions.AllowAnonymousToPage("/Login");
-            options.Conventions.AllowAnonymousToPage("/Error");
-        });
-
         builder.Services.AddFastEndpoints();
-        builder.Services.AddHttpClient();
 
-        builder.Services.AddSingleton<IConfigureOptions<KeyManagementOptions>, DataProtectionKeyManagementConfigurator>();
-        builder.Services.AddDataProtection().SetApplicationName("Farsight.Rpc.Api");
-
-        builder.Services.AddDbContextFactory<RpcProvidersDbContext>((provider, options) =>
+        builder.Services.AddDbContext<RpcProvidersDbContext>((provider, options) =>
             options.UseNpgsql(provider.GetRequiredService<DatabaseConfiguration>().PostgresConnectionString));
 
         builder.Services.AddScoped<IValidator<ProviderEditModel>, ProviderEditModelValidator>();
         builder.Services.AddScoped<IValidator<ProbeRequest>, ProbeRequestValidator>();
 
+        var jwtConfiguration = builder.Configuration
+            .GetRequiredSection(JwtConfiguration.SECTION_NAME)
+            .Get<JwtConfiguration>() ?? throw new InvalidOperationException("The Jwt configuration section is required.");
+        byte[] signingKey = Encoding.UTF8.GetBytes(jwtConfiguration.Secret);
+
         builder.Services.AddAuthentication(options =>
             {
-                options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-                options.DefaultChallengeScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+                options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
             })
-            .AddCookie(options =>
+            .AddJwtBearer(options => options.TokenValidationParameters = new TokenValidationParameters
             {
-                options.LoginPath = "/Login";
-                options.AccessDeniedPath = "/Login";
+                ValidateIssuer = true,
+                ValidIssuer = jwtConfiguration.Issuer,
+                ValidateAudience = true,
+                ValidAudience = jwtConfiguration.Audience,
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = new SymmetricSecurityKey(signingKey),
+                ValidateLifetime = true,
+                ClockSkew = TimeSpan.FromMinutes(1)
             })
             .AddScheme<ApiKeyAuthenticationOptions, ApiKeyAuthenticationHandler>(ApiKeyAuthenticationDefaults.SCHEME, _ => { });
 
         builder.Services.AddAuthorizationBuilder()
             .AddPolicy(AuthorizationPolicies.ADMIN_ONLY, policy =>
             {
-                policy.AddAuthenticationSchemes(CookieAuthenticationDefaults.AuthenticationScheme);
+                policy.AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme);
                 policy.RequireAuthenticatedUser();
                 policy.RequireRole(AppRoles.ADMIN);
             })
@@ -96,21 +95,15 @@ public static class App
     {
         if(!app.Environment.IsDevelopment())
         {
-            app.UseExceptionHandler("/Error");
+            app.UseExceptionHandler();
             app.UseHsts();
         }
 
         app.UseForwardedHeaders();
 
-        if(!String.IsNullOrWhiteSpace(app.Environment.WebRootPath) && Directory.Exists(app.Environment.WebRootPath))
-        {
-            app.UseStaticFiles();
-        }
-
         app.UseRouting();
         app.UseAuthentication();
         app.UseAuthorization();
         app.UseFastEndpoints();
-        app.MapRazorPages();
     }
 }

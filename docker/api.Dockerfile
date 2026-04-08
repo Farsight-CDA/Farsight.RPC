@@ -12,10 +12,8 @@ RUN apt update && apt install -y libgssapi-krb5-2 && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 COPY --from=build /app/publish ./
-RUN mkdir -p /var/lib/farsight-rpc-api/data-protection
 
 ENV ASPNETCORE_HTTP_PORTS=8080
-ENV DataProtection__KeysDirectory=/var/lib/farsight-rpc-api/data-protection
-VOLUME ["/var/lib/farsight-rpc-api/data-protection"]
+ENV Jwt__Secret=change-me-to-a-32-byte-or-longer-secret
 
 ENTRYPOINT ["dotnet", "Farsight.Rpc.Api.dll"]

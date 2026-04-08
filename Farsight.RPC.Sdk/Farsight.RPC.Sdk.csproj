@@ -19,8 +19,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Farsight.Rpc.Types\Farsight.Rpc.Types.csproj"
-                      PrivateAssets="all" />
+    <ProjectReference Include="..\Farsight.Rpc.Types\Farsight.Rpc.Types.csproj" PrivateAssets="all" />
     <None Include="README.md" Pack="true" PackagePath="/" />
   </ItemGroup>
 
@@ -29,11 +28,13 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.5" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.5" />
   </ItemGroup>
 
   <Target Name="IncludeProjectReferenceOutputsInPackage" DependsOnTargets="ResolveReferences">
     <ItemGroup>
-      <BuildOutputInPackage Include="@(ReferenceCopyLocalPaths->WithMetadataValue('ReferenceSourceTarget', 'ProjectReference'))" />
+      <BuildOutputInPackage Include="@(ReferenceCopyLocalPaths-&gt;WithMetadataValue('ReferenceSourceTarget', 'ProjectReference'))" />
     </ItemGroup>
   </Target>
 

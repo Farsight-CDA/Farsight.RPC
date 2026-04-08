@@ -1,9 +1,9 @@
 using Farsight.Common;
 using Farsight.Rpc.Api.Configuration;
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.IdentityModel.Tokens;
 using System.Security.Claims;
 using System.Security.Cryptography;
+using System.IdentityModel.Tokens.Jwt;
 using System.Text;
 
 namespace Farsight.Rpc.Api.Services;
@@ -11,24 +11,40 @@ namespace Farsight.Rpc.Api.Services;
 public partial class AdminAuthenticationService : Singleton
 {
     [Inject] private readonly AdminLoginConfiguration _adminLoginOptions;
+    [Inject] private readonly JwtConfiguration _jwtConfiguration;
 
-    public async Task<bool> SignInAsync(HttpContext httpContext, string userName, string password, CancellationToken cancellationToken)
+    public bool IsValidCredentials(string userName, string password)
     {
         if(!IsValidUserName(userName) || !IsValidPassword(password))
         {
             return false;
         }
 
+        return true;
+    }
+
+    public string CreateToken(string userName)
+    {
+        var now = DateTimeOffset.UtcNow;
+        byte[] keyBytes = Encoding.UTF8.GetBytes(_jwtConfiguration.Secret);
         var claims = new List<Claim>
         {
+            new(JwtRegisteredClaimNames.Sub, userName),
+            new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
             new(ClaimTypes.NameIdentifier, AppRoles.ADMIN),
-            new(ClaimTypes.Name, _adminLoginOptions.User),
+            new(ClaimTypes.Name, userName),
             new(ClaimTypes.Role, AppRoles.ADMIN)
         };
 
-        var principal = new ClaimsPrincipal(new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme));
-        await httpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal);
-        return true;
+        var token = new JwtSecurityToken(
+            issuer: _jwtConfiguration.Issuer,
+            audience: _jwtConfiguration.Audience,
+            claims: claims,
+            notBefore: now.UtcDateTime,
+            expires: now.AddMinutes(_jwtConfiguration.ExpiryMinutes).UtcDateTime,
+            signingCredentials: new SigningCredentials(new SymmetricSecurityKey(keyBytes), SecurityAlgorithms.HmacSha256));
+
+        return new JwtSecurityTokenHandler().WriteToken(token);
     }
 
     private bool IsValidPassword(string password)

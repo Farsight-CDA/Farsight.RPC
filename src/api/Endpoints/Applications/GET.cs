@@ -5,9 +5,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Farsight.Rpc.Api.Endpoints.Applications;
 
-public sealed class GET(AppDbContext dbContext) : EndpointWithoutRequest<List<GET.ApplicationSummary>>
+public sealed class GET(AppDbContext dbContext) : EndpointWithoutRequest<GET.ApplicationSummary[]>
 {
-    public sealed record ApplicationSummary(Guid Id, string Name);
+    public sealed record ApplicationSummary(Guid Id, string Name, int TracingCount, int RealtimeCount, int ArchiveCount);
 
     public override void Configure()
     {
@@ -18,8 +18,14 @@ public sealed class GET(AppDbContext dbContext) : EndpointWithoutRequest<List<GE
     public override async Task HandleAsync(CancellationToken ct)
     {
         var applications = await dbContext.ConsumerApplications
-            .Select(a => new ApplicationSummary(a.Id, a.Name))
-            .ToListAsync(ct);
+            .Select(a => new ApplicationSummary(
+                a.Id,
+                a.Name,
+                a.TracingRpcs!.Count,
+                a.RealtimeRpcs!.Count,
+                a.ArchiveRpcs!.Count
+            ))
+            .ToArrayAsync(ct);
 
         await Send.OkAsync(applications, ct);
     }

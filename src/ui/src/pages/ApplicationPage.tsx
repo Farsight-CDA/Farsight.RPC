@@ -1,5 +1,5 @@
 import { useNavigate, useParams } from "@solidjs/router";
-import { createEffect, createMemo, createResource, createSignal, For, Show } from "solid-js";
+import { createEffect, createMemo, createSignal, For, Show } from "solid-js";
 import LoadingSpinner from "../components/LoadingSpinner";
 import { useAuth } from "../lib/auth";
 import ArrowLeftIcon from "../components/icons/ArrowLeftIcon";
@@ -14,21 +14,11 @@ import TrashIcon from "../components/icons/TrashIcon";
 import PencilIcon from "../components/icons/PencilIcon";
 import LightningIcon from "../components/icons/LightningIcon";
 import EmptyStateIcon from "../components/icons/EmptyStateIcon";
-
-type Application = {
-  id: string;
-  name: string;
-  apiKeyCount: number;
-  tracingCount: number;
-  realtimeCount: number;
-  archiveCount: number;
-};
-
-type ConsumerApiKeySummary = {
-  id: string;
-  environment: string;
-  key: string;
-};
+import { useReferenceData } from "../lib/reference-data";
+import {
+  useApplicationData,
+  type ConsumerApiKeySummary,
+} from "../lib/application-data";
 
 async function readErrorMessage(
   response: Response,
@@ -49,11 +39,30 @@ async function readErrorMessage(
   return fallback;
 }
 
+const applicationNamePattern = "[A-Za-z0-9_-]+";
+const applicationNameHint =
+  "Use only letters, numbers, underscores, and hyphens.";
+
 export default function ApplicationPage() {
   const auth = useAuth();
+  const referenceData = useReferenceData();
+  const applicationData = useApplicationData();
   const navigate = useNavigate();
   const params = useParams();
   const applicationId = () => params.applicationId;
+
+  const applications = referenceData.applications.data;
+  const applicationsState = referenceData.applications.state;
+  const applicationsError = referenceData.applications.error;
+  const chains = referenceData.chains.data;
+  const chainsState = referenceData.chains.state;
+  const chainsError = referenceData.chains.error;
+  const environments = referenceData.hostEnvironments.data;
+  const environmentsState = referenceData.hostEnvironments.state;
+  const environmentsError = referenceData.hostEnvironments.error;
+  const apiKeys = applicationData.apiKeys.data;
+  const apiKeysState = applicationData.apiKeys.state;
+  const apiKeysError = applicationData.apiKeys.error;
 
   const [activeTab, setActiveTab] = createSignal<"rpcs" | "api-keys" | "general">("rpcs");
 
@@ -79,86 +88,33 @@ export default function ApplicationPage() {
   const [deleteKeyError, setDeleteKeyError] = createSignal<string | null>(null);
   const [deleteKeyLoading, setDeleteKeyLoading] = createSignal(false);
 
-  const [application, { refetch: refetchApplication }] = createResource(
-    () => ({ token: auth.token, id: applicationId() }),
-    async ({ token, id }) => {
-      if (!token || !id) return null;
-      const response = await fetch("/api/applications", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!response.ok) {
-        throw new Error("Failed to load application");
-      }
-      const apps = (await response.json()) as Application[];
-      return apps.find((a) => a.id === id) || null;
-    },
-  );
-
-  const [chains] = createResource(
-    () => auth.token,
-    async (token) => {
-      if (!token) return [] as string[];
-      const response = await fetch("/api/chains", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!response.ok) {
-        throw new Error("Failed to load chains");
-      }
-      return response.json() as Promise<string[]>;
-    },
-  );
-
-  const [environments] = createResource(
-    () => auth.token,
-    async (token) => {
-      if (!token) return [] as string[];
-      const response = await fetch("/api/host-environments", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!response.ok) {
-        throw new Error("Failed to load environments");
-      }
-      return response.json() as Promise<string[]>;
-    },
-  );
-
-  const [apiKeys, { refetch: refetchApiKeys }] = createResource(
-    () => {
-      if (activeTab() !== "api-keys") return undefined;
-      const id = applicationId();
-      const token = auth.token;
-      if (!id || !token) return undefined;
-      return { token, applicationId: id };
-    },
-    async (src) => {
-      if (!src) return [] as ConsumerApiKeySummary[];
-      const response = await fetch(
-        `/api/applications/${src.applicationId}/api-keys`,
-        { headers: { Authorization: `Bearer ${src.token}` } },
-      );
-      if (!response.ok) {
-        throw new Error("Failed to load API keys");
-      }
-      return response.json() as Promise<ConsumerApiKeySummary[]>;
-    },
+  const application = createMemo(
+    () => applications().find((app) => app.id === applicationId()) ?? null,
   );
 
   createEffect(() => {
     const envs = environments();
-    if (envs && envs.length > 0 && !selectedEnvironment()) {
+    const selected = selectedEnvironment();
+    if (envs.length > 0 && (!selected || !envs.includes(selected))) {
       setSelectedEnvironment(envs[0]);
     }
   });
 
   createEffect(() => {
     const envs = environments();
-    if (envs && envs.length > 0 && !newKeyEnvironment()) {
+    const selected = newKeyEnvironment();
+    if (envs.length > 0 && (!selected || !envs.includes(selected))) {
       setNewKeyEnvironment(envs[0]);
     }
   });
 
+  const availableChains = createMemo(() => {
+    const uniqueChains = new Set(chains());
+    return Array.from(uniqueChains).sort((a, b) => a.localeCompare(b));
+  });
+
   const filteredChains = createMemo(() => {
-    const allChains = chains() ?? [];
+    const allChains = availableChains();
     const filter = filterText().trim().toLowerCase();
     if (!filter) return allChains;
     return allChains.filter((chain) => chain.toLowerCase().includes(filter));
@@ -185,7 +141,7 @@ export default function ApplicationPage() {
           await readErrorMessage(response, "Failed to rename application"),
         );
       }
-      await refetchApplication();
+      await referenceData.refreshApplications();
     } catch (err) {
       setRenameError(
         err instanceof Error ? err.message : "Failed to rename application",
@@ -211,7 +167,9 @@ export default function ApplicationPage() {
           await readErrorMessage(response, "Failed to delete application"),
         );
       }
+      referenceData.removeApplication(app.id);
       navigate("/", { replace: true });
+      void referenceData.refreshApplications();
     } catch (err) {
       setDeleteError(
         err instanceof Error ? err.message : "Failed to delete application",
@@ -243,8 +201,10 @@ export default function ApplicationPage() {
           await readErrorMessage(response, "Failed to create API key"),
         );
       }
-      await refetchApiKeys();
-      await refetchApplication();
+      await Promise.all([
+        applicationData.refreshApiKeys(),
+        referenceData.refreshApplications(),
+      ]);
     } catch (err) {
       setCreateKeyError(
         err instanceof Error ? err.message : "Failed to create API key",
@@ -275,8 +235,10 @@ export default function ApplicationPage() {
         );
       }
       setApiKeyToDelete(null);
-      await refetchApiKeys();
-      await refetchApplication();
+      await Promise.all([
+        applicationData.refreshApiKeys(),
+        referenceData.refreshApplications(),
+      ]);
     } catch (err) {
       setDeleteKeyError(
         err instanceof Error ? err.message : "Failed to delete API key",
@@ -295,20 +257,20 @@ export default function ApplicationPage() {
       {/* Header Section */}
       <div class="border-b-4 border-[var(--color-b-ink)] bg-b-field px-6 py-4">
         <div class="mx-auto max-w-7xl">
-          <Show when={application.state === "pending"}>
+          <Show when={applicationsState() === "pending"}>
             <div class="flex items-center gap-3 text-sm font-semibold uppercase tracking-wider text-b-ink/70">
               <LoadingSpinner class="size-5" />
               Loading application…
             </div>
           </Show>
 
-          <Show when={application.error}>
+          <Show when={applicationsError()}>
             <p class="border-4 border-red-500/50 bg-red-500/10 px-3 py-3 text-xs font-bold uppercase leading-snug text-red-400">
-              {application.error.message}
+              {applicationsError()!.message}
             </p>
           </Show>
 
-          <Show when={application() && application.state === "ready"}>
+          <Show when={application() && applicationsState() === "ready"}>
             <div class="flex flex-col gap-3">
               {/* Breadcrumb */}
               <button
@@ -379,7 +341,7 @@ export default function ApplicationPage() {
                 <p class="text-xs font-bold uppercase tracking-[0.4em] text-b-accent">
                   Select Environment
                 </p>
-                <Show when={environments.state === "pending" || !selectedEnvironment()}>
+                <Show when={environmentsState() === "pending"}>
                   <div class="flex h-12 items-center gap-2 border-4 border-[var(--color-b-ink)] bg-b-paper px-3 sm:w-48">
                     <LoadingSpinner class="size-4" />
                     <span class="text-xs font-bold uppercase tracking-widest text-b-ink/50">
@@ -387,7 +349,12 @@ export default function ApplicationPage() {
                     </span>
                   </div>
                 </Show>
-                <Show when={environments() && environments.state === "ready" && selectedEnvironment()}>
+                <Show when={environmentsError()}>
+                  <p class="border-4 border-red-500/50 bg-red-500/10 px-3 py-3 text-xs font-bold uppercase leading-snug text-red-400 sm:w-72">
+                    {environmentsError()!.message}
+                  </p>
+                </Show>
+                <Show when={environmentsState() === "ready" && selectedEnvironment()}>
                   <div class="relative">
                     <select
                       id="environment-select"
@@ -412,7 +379,7 @@ export default function ApplicationPage() {
               <div class="h-px bg-b-ink/10" />
 
               {/* Loading State */}
-              <Show when={chains.state === "pending"}>
+              <Show when={chainsState() === "pending"}>
                 <div class="flex flex-col items-center justify-center gap-4 py-16">
                   <LoadingSpinner class="size-8" />
                   <p class="text-sm font-bold uppercase tracking-widest text-b-ink/80">
@@ -421,23 +388,35 @@ export default function ApplicationPage() {
                 </div>
               </Show>
 
+              <Show when={chainsState() === "refreshing"}>
+                <div class="flex items-center gap-3 text-xs font-bold uppercase tracking-widest text-b-ink/80">
+                  <LoadingSpinner class="size-4" />
+                  Updating chains…
+                </div>
+              </Show>
+
               {/* Error State */}
-              <Show when={chains.error}>
+              <Show when={chainsError()}>
                 <div class="mx-auto max-w-md">
                   <p class="border-4 border-red-500/50 bg-red-500/10 px-4 py-4 text-center text-xs font-bold uppercase leading-snug text-red-400">
-                    {chains.error.message}
+                    {chainsError()!.message}
                   </p>
                 </div>
               </Show>
 
               {/* Chains Content */}
-              <Show when={chains() && chains.state === "ready"}>
+              <Show
+                when={
+                  !chainsError() &&
+                  (chainsState() === "ready" || chainsState() === "refreshing")
+                }
+              >
                 <div class="flex items-center justify-between">
                   <p class="text-xs font-bold uppercase tracking-[0.4em] text-b-accent">
                     Available Chains
                   </p>
                   <span class="text-xs font-bold uppercase tracking-widest text-b-ink/50">
-                    {filteredChains().length} / {chains()?.length} chains
+                    {filteredChains().length} / {availableChains().length} chains
                   </span>
                 </div>
 
@@ -479,7 +458,13 @@ export default function ApplicationPage() {
               </Show>
 
               {/* Empty States */}
-              <Show when={chains() && chains.state === "ready" && chains()!.length === 0}>
+              <Show
+                when={
+                  !chainsError() &&
+                  (chainsState() === "ready" || chainsState() === "refreshing") &&
+                  availableChains().length === 0
+                }
+              >
                 <div class="flex flex-col items-center justify-center gap-4 py-16 border-4 border-dashed border-b-ink/20">
                   <LightningIcon class="size-12 text-b-ink/30" />
                   <p class="text-center text-sm font-semibold uppercase tracking-wider text-b-ink/60">
@@ -488,7 +473,14 @@ export default function ApplicationPage() {
                 </div>
               </Show>
 
-              <Show when={chains() && chains.state === "ready" && chains()!.length > 0 && filteredChains().length === 0}>
+              <Show
+                when={
+                  !chainsError() &&
+                  (chainsState() === "ready" || chainsState() === "refreshing") &&
+                  availableChains().length > 0 &&
+                  filteredChains().length === 0
+                }
+              >
                 <div class="flex flex-col items-center justify-center gap-4 py-16 border-4 border-dashed border-b-ink/20">
                   <SearchIcon class="size-12 text-b-ink/30" />
                   <p class="text-center text-sm font-semibold uppercase tracking-wider text-b-ink/60">
@@ -522,22 +514,35 @@ export default function ApplicationPage() {
 
                 <div class="p-6">
                   {/* Loading State */}
-                  <Show when={apiKeys.state === "pending"}>
+                  <Show when={apiKeysState() === "pending"}>
                     <div class="flex items-center justify-center gap-3 py-8 text-xs font-bold uppercase tracking-widest text-b-ink/80">
                       <LoadingSpinner class="size-4" />
                       Loading keys…
                     </div>
                   </Show>
 
+                  <Show when={apiKeysState() === "refreshing"}>
+                    <div class="mb-4 flex items-center gap-3 text-xs font-bold uppercase tracking-widest text-b-ink/80">
+                      <LoadingSpinner class="size-4" />
+                      Updating keys…
+                    </div>
+                  </Show>
+
                   {/* Error State */}
-                  <Show when={apiKeys.error}>
+                  <Show when={apiKeysError()}>
                     <p class="border-4 border-red-500/50 bg-red-500/10 px-3 py-3 text-xs font-bold uppercase leading-snug text-red-400">
-                      {apiKeys.error.message}
+                      {apiKeysError()!.message}
                     </p>
                   </Show>
 
                   {/* Keys List */}
-                  <Show when={apiKeys() && apiKeys.state === "ready" && (apiKeys() ?? []).length > 0}>
+                  <Show
+                    when={
+                      !apiKeysError() &&
+                      (apiKeysState() === "ready" || apiKeysState() === "refreshing") &&
+                      apiKeys().length > 0
+                    }
+                  >
                     <div class="mb-6">
                       <p class="mb-3 text-xs font-bold uppercase tracking-widest text-b-ink/50">
                         Active Keys
@@ -585,7 +590,13 @@ export default function ApplicationPage() {
                   </Show>
 
                   {/* No Keys State */}
-                  <Show when={apiKeys() && apiKeys.state === "ready" && (apiKeys() ?? []).length === 0}>
+                  <Show
+                    when={
+                      !apiKeysError() &&
+                      (apiKeysState() === "ready" || apiKeysState() === "refreshing") &&
+                      apiKeys().length === 0
+                    }
+                  >
                     <div class="mb-6 flex flex-col items-center justify-center gap-3 py-8 border-4 border-dashed border-b-ink/20">
                       <EmptyStateIcon class="size-10 text-b-ink/30" />
                       <p class="text-sm font-semibold uppercase tracking-wider text-b-ink/60">
@@ -608,7 +619,7 @@ export default function ApplicationPage() {
                           >
                             Environment
                           </label>
-                          <Show when={environments.state === "pending" || !newKeyEnvironment()}>
+                          <Show when={environmentsState() === "pending"}>
                             <div class="flex h-12 items-center gap-2 border-4 border-[var(--color-b-ink)] bg-b-paper px-3">
                               <LoadingSpinner class="size-4" />
                               <span class="text-xs font-bold uppercase tracking-widest text-b-ink/50">
@@ -616,7 +627,12 @@ export default function ApplicationPage() {
                               </span>
                             </div>
                           </Show>
-                          <Show when={environments() && environments.state === "ready" && newKeyEnvironment()}>
+                          <Show when={environmentsError()}>
+                            <p class="border-4 border-red-500/50 bg-red-500/10 px-3 py-3 text-xs font-bold uppercase leading-snug text-red-400">
+                              {environmentsError()!.message}
+                            </p>
+                          </Show>
+                          <Show when={environmentsState() === "ready" && newKeyEnvironment()}>
                             <select
                               id="new-key-environment"
                               value={newKeyEnvironment()}
@@ -682,35 +698,42 @@ export default function ApplicationPage() {
 
                 <div class="p-6">
                   <form onSubmit={handleRename} class="flex flex-col gap-4">
-                    <div class="flex flex-col gap-2 sm:flex-row sm:items-end">
-                      <div class="flex-1">
-                        <label
-                          for="rename-app-name"
-                          class="mb-2 block text-xs font-bold uppercase tracking-widest text-b-ink/80"
-                        >
-                          Application Name
-                        </label>
-                        <input
-                          id="rename-app-name"
-                          type="text"
-                          required
-                          value={renameName() || application()?.name || ""}
-                          onInput={(e) => setRenameName(e.currentTarget.value)}
-                          class="h-12 w-full border-4 border-[var(--color-b-ink)] bg-b-paper px-3 text-sm font-semibold text-b-ink placeholder:text-b-ink/30 outline-none focus-visible:ring-4 focus-visible:ring-b-accent/50 hover:border-b-accent/50 transition-colors duration-200"
-                          placeholder="MY APPLICATION"
-                          autocomplete="off"
-                        />
-                      </div>
-                      <button
-                        type="submit"
-                        disabled={renameLoading()}
-                        class="btn btn-md btn-interactive btn-disabled btn-primary h-12"
+                    <div class="flex flex-col gap-2">
+                      <label
+                        for="rename-app-name"
+                        class="mb-2 block text-xs font-bold uppercase tracking-widest text-b-ink/80"
                       >
-                        <Show when={renameLoading()}>
-                          <LoadingSpinner class="size-3.5 text-b-paper" />
-                        </Show>
-                        {renameLoading() ? "Saving…" : "Rename"}
-                      </button>
+                        Application Name
+                      </label>
+                      <div class="flex flex-col gap-2 sm:flex-row sm:items-start">
+                        <div class="flex-1">
+                          <input
+                            id="rename-app-name"
+                            type="text"
+                            required
+                            pattern={applicationNamePattern}
+                            value={renameName() || application()?.name || ""}
+                            onInput={(e) => setRenameName(e.currentTarget.value)}
+                            class="h-12 w-full border-4 border-[var(--color-b-ink)] bg-b-paper px-3 text-sm font-semibold text-b-ink placeholder:text-b-ink/30 outline-none focus-visible:ring-4 focus-visible:ring-b-accent/50 hover:border-b-accent/50 transition-colors duration-200"
+                            placeholder="MY APPLICATION"
+                            title={applicationNameHint}
+                            autocomplete="off"
+                          />
+                          <p class="mt-2 text-xs font-semibold uppercase tracking-wider text-b-ink/50">
+                            {applicationNameHint}
+                          </p>
+                        </div>
+                        <button
+                          type="submit"
+                          disabled={renameLoading()}
+                          class="btn btn-md btn-interactive btn-disabled btn-primary h-12"
+                        >
+                          <Show when={renameLoading()}>
+                            <LoadingSpinner class="size-3.5 text-b-paper" />
+                          </Show>
+                          {renameLoading() ? "Saving…" : "Rename"}
+                        </button>
+                      </div>
                     </div>
 
                     <Show when={renameError()}>

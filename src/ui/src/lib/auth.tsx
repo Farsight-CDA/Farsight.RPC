@@ -5,14 +5,14 @@ import {
   type ParentComponent,
 } from "solid-js";
 
-interface AuthState {
+export interface AuthState {
   token: string | null;
   username: string | null;
   expiresUtc: string | null;
 }
 
 interface AuthContextValue extends AuthState {
-  login: (username: string, password: string) => Promise<void>;
+  login: (username: string, password: string) => Promise<AuthState>;
   logout: () => void;
   isAuthenticated: () => boolean;
 }
@@ -21,7 +21,7 @@ const STORAGE_KEY = "farsight_rpc_auth";
 
 const AuthContext = createContext<AuthContextValue>();
 
-function loadStoredAuth(): AuthState {
+export function loadStoredAuth(): AuthState {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
@@ -35,8 +35,12 @@ function loadStoredAuth(): AuthState {
   return { token: null, username: null, expiresUtc: null };
 }
 
-export const AuthProvider: ParentComponent = (props) => {
-  const initial = loadStoredAuth();
+type AuthProviderProps = {
+  initialState?: AuthState;
+};
+
+export const AuthProvider: ParentComponent<AuthProviderProps> = (props) => {
+  const initial = props.initialState ?? loadStoredAuth();
   const [token, setToken] = createSignal(initial.token);
   const [username, setUsername] = createSignal(initial.username);
   const [expiresUtc, setExpiresUtc] = createSignal(initial.expiresUtc);
@@ -79,6 +83,8 @@ export const AuthProvider: ParentComponent = (props) => {
     setUsername(state.username);
     setExpiresUtc(state.expiresUtc);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+
+    return state;
   };
 
   const logout = () => {

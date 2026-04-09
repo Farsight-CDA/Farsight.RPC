@@ -2,9 +2,11 @@ import { createSignal, Show } from "solid-js";
 import { useNavigate } from "@solidjs/router";
 import LoadingSpinner from "../components/LoadingSpinner";
 import { useAuth } from "../lib/auth";
+import { useReferenceData } from "../lib/reference-data";
 
 export default function LoginPage() {
   const auth = useAuth();
+  const referenceData = useReferenceData();
   const navigate = useNavigate();
   const [username, setUsername] = createSignal("");
   const [password, setPassword] = createSignal("");
@@ -16,7 +18,8 @@ export default function LoginPage() {
     setError(null);
     setLoading(true);
     try {
-      await auth.login(username(), password());
+      const session = await auth.login(username(), password());
+      await referenceData.load(session.token);
       navigate("/", { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed");

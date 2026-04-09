@@ -1,18 +1,10 @@
 import { A } from "@solidjs/router";
-import { createResource, createSignal, For, Show } from "solid-js";
+import { createSignal, For, Show } from "solid-js";
 import LoadingSpinner from "../components/LoadingSpinner";
 import KeyIcon from "../components/icons/KeyIcon";
 import RpcIcon from "../components/icons/RpcIcon";
 import { useAuth } from "../lib/auth";
-
-type ApplicationSummary = {
-  id: string;
-  name: string;
-  apiKeyCount: number;
-  tracingCount: number;
-  realtimeCount: number;
-  archiveCount: number;
-};
+import { useReferenceData } from "../lib/reference-data";
 
 async function readErrorMessage(
   response: Response,
@@ -33,22 +25,17 @@ async function readErrorMessage(
   return fallback;
 }
 
+const applicationNamePattern = "[A-Za-z0-9_-]+";
+const applicationNameHint =
+  "Use only letters, numbers, underscores, and hyphens.";
+
 export default function DashboardPage() {
   const auth = useAuth();
+  const referenceData = useReferenceData();
 
-  const [applications, { refetch }] = createResource(
-    () => auth.token,
-    async (token) => {
-      if (!token) return [] as ApplicationSummary[];
-      const response = await fetch("/api/applications", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!response.ok) {
-        throw new Error("Failed to load applications");
-      }
-      return response.json() as Promise<ApplicationSummary[]>;
-    },
-  );
+  const applications = referenceData.applications.data;
+  const applicationsState = referenceData.applications.state;
+  const applicationsError = referenceData.applications.error;
 
   const [modalOpen, setModalOpen] = createSignal(false);
   const [newName, setNewName] = createSignal("");
@@ -88,7 +75,7 @@ export default function DashboardPage() {
       }
       setModalOpen(false);
       setNewName("");
-      await refetch();
+      await referenceData.refreshApplications();
     } catch (err) {
       setCreateError(
         err instanceof Error ? err.message : "Failed to create application",
@@ -120,20 +107,20 @@ export default function DashboardPage() {
         </div>
         <div class="mt-6 h-1 w-full bg-gradient-to-r from-b-accent/60 via-b-accent/30 to-transparent" />
 
-        <Show when={applications.state === "refreshing"}>
+        <Show when={applicationsState() === "refreshing"}>
           <div class="mt-6 flex items-center gap-3 text-xs font-bold uppercase tracking-widest text-b-ink/80">
             <LoadingSpinner class="size-4" />
             Updating…
           </div>
         </Show>
 
-        <Show when={applications.error}>
+        <Show when={applicationsError()}>
           <p class="mt-8 border-4 border-red-500/50 bg-red-500/10 px-3 py-3 text-xs font-bold uppercase leading-snug text-red-400">
-            {applications.error.message}
+            {applicationsError()!.message}
           </p>
         </Show>
 
-        <Show when={applications.state === "pending"}>
+        <Show when={applicationsState() === "pending"}>
           <div class="mt-8 flex items-center gap-3 text-sm font-semibold uppercase tracking-wider text-b-ink/80">
             <LoadingSpinner class="size-5" />
             Loading…
@@ -142,9 +129,9 @@ export default function DashboardPage() {
 
         <Show
           when={
-            !applications.error &&
-            (applications.state === "ready" ||
-              applications.state === "refreshing") &&
+            !applicationsError() &&
+            (applicationsState() === "ready" ||
+              applicationsState() === "refreshing") &&
             (applications() ?? []).length > 0
           }
         >
@@ -166,7 +153,7 @@ export default function DashboardPage() {
                       </div>
                       <div class="flex items-center gap-1 group-hover:text-b-accent/80 transition-colors duration-200">
                         <RpcIcon class="size-4" />
-                        {app.tracingCount + app.realtimeCount + app.archiveCount}
+                        {app.rpcCount}
                       </div>
                     </div>
                   </A>
@@ -178,8 +165,8 @@ export default function DashboardPage() {
 
         <Show
           when={
-            !applications.error &&
-            applications.state === "ready" &&
+            !applicationsError() &&
+            applicationsState() === "ready" &&
             (applications() ?? []).length === 0
           }
         >
@@ -224,12 +211,17 @@ export default function DashboardPage() {
                   id="new-app-name"
                   type="text"
                   required
+                  pattern={applicationNamePattern}
                   value={newName()}
                   onInput={(e) => setNewName(e.currentTarget.value)}
                   class="border-4 border-[var(--color-b-ink)] bg-b-paper px-3 py-3 text-sm font-semibold text-b-ink placeholder:text-b-ink/30 outline-none focus-visible:ring-4 focus-visible:ring-b-accent/50 hover:border-b-accent/50 transition-colors duration-200"
                   placeholder="MY APPLICATION"
+                  title={applicationNameHint}
                   autocomplete="off"
                 />
+                <p class="text-xs font-semibold uppercase tracking-wider text-b-ink/50">
+                  {applicationNameHint}
+                </p>
               </div>
 
               <Show when={createError()}>

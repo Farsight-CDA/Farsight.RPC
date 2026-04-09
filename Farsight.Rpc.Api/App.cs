@@ -39,6 +39,7 @@ public static class App
         });
 
         builder.Services.AddFastEndpoints();
+        builder.Services.AddHttpClient();
 
         builder.Services.AddDbContext<RpcProvidersDbContext>((provider, options) =>
             options.UseNpgsql(provider.GetRequiredService<DatabaseConfiguration>().PostgresConnectionString));

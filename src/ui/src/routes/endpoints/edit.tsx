@@ -90,12 +90,15 @@ export default function EditEndpointPage() {
 
   return (
     <div class="space-y-6">
-      <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"><div class="space-y-2"><h1 class="text-3xl font-semibold tracking-tight text-white">Edit Endpoint</h1><p class="text-sm leading-6 text-slate-400">Update the endpoint shape and provider assignment.</p></div></div>
+      <div>
+        <h1 class="text-2xl text-white">Edit Endpoint</h1>
+        <p class="text-sm text-slate-400">Update the endpoint shape and provider assignment.</p>
+      </div>
       <MessageBanner message={message()} tone="success" />
       <MessageBanner message={currentError()} tone="error" />
-      <Show when={model()} fallback={<div class="rounded-[1.5rem] border border-white/10 bg-slate-900/80 p-5 shadow-[0_24px_80px_rgba(0,0,0,0.22)] backdrop-blur">Loading endpoint...</div>}>
+      <Show when={model()} fallback={<div class="rounded border border-white/10 bg-slate-900 p-5">Loading endpoint...</div>}>
         {(current) => (
-          <form class="space-y-5 rounded-[1.5rem] border border-white/10 bg-slate-900/80 p-5 shadow-[0_24px_80px_rgba(0,0,0,0.22)] backdrop-blur" onSubmit={save}>
+          <form class="space-y-5 rounded border border-white/10 bg-slate-900 p-5" onSubmit={save}>
             <EndpointForm
               model={current()}
               applications={applicationsQuery.data ?? []}
@@ -106,10 +109,10 @@ export default function EditEndpointPage() {
               tracingModes={tracingModesQuery.data ?? []}
               onChange={updateField}
             />
-            <div class="flex flex-wrap gap-3">
-              <button class="inline-flex items-center justify-center rounded-2xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-blue-50 shadow-lg shadow-blue-950/40 transition hover:bg-blue-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/50 disabled:pointer-events-none disabled:opacity-60" type="submit">Save</button>
-              <A class="inline-flex items-center justify-center rounded-2xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-semibold text-slate-200 transition hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/50 disabled:pointer-events-none disabled:opacity-60" href="/endpoints">Back</A>
-              <button class="inline-flex items-center justify-center rounded-2xl bg-red-700 px-4 py-2.5 text-sm font-semibold text-red-50 transition hover:bg-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/50 disabled:pointer-events-none disabled:opacity-60" type="button" onClick={remove}>Delete</button>
+            <div class="flex gap-3">
+              <button class="rounded bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-500" type="submit">Save</button>
+              <A class="rounded border border-white/10 px-4 py-2 text-sm hover:bg-white/10" href="/endpoints">Back</A>
+              <button class="rounded bg-red-700 px-4 py-2 text-sm text-white hover:bg-red-600" type="button" onClick={remove}>Delete</button>
             </div>
           </form>
         )}

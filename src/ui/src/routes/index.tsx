@@ -97,112 +97,106 @@ export default function DashboardPage() {
 
   return (
     <div class="space-y-6">
-      <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div class="space-y-2">
-          <h1 class="text-3xl font-semibold tracking-tight text-white">Dashboard</h1>
-          <p class="text-sm leading-6 text-slate-400">Select an application, chain, and environment to manage live endpoint assignments.</p>
-        </div>
+      <div>
+        <h1 class="text-2xl text-white">Dashboard</h1>
+        <p class="text-sm text-slate-400">Select an application, chain, and environment to manage live endpoint assignments.</p>
       </div>
 
       <MessageBanner message={message()} tone="success" />
       <MessageBanner message={currentError()} tone="error" />
 
-      <section class="space-y-5 rounded-[1.5rem] border border-white/10 bg-slate-900/80 p-5 shadow-[0_24px_80px_rgba(0,0,0,0.22)] backdrop-blur">
-        <h2 class="text-xl font-semibold tracking-tight text-white">Selection</h2>
+      <section class="rounded border border-white/10 bg-slate-900 p-5">
+        <h2 class="text-lg text-white mb-4">Selection</h2>
         <div class="grid gap-4 lg:grid-cols-3">
           <div class="grid gap-2">
-            <label class="text-sm font-medium text-slate-300">Application</label>
-            <select class="w-full appearance-none rounded-2xl border border-white/10 bg-slate-950/80 px-4 py-3 text-sm text-slate-50 outline-none transition placeholder:text-slate-500 focus:border-blue-400/70 focus:ring-2 focus:ring-blue-500/30" value={applicationId()} onInput={(event) => setApplicationId(event.currentTarget.value)}>
+            <label class="text-sm text-slate-300">Application</label>
+            <select class="w-full rounded border border-white/10 bg-slate-950 px-3 py-2 text-sm" value={applicationId()} onInput={(event) => setApplicationId(event.currentTarget.value)}>
               <option value="">Select application</option>
               <For each={applicationsQuery.data ?? []}>{(item) => <option value={item.id}>{item.name}</option>}</For>
             </select>
           </div>
           <div class="grid gap-2">
-            <label class="text-sm font-medium text-slate-300">Chain</label>
-            <select class="w-full appearance-none rounded-2xl border border-white/10 bg-slate-950/80 px-4 py-3 text-sm text-slate-50 outline-none transition placeholder:text-slate-500 focus:border-blue-400/70 focus:ring-2 focus:ring-blue-500/30" value={chainId()} onInput={(event) => setChainId(event.currentTarget.value)}>
+            <label class="text-sm text-slate-300">Chain</label>
+            <select class="w-full rounded border border-white/10 bg-slate-950 px-3 py-2 text-sm" value={chainId()} onInput={(event) => setChainId(event.currentTarget.value)}>
               <option value="">Select chain</option>
               <For each={chainsQuery.data ?? []}>{(item) => <option value={item.id}>{item.name}</option>}</For>
             </select>
           </div>
           <div class="grid gap-2">
-            <label class="text-sm font-medium text-slate-300">Environment</label>
-            <select class="w-full appearance-none rounded-2xl border border-white/10 bg-slate-950/80 px-4 py-3 text-sm text-slate-50 outline-none transition placeholder:text-slate-500 focus:border-blue-400/70 focus:ring-2 focus:ring-blue-500/30" value={environment()} onInput={(event) => setEnvironment(event.currentTarget.value)}>
+            <label class="text-sm text-slate-300">Environment</label>
+            <select class="w-full rounded border border-white/10 bg-slate-950 px-3 py-2 text-sm" value={environment()} onInput={(event) => setEnvironment(event.currentTarget.value)}>
               <For each={environmentsQuery.data ?? []}>{(item) => <option value={item}>{item}</option>}</For>
             </select>
           </div>
         </div>
       </section>
 
-      <section class="space-y-5 rounded-[1.5rem] border border-white/10 bg-slate-900/80 p-5 shadow-[0_24px_80px_rgba(0,0,0,0.22)] backdrop-blur">
-        <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div class="space-y-2">
-            <h2 class="text-xl font-semibold tracking-tight text-white">Quick Add</h2>
-            <p class="text-sm leading-6 text-slate-400">Create a new endpoint against the current selection.</p>
+      <section class="rounded border border-white/10 bg-slate-900 p-5">
+        <div class="flex justify-between items-start mb-4">
+          <div>
+            <h2 class="text-lg text-white">Quick Add</h2>
+            <p class="text-sm text-slate-400">Create a new endpoint against the current selection.</p>
           </div>
-          <A class="inline-flex items-center justify-center rounded-2xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-semibold text-slate-200 transition hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/50 disabled:pointer-events-none disabled:opacity-60" href="/endpoints/new">Open full editor</A>
+          <A class="rounded border border-white/10 px-4 py-2 text-sm hover:bg-white/10" href="/endpoints/new">Open full editor</A>
         </div>
         <form class="grid gap-4 lg:grid-cols-3" onSubmit={addEndpoint}>
           <div class="grid gap-2">
-            <label class="text-sm font-medium text-slate-300">Type</label>
-            <select class="w-full appearance-none rounded-2xl border border-white/10 bg-slate-950/80 px-4 py-3 text-sm text-slate-50 outline-none transition placeholder:text-slate-500 focus:border-blue-400/70 focus:ring-2 focus:ring-blue-500/30" value={type()} onInput={(event) => setType(event.currentTarget.value)}>
+            <label class="text-sm text-slate-300">Type</label>
+            <select class="w-full rounded border border-white/10 bg-slate-950 px-3 py-2 text-sm" value={type()} onInput={(event) => setType(event.currentTarget.value)}>
               <For each={endpointTypesQuery.data ?? []}>{(item) => <option value={item}>{item}</option>}</For>
             </select>
           </div>
           <div class="grid gap-2">
-            <label class="text-sm font-medium text-slate-300">Provider</label>
-            <select class="w-full appearance-none rounded-2xl border border-white/10 bg-slate-950/80 px-4 py-3 text-sm text-slate-50 outline-none transition placeholder:text-slate-500 focus:border-blue-400/70 focus:ring-2 focus:ring-blue-500/30" value={providerId()} onInput={(event) => setProviderId(event.currentTarget.value)}>
+            <label class="text-sm text-slate-300">Provider</label>
+            <select class="w-full rounded border border-white/10 bg-slate-950 px-3 py-2 text-sm" value={providerId()} onInput={(event) => setProviderId(event.currentTarget.value)}>
               <option value="">Select provider</option>
               <For each={providersQuery.data ?? []}>{(item) => <option value={item.providerId}>{item.provider}</option>}</For>
             </select>
           </div>
           <div class="grid gap-2 lg:col-span-3">
-            <label class="text-sm font-medium text-slate-300">Address</label>
-            <input class="w-full rounded-2xl border border-white/10 bg-slate-950/80 px-4 py-3 font-mono text-[0.95em] text-slate-50 outline-none transition placeholder:text-slate-500 focus:border-blue-400/70 focus:ring-2 focus:ring-blue-500/30" value={address()} onInput={(event) => setAddress(event.currentTarget.value)} />
+            <label class="text-sm text-slate-300">Address</label>
+            <input class="w-full rounded border border-white/10 bg-slate-950 px-3 py-2 text-sm" value={address()} onInput={(event) => setAddress(event.currentTarget.value)} />
           </div>
-          <div class="flex flex-wrap gap-3 lg:col-span-3">
-            <button class="inline-flex items-center justify-center rounded-2xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-blue-50 shadow-lg shadow-blue-950/40 transition hover:bg-blue-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/50 disabled:pointer-events-none disabled:opacity-60" type="submit" disabled={!canQuery()}>Add RPC Endpoint</button>
+          <div class="lg:col-span-3">
+            <button class="rounded bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-500 disabled:opacity-50" type="submit" disabled={!canQuery()}>Add RPC Endpoint</button>
           </div>
         </form>
       </section>
 
-      <section class="space-y-5 rounded-[1.5rem] border border-white/10 bg-slate-900/80 p-5 shadow-[0_24px_80px_rgba(0,0,0,0.22)] backdrop-blur">
-        <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div class="space-y-2">
-            <h2 class="text-xl font-semibold tracking-tight text-white">Matching Endpoints</h2>
-            <p class="text-sm leading-6 text-slate-400">Ordered by type, provider, and most recently updated.</p>
-          </div>
+      <section class="rounded border border-white/10 bg-slate-900 p-5">
+        <div class="mb-4">
+          <h2 class="text-lg text-white">Matching Endpoints</h2>
+          <p class="text-sm text-slate-400">Ordered by type, provider, and most recently updated.</p>
         </div>
-        <Show when={rows().length > 0} fallback={<div class="rounded-2xl border border-dashed border-white/10 bg-white/5 px-4 py-6 text-sm text-slate-400">No endpoints match the current selection.</div>}>
-          <div class="overflow-hidden rounded-[1.5rem] border border-white/10 bg-slate-900/80 shadow-[0_24px_80px_rgba(0,0,0,0.22)] backdrop-blur">
-            <div class="overflow-x-auto">
-              <table class="min-w-full border-collapse text-sm">
-                <thead class="bg-white/5">
-                <tr>
-                    <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Type</th>
-                    <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Provider</th>
-                    <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Address</th>
-                    <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Updated</th>
-                    <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Actions</th>
+        <Show when={rows().length > 0} fallback={<div class="rounded border border-dashed border-white/10 px-4 py-6 text-sm text-slate-400">No endpoints match the current selection.</div>}>
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="border-b border-white/10">
+                  <th class="px-4 py-2 text-left text-xs text-slate-400">Type</th>
+                  <th class="px-4 py-2 text-left text-xs text-slate-400">Provider</th>
+                  <th class="px-4 py-2 text-left text-xs text-slate-400">Address</th>
+                  <th class="px-4 py-2 text-left text-xs text-slate-400">Updated</th>
+                  <th class="px-4 py-2 text-left text-xs text-slate-400">Actions</th>
                 </tr>
-                </thead>
-                <tbody>
-                  <For each={rows()}>{(row) => (
-                    <tr>
-                      <td class="border-t border-white/10 px-4 py-4 align-top text-slate-200">{row.type}</td>
-                      <td class="border-t border-white/10 px-4 py-4 align-top text-slate-200">{row.provider}</td>
-                      <td class="border-t border-white/10 px-4 py-4 align-top break-all font-mono text-[0.95em] text-slate-200">{row.address}</td>
-                      <td class="border-t border-white/10 px-4 py-4 align-top text-slate-200">{new Date(row.updatedUtc).toLocaleString()}</td>
-                      <td class="border-t border-white/10 px-4 py-4 align-top text-slate-200">
-                        <div class="flex flex-wrap gap-3">
-                          <A class="inline-flex items-center justify-center rounded-2xl bg-slate-700/80 px-4 py-2.5 text-sm font-semibold text-slate-50 transition hover:bg-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/50 disabled:pointer-events-none disabled:opacity-60" href={`/endpoints/edit?type=${encodeURIComponent(row.type)}&id=${encodeURIComponent(row.id)}`}>Edit</A>
-                          <button class="inline-flex items-center justify-center rounded-2xl bg-red-700 px-4 py-2.5 text-sm font-semibold text-red-50 transition hover:bg-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/50 disabled:pointer-events-none disabled:opacity-60" type="button" onClick={() => removeEndpoint(row)}>Delete</button>
-                        </div>
-                      </td>
-                    </tr>
-                  )}</For>
-                </tbody>
-              </table>
-            </div>
+              </thead>
+              <tbody>
+                <For each={rows()}>{(row) => (
+                  <tr class="border-b border-white/5">
+                    <td class="px-4 py-3 text-slate-200">{row.type}</td>
+                    <td class="px-4 py-3 text-slate-200">{row.provider}</td>
+                    <td class="px-4 py-3 break-all font-mono text-xs text-slate-200">{row.address}</td>
+                    <td class="px-4 py-3 text-slate-200">{new Date(row.updatedUtc).toLocaleString()}</td>
+                    <td class="px-4 py-3">
+                      <div class="flex gap-2">
+                        <A class="rounded border border-white/10 px-3 py-1 text-sm hover:bg-white/10" href={`/endpoints/edit?type=${encodeURIComponent(row.type)}&id=${encodeURIComponent(row.id)}`}>Edit</A>
+                        <button class="rounded bg-red-700 px-3 py-1 text-sm text-white hover:bg-red-600" type="button" onClick={() => removeEndpoint(row)}>Delete</button>
+                      </div>
+                    </td>
+                  </tr>
+                )}</For>
+              </tbody>
+            </table>
           </div>
         </Show>
       </section>

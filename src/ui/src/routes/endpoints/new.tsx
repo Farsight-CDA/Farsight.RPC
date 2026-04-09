@@ -59,10 +59,13 @@ export default function NewEndpointPage() {
 
   return (
     <div class="space-y-6">
-      <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"><div class="space-y-2"><h1 class="text-3xl font-semibold tracking-tight text-white">New Endpoint</h1><p class="text-sm leading-6 text-slate-400">Create a new RPC endpoint with the full schema editor.</p></div></div>
+      <div>
+        <h1 class="text-2xl text-white">New Endpoint</h1>
+        <p class="text-sm text-slate-400">Create a new RPC endpoint with the full schema editor.</p>
+      </div>
       <MessageBanner message={message()} tone="success" />
       <MessageBanner message={currentError()} tone="error" />
-      <form class="space-y-5 rounded-[1.5rem] border border-white/10 bg-slate-900/80 p-5 shadow-[0_24px_80px_rgba(0,0,0,0.22)] backdrop-blur" onSubmit={save}>
+      <form class="space-y-5 rounded border border-white/10 bg-slate-900 p-5" onSubmit={save}>
         <EndpointForm
           model={model()}
           applications={applicationsQuery.data ?? []}
@@ -73,9 +76,9 @@ export default function NewEndpointPage() {
           tracingModes={tracingModesQuery.data ?? []}
           onChange={updateField}
         />
-        <div class="flex flex-wrap gap-3">
-          <button class="inline-flex items-center justify-center rounded-2xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-blue-50 shadow-lg shadow-blue-950/40 transition hover:bg-blue-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/50 disabled:pointer-events-none disabled:opacity-60" type="submit">Save</button>
-          <A class="inline-flex items-center justify-center rounded-2xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-semibold text-slate-200 transition hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/50 disabled:pointer-events-none disabled:opacity-60" href="/endpoints">Cancel</A>
+        <div class="flex gap-3">
+          <button class="rounded bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-500" type="submit">Save</button>
+          <A class="rounded border border-white/10 px-4 py-2 text-sm hover:bg-white/10" href="/endpoints">Cancel</A>
         </div>
       </form>
     </div>

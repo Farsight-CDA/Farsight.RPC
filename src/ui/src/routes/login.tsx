@@ -29,26 +29,24 @@ export default function LoginPage() {
   };
 
   return (
-    <div class="grid min-h-screen place-items-center px-6 py-10">
-      <div class="w-full max-w-md space-y-6 rounded-[1.5rem] border border-white/10 bg-slate-900/80 p-5 shadow-[0_24px_80px_rgba(0,0,0,0.22)] backdrop-blur">
+    <div class="grid min-h-screen place-items-center px-4">
+      <div class="w-full max-w-md space-y-4 rounded border border-white/10 bg-slate-900 p-6">
         <div>
-          <div class="mb-4 flex flex-wrap items-center gap-3 text-xs font-semibold uppercase tracking-[0.24em] text-blue-300">
-            <span class="rounded-full border border-blue-400/20 bg-blue-500/10 px-3 py-1">Admin Console</span>
-          </div>
-          <h1 class="text-3xl font-semibold tracking-tight text-white">Farsight RPC Admin</h1>
-          <p class="text-sm leading-6 text-slate-400">JWT-backed admin access for provider, endpoint, and API key management.</p>
+          <span class="text-xs text-blue-400">Admin Console</span>
+          <h1 class="text-2xl text-white">Farsight RPC Admin</h1>
+          <p class="text-sm text-slate-400">JWT-backed admin access for provider, endpoint, and API key management.</p>
         </div>
         <MessageBanner message={message()} tone="error" />
         <form class="space-y-4" onSubmit={submit}>
           <div class="grid gap-2">
-            <label class="text-sm font-medium text-slate-300" for="userName">Username</label>
-            <input id="userName" class="w-full rounded-2xl border border-white/10 bg-slate-950/80 px-4 py-3 text-sm text-slate-50 outline-none transition placeholder:text-slate-500 focus:border-blue-400/70 focus:ring-2 focus:ring-blue-500/30" value={userName()} onInput={(event) => setUserName(event.currentTarget.value)} />
+            <label class="text-sm text-slate-300" for="userName">Username</label>
+            <input id="userName" class="w-full rounded border border-white/10 bg-slate-950 px-3 py-2 text-sm" value={userName()} onInput={(event) => setUserName(event.currentTarget.value)} />
           </div>
           <div class="grid gap-2">
-            <label class="text-sm font-medium text-slate-300" for="password">Password</label>
-            <input id="password" class="w-full rounded-2xl border border-white/10 bg-slate-950/80 px-4 py-3 text-sm text-slate-50 outline-none transition placeholder:text-slate-500 focus:border-blue-400/70 focus:ring-2 focus:ring-blue-500/30" type="password" value={password()} onInput={(event) => setPassword(event.currentTarget.value)} />
+            <label class="text-sm text-slate-300" for="password">Password</label>
+            <input id="password" class="w-full rounded border border-white/10 bg-slate-950 px-3 py-2 text-sm" type="password" value={password()} onInput={(event) => setPassword(event.currentTarget.value)} />
           </div>
-          <button class="inline-flex w-full items-center justify-center rounded-2xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-blue-50 shadow-lg shadow-blue-950/40 transition hover:bg-blue-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/50 disabled:pointer-events-none disabled:opacity-60" type="submit" disabled={loginMutation.isPending}>{loginMutation.isPending ? "Signing in..." : "Sign in"}</button>
+          <button class="w-full rounded bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-500 disabled:opacity-50" type="submit" disabled={loginMutation.isPending}>{loginMutation.isPending ? "Signing in..." : "Sign in"}</button>
         </form>
       </div>
     </div>

@@ -33,56 +33,66 @@ export default function EndpointsPage() {
 
   return (
     <div class="space-y-6">
-      <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div class="space-y-2">
-          <h1 class="text-3xl font-semibold tracking-tight text-white">Endpoints</h1>
-          <p class="text-sm leading-6 text-slate-400">Browse the full endpoint inventory and jump into the focused editor for each record.</p>
+      <div class="flex justify-between items-start">
+        <div>
+          <h1 class="text-2xl text-white">Endpoints</h1>
+          <p class="text-sm text-slate-400">Browse the full endpoint inventory and jump into the focused editor for each record.</p>
         </div>
-        <A class="inline-flex items-center justify-center rounded-2xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-blue-50 shadow-lg shadow-blue-950/40 transition hover:bg-blue-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/50 disabled:pointer-events-none disabled:opacity-60" href="/endpoints/new">New Endpoint</A>
+        <A class="rounded bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-500" href="/endpoints/new">New Endpoint</A>
       </div>
 
       <MessageBanner message={currentError()} tone="error" />
 
-      <section class="space-y-5 rounded-[1.5rem] border border-white/10 bg-slate-900/80 p-5 shadow-[0_24px_80px_rgba(0,0,0,0.22)] backdrop-blur">
-        <h2 class="text-xl font-semibold tracking-tight text-white">Filters</h2>
+      <section class="rounded border border-white/10 bg-slate-900 p-5">
+        <h2 class="text-lg text-white mb-4">Filters</h2>
         <div class="grid gap-4 lg:grid-cols-3">
           <div class="grid gap-2">
-            <label class="text-sm font-medium text-slate-300">Application</label>
-            <select class="w-full appearance-none rounded-2xl border border-white/10 bg-slate-950/80 px-4 py-3 text-sm text-slate-50 outline-none transition placeholder:text-slate-500 focus:border-blue-400/70 focus:ring-2 focus:ring-blue-500/30" value={applicationId()} onInput={(event) => setApplicationId(event.currentTarget.value)}>
+            <label class="text-sm text-slate-300">Application</label>
+            <select class="w-full rounded border border-white/10 bg-slate-950 px-3 py-2 text-sm" value={applicationId()} onInput={(event) => setApplicationId(event.currentTarget.value)}>
               <option value="">All available</option>
               <For each={applicationsQuery.data ?? []}>{(item) => <option value={item.id}>{item.name}</option>}</For>
             </select>
           </div>
           <div class="grid gap-2">
-            <label class="text-sm font-medium text-slate-300">Chain</label>
-            <select class="w-full appearance-none rounded-2xl border border-white/10 bg-slate-950/80 px-4 py-3 text-sm text-slate-50 outline-none transition placeholder:text-slate-500 focus:border-blue-400/70 focus:ring-2 focus:ring-blue-500/30" value={chainId()} onInput={(event) => setChainId(event.currentTarget.value)}>
+            <label class="text-sm text-slate-300">Chain</label>
+            <select class="w-full rounded border border-white/10 bg-slate-950 px-3 py-2 text-sm" value={chainId()} onInput={(event) => setChainId(event.currentTarget.value)}>
               <option value="">All available</option>
               <For each={chainsQuery.data ?? []}>{(item) => <option value={item.id}>{item.name}</option>}</For>
             </select>
           </div>
           <div class="grid gap-2">
-            <label class="text-sm font-medium text-slate-300">Environment</label>
-            <select class="w-full appearance-none rounded-2xl border border-white/10 bg-slate-950/80 px-4 py-3 text-sm text-slate-50 outline-none transition placeholder:text-slate-500 focus:border-blue-400/70 focus:ring-2 focus:ring-blue-500/30" value={environment()} onInput={(event) => setEnvironment(event.currentTarget.value)}>
+            <label class="text-sm text-slate-300">Environment</label>
+            <select class="w-full rounded border border-white/10 bg-slate-950 px-3 py-2 text-sm" value={environment()} onInput={(event) => setEnvironment(event.currentTarget.value)}>
               <For each={environmentsQuery.data ?? []}>{(item) => <option value={item}>{item}</option>}</For>
             </select>
           </div>
         </div>
       </section>
 
-      <section class="overflow-hidden rounded-[1.5rem] border border-white/10 bg-slate-900/80 shadow-[0_24px_80px_rgba(0,0,0,0.22)] backdrop-blur">
+      <section class="rounded border border-white/10 bg-slate-900 p-5">
         <div class="overflow-x-auto">
-          <table class="min-w-full border-collapse text-sm">
-            <thead class="bg-white/5"><tr><th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Application</th><th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Chain</th><th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Type</th><th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Provider</th><th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Address</th><th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Updated</th><th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Actions</th></tr></thead>
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="border-b border-white/10">
+                <th class="px-4 py-2 text-left text-xs text-slate-400">Application</th>
+                <th class="px-4 py-2 text-left text-xs text-slate-400">Chain</th>
+                <th class="px-4 py-2 text-left text-xs text-slate-400">Type</th>
+                <th class="px-4 py-2 text-left text-xs text-slate-400">Provider</th>
+                <th class="px-4 py-2 text-left text-xs text-slate-400">Address</th>
+                <th class="px-4 py-2 text-left text-xs text-slate-400">Updated</th>
+                <th class="px-4 py-2 text-left text-xs text-slate-400">Actions</th>
+              </tr>
+            </thead>
             <tbody>
               <For each={rowsQuery.data ?? []}>{(row) => (
-                <tr>
-                  <td class="border-t border-white/10 px-4 py-4 align-top text-slate-200">{row.application}</td>
-                  <td class="border-t border-white/10 px-4 py-4 align-top text-slate-200">{row.chain}</td>
-                  <td class="border-t border-white/10 px-4 py-4 align-top text-slate-200">{row.type}</td>
-                  <td class="border-t border-white/10 px-4 py-4 align-top text-slate-200">{row.provider}</td>
-                  <td class="border-t border-white/10 px-4 py-4 align-top break-all font-mono text-[0.95em] text-slate-200">{row.address}</td>
-                  <td class="border-t border-white/10 px-4 py-4 align-top text-slate-200">{new Date(row.updatedUtc).toLocaleString()}</td>
-                  <td class="border-t border-white/10 px-4 py-4 align-top text-slate-200"><A class="inline-flex items-center justify-center rounded-2xl bg-slate-700/80 px-4 py-2.5 text-sm font-semibold text-slate-50 transition hover:bg-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/50 disabled:pointer-events-none disabled:opacity-60" href={`/endpoints/edit?type=${encodeURIComponent(row.type)}&id=${encodeURIComponent(row.id)}`}>Edit</A></td>
+                <tr class="border-b border-white/5">
+                  <td class="px-4 py-3 text-slate-200">{row.application}</td>
+                  <td class="px-4 py-3 text-slate-200">{row.chain}</td>
+                  <td class="px-4 py-3 text-slate-200">{row.type}</td>
+                  <td class="px-4 py-3 text-slate-200">{row.provider}</td>
+                  <td class="px-4 py-3 break-all font-mono text-xs text-slate-200">{row.address}</td>
+                  <td class="px-4 py-3 text-slate-200">{new Date(row.updatedUtc).toLocaleString()}</td>
+                  <td class="px-4 py-3"><A class="rounded border border-white/10 px-3 py-1 text-sm hover:bg-white/10" href={`/endpoints/edit?type=${encodeURIComponent(row.type)}&id=${encodeURIComponent(row.id)}`}>Edit</A></td>
                 </tr>
               )}</For>
             </tbody>

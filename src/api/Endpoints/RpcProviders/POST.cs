@@ -31,7 +31,7 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request>
 
     public override void Configure()
     {
-        Post("/api/rpc-providers");
+        Post("/api/RpcProviders");
         Roles(AuthRoles.ADMIN);
     }
 

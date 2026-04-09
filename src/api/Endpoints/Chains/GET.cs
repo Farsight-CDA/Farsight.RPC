@@ -10,7 +10,7 @@ public sealed class GET(ChainService chainService) : EndpointWithoutRequest<Read
 
     public override void Configure()
     {
-        Get("/api/chains");
+        Get("/api/Chains");
         Roles(AuthRoles.ADMIN);
     }
 

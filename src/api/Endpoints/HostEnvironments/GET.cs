@@ -8,7 +8,7 @@ public sealed class GET : EndpointWithoutRequest<HostEnvironment[]>
 {
     public override void Configure()
     {
-        Get("/api/host-environments");
+        Get("/api/HostEnvironments");
         Roles(AuthRoles.ADMIN);
     }
 

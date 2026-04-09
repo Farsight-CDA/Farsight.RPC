@@ -25,7 +25,7 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request>
 
     public override void Configure()
     {
-        Post("/api/applications");
+        Post("/api/Applications");
         Roles(AuthRoles.ADMIN);
     }
 

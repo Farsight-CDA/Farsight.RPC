@@ -65,7 +65,7 @@ export default function ApplicationApiKeysPage() {
     setCreateKeyError(null);
     setCreateKeyLoading(true);
     try {
-      const response = await fetch(`/api/applications/${app}/api-keys`, {
+      const response = await fetch(`/api/Applications/${app}/ApiKeys`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -99,7 +99,7 @@ export default function ApplicationApiKeysPage() {
     setDeleteKeyLoading(true);
     try {
       const response = await fetch(
-        `/api/applications/${app}/api-keys/${key.id}`,
+        `/api/Applications/${app}/ApiKeys/${key.id}`,
         {
           method: "DELETE",
           headers: { Authorization: `Bearer ${token}` },

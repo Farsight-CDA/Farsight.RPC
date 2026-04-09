@@ -71,7 +71,7 @@ export default function ApplicationProvidersPage() {
       if (!Number.isFinite(rateLimit) || rateLimit <= 0) {
         throw new Error("Rate limit must be a positive number.");
       }
-      const response = await fetch("/api/rpc-providers", {
+      const response = await fetch("/api/RpcProviders", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -111,7 +111,7 @@ export default function ApplicationProvidersPage() {
     setDeleteProviderError(null);
     setDeleteProviderLoading(true);
     try {
-      const response = await fetch(`/api/rpc-providers/${provider.id}`, {
+      const response = await fetch(`/api/RpcProviders/${provider.id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });

@@ -58,7 +58,7 @@ export default function ApplicationGeneralPage() {
     setRenameError(null);
     setRenameLoading(true);
     try {
-      const response = await fetch(`/api/applications/${app.id}`, {
+      const response = await fetch(`/api/Applications/${app.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -86,7 +86,7 @@ export default function ApplicationGeneralPage() {
     setDeleteError(null);
     setDeleteLoading(true);
     try {
-      const response = await fetch(`/api/applications/${app.id}`, {
+      const response = await fetch(`/api/Applications/${app.id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });

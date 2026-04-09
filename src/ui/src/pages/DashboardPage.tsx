@@ -60,7 +60,7 @@ export default function DashboardPage() {
     setCreateError(null);
     setCreateLoading(true);
     try {
-      const response = await fetch("/api/applications", {
+      const response = await fetch("/api/Applications", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

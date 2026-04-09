@@ -74,18 +74,18 @@ export async function preloadReferenceData(
   const [applications, rpcProviders, chains, hostEnvironments] =
     await Promise.all([
       fetchReferenceList<ApplicationSummary>(
-        "/api/applications",
+        "/api/Applications",
         token,
         "Failed to load applications",
       ),
       fetchReferenceList<RpcProviderSummary>(
-        "/api/rpc-providers",
+        "/api/RpcProviders",
         token,
         "Failed to load RPC providers",
       ),
-      fetchReferenceList<string>("/api/chains", token, "Failed to load chains"),
+      fetchReferenceList<string>("/api/Chains", token, "Failed to load chains"),
       fetchReferenceList<string>(
-        "/api/host-environments",
+        "/api/HostEnvironments",
         token,
         "Failed to load environments",
       ),
@@ -199,22 +199,22 @@ export function ReferenceDataProvider(props: ReferenceDataProviderProps) {
         hostEnvironmentsResult,
       ] = await Promise.allSettled([
         fetchReferenceList<ApplicationSummary>(
-          "/api/applications",
+          "/api/Applications",
           token,
           "Failed to load applications",
         ),
         fetchReferenceList<RpcProviderSummary>(
-          "/api/rpc-providers",
+          "/api/RpcProviders",
           token,
           "Failed to load RPC providers",
         ),
         fetchReferenceList<string>(
-          "/api/chains",
+          "/api/Chains",
           token,
           "Failed to load chains",
         ),
         fetchReferenceList<string>(
-          "/api/host-environments",
+          "/api/HostEnvironments",
           token,
           "Failed to load environments",
         ),
@@ -291,7 +291,7 @@ export function ReferenceDataProvider(props: ReferenceDataProviderProps) {
 
     try {
       const nextApplications = await fetchReferenceList<ApplicationSummary>(
-        "/api/applications",
+        "/api/Applications",
         token,
         "Failed to load applications",
       );
@@ -320,7 +320,7 @@ export function ReferenceDataProvider(props: ReferenceDataProviderProps) {
 
     try {
       const next = await fetchReferenceList<RpcProviderSummary>(
-        "/api/rpc-providers",
+        "/api/RpcProviders",
         token,
         "Failed to load RPC providers",
       );

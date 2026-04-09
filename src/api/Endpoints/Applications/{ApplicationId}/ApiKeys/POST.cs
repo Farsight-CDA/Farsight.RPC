@@ -7,7 +7,7 @@ using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Cryptography;
 
-namespace Farsight.Rpc.Api.Endpoints.ConsumerApiKeys;
+namespace Farsight.Rpc.Api.Endpoints.Applications.ApiKeys;
 
 public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request>
 {
@@ -30,7 +30,7 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request>
 
     public override void Configure()
     {
-        Post("/api/applications/{applicationId}/api-keys");
+        Post("/api/Applications/{ApplicationId}/ApiKeys");
         Roles(AuthRoles.ADMIN);
     }
 

@@ -1,4 +1,3 @@
-using Farsight.Rpc.Api.Auth;
 using Farsight.Rpc.Api.Persistence;
 using Farsight.Rpc.Api.Persistence.Entities.Rpc;
 using Farsight.Rpc.Types;
@@ -11,44 +10,45 @@ namespace Farsight.Rpc.Api.Endpoints.Rpcs;
 public sealed class GET(AppDbContext dbContext) : Endpoint<GET.Request, RpcEndpoint[]>
 {
     public sealed record Request(
-        [property: RouteParam] Guid ApplicationId,
-        [property: RouteParam] string Environment
+        [property: FromHeader(ApiKeyHeaders.API_KEY)] string ApiKey
     );
 
     public sealed class Validator : AbstractValidator<Request>
     {
         public Validator()
         {
-            RuleFor(x => x.Environment)
-                .Cascade(CascadeMode.Stop)
-                .Must(static environment => !String.IsNullOrWhiteSpace(environment))
-                .WithMessage("Environment is required.")
-                .Must(static environment => Enum.TryParse<HostEnvironment>(environment, true, out _))
-                .WithMessage("Environment is invalid.");
+            RuleFor(x => x.ApiKey)
+                .NotNull()
+                .WithMessage("API key is required.");
         }
     }
 
     public override void Configure()
     {
-        Get("/api/applications/{applicationId}/rpcs/{environment}");
-        Roles(AuthRoles.ADMIN);
+        Get("/api/Rpcs");
+        AllowAnonymous();
     }
 
     public override async Task HandleAsync(Request req, CancellationToken ct)
     {
-        if(!Enum.TryParse<HostEnvironment>(req.Environment, true, out var environment))
-        {
-            ThrowError("Environment is invalid.");
-        }
+        var key = await dbContext.ConsumerApiKeys
+            .AsNoTracking()
+            .Where(k => k.Key == req.ApiKey)
+            .Select(k => new
+            {
+                k.ApplicationId,
+                k.Environment,
+            })
+            .SingleOrDefaultAsync(ct);
 
-        if(!await dbContext.ConsumerApplications.AnyAsync(a => a.Id == req.ApplicationId, ct))
+        if(key is null)
         {
-            ThrowError("Application not found.", 404);
+            ThrowError("API key not found.", 404);
         }
 
         var rpcs = await dbContext.Rpcs
             .AsNoTracking()
-            .Where(rpc => rpc.ApplicationId == req.ApplicationId && rpc.Environment == environment)
+            .Where(rpc => rpc.ApplicationId == key!.ApplicationId && rpc.Environment == key.Environment)
             .OrderBy(rpc => rpc.Chain)
             .ThenBy(rpc => EF.Property<string>(rpc, "RpcType"))
             .ThenBy(rpc => rpc.Id)

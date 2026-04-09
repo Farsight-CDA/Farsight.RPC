@@ -13,7 +13,7 @@ public sealed class DELETE(AppDbContext dbContext) : Endpoint<DELETE.Request>
 
     public override void Configure()
     {
-        Delete("/api/applications/{id}");
+        Delete("/api/Applications/{Id}");
         Roles(AuthRoles.ADMIN);
     }
 

@@ -176,7 +176,7 @@ export default function ApplicationRpcsPage() {
     if (!token || !app || !env || !providerId || !chain) return;
 
     const body: Record<string, number | string> = {
-      type: rpcType,
+      environment: env,
       chain,
       address: newRpcAddress(),
       providerId,
@@ -196,7 +196,7 @@ export default function ApplicationRpcsPage() {
     setCreateRpcLoading(true);
     try {
       const response = await fetch(
-        `/api/applications/${app}/rpcs/${encodeURIComponent(env)}`,
+        `/api/Applications/${app}/Rpcs/${rpcType}`,
         {
           method: "POST",
           headers: {
@@ -233,7 +233,7 @@ export default function ApplicationRpcsPage() {
     setEditRpcLoading(true);
     try {
       const response = await fetch(
-        `/api/applications/${app}/rpcs/${rpc.id}`,
+        `/api/Applications/${app}/Rpcs/${rpc.id}`,
         {
           method: "PUT",
           headers: {
@@ -271,7 +271,7 @@ export default function ApplicationRpcsPage() {
     setDeleteRpcLoading(true);
     try {
       const response = await fetch(
-        `/api/applications/${app}/rpcs/${rpc.id}`,
+        `/api/Applications/${app}/Rpcs/${rpc.id}`,
         {
           method: "DELETE",
           headers: { Authorization: `Bearer ${token}` },

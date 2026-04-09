@@ -16,7 +16,7 @@ public sealed class GET(AppDbContext dbContext) : EndpointWithoutRequest<GET.Rpc
 
     public override void Configure()
     {
-        Get("/api/rpc-providers");
+        Get("/api/RpcProviders");
         Roles(AuthRoles.ADMIN);
     }
 

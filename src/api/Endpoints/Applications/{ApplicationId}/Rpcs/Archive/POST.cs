@@ -8,7 +8,7 @@ using FastEndpoints;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 
-namespace Farsight.Rpc.Api.Endpoints.Rpcs.Tracing;
+namespace Farsight.Rpc.Api.Endpoints.Applications.Rpcs.Archive;
 
 public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request>
 {
@@ -18,7 +18,9 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request>
         string Chain,
         Uri Address,
         Guid ProviderId,
-        TracingMode? TracingMode
+        ulong IndexerStepSize,
+        ulong DexIndexerStepSize,
+        ulong IndexerBlockOffset
     );
 
     public sealed class Validator : AbstractValidator<Request>
@@ -45,17 +47,23 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request>
                 .Must(static providerId => providerId != Guid.Empty)
                 .WithMessage("Provider is required.");
 
-            RuleFor(x => x.TracingMode)
-                .NotNull()
-                .WithMessage("Tracing mode is required.")
-                .IsInEnum()
-                .WithMessage("Tracing mode is invalid.");
+            RuleFor(x => x.IndexerStepSize)
+                .Must(static value => value != default)
+                .WithMessage("Indexer step size is required.");
+
+            RuleFor(x => x.DexIndexerStepSize)
+                .Must(static value => value != default)
+                .WithMessage("DEX indexer step size is required.");
+
+            RuleFor(x => x.IndexerBlockOffset)
+                .Must(static value => value != default)
+                .WithMessage("Indexer block offset is required.");
         }
     }
 
     public override void Configure()
     {
-        Post("/api/applications/{applicationId}/rpcs/tracing");
+        Post("/api/Applications/{ApplicationId}/Rpcs/Archive");
         Roles(AuthRoles.ADMIN);
     }
 
@@ -71,7 +79,7 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request>
             ThrowError("RPC provider not found.", 404);
         }
 
-        dbContext.TracingRpcs.Add(new TracingRpc
+        dbContext.ArchiveRpcs.Add(new ArchiveRpc
         {
             Id = Guid.NewGuid(),
             ApplicationId = req.ApplicationId,
@@ -79,7 +87,9 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request>
             Chain = req.Chain,
             Address = req.Address,
             ProviderId = req.ProviderId,
-            TracingMode = req.TracingMode!.Value,
+            IndexerStepSize = req.IndexerStepSize,
+            DexIndexerStepSize = req.DexIndexerStepSize,
+            IndexerBlockOffset = req.IndexerBlockOffset,
         });
 
         await dbContext.SaveChangesAsync(ct);

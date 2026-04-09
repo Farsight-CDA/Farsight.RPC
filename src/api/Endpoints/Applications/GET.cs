@@ -16,7 +16,7 @@ public sealed class GET(AppDbContext dbContext) : EndpointWithoutRequest<GET.App
 
     public override void Configure()
     {
-        Get("/api/applications");
+        Get("/api/Applications");
         Roles(AuthRoles.ADMIN);
     }
 

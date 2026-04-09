@@ -3,7 +3,7 @@ using Farsight.Rpc.Api.Persistence;
 using FastEndpoints;
 using Microsoft.EntityFrameworkCore;
 
-namespace Farsight.Rpc.Api.Endpoints.Rpcs;
+namespace Farsight.Rpc.Api.Endpoints.Applications.ApiKeys;
 
 public sealed class DELETE(AppDbContext dbContext) : Endpoint<DELETE.Request>
 {
@@ -14,19 +14,19 @@ public sealed class DELETE(AppDbContext dbContext) : Endpoint<DELETE.Request>
 
     public override void Configure()
     {
-        Delete("/api/applications/{applicationId}/rpcs/{id}");
+        Delete("/api/Applications/{ApplicationId}/ApiKeys/{Id}");
         Roles(AuthRoles.ADMIN);
     }
 
     public override async Task HandleAsync(Request req, CancellationToken ct)
     {
-        int deletedRows = await dbContext.Rpcs
-            .Where(rpc => rpc.ApplicationId == req.ApplicationId && rpc.Id == req.Id)
+        int deletedRows = await dbContext.ConsumerApiKeys
+            .Where(apiKey => apiKey.ApplicationId == req.ApplicationId && apiKey.Id == req.Id)
             .ExecuteDeleteAsync(ct);
 
         if(deletedRows == 0)
         {
-            ThrowError("RPC not found.", 404);
+            ThrowError("API key not found.", 404);
         }
 
         await Send.NoContentAsync(ct);

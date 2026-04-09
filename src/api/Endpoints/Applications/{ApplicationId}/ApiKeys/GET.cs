@@ -4,7 +4,7 @@ using Farsight.Rpc.Types;
 using FastEndpoints;
 using Microsoft.EntityFrameworkCore;
 
-namespace Farsight.Rpc.Api.Endpoints.ConsumerApiKeys;
+namespace Farsight.Rpc.Api.Endpoints.Applications.ApiKeys;
 
 public sealed class GET(AppDbContext dbContext) : Endpoint<GET.Request, GET.ApiKeySummary[]>
 {
@@ -20,7 +20,7 @@ public sealed class GET(AppDbContext dbContext) : Endpoint<GET.Request, GET.ApiK
 
     public override void Configure()
     {
-        Get("/api/applications/{applicationId}/api-keys");
+        Get("/api/Applications/{ApplicationId}/ApiKeys");
         Roles(AuthRoles.ADMIN);
     }
 

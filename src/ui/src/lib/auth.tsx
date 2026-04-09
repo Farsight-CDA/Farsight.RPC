@@ -56,7 +56,7 @@ export const AuthProvider: ParentComponent<AuthProviderProps> = (props) => {
   };
 
   const login = async (user: string, password: string) => {
-    const response = await fetch("/api/auth/login", {
+    const response = await fetch("/api/Auth/Login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username: user, password }),

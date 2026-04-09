@@ -8,7 +8,7 @@ using FastEndpoints;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 
-namespace Farsight.Rpc.Api.Endpoints.Rpcs.Realtime;
+namespace Farsight.Rpc.Api.Endpoints.Applications.Rpcs.Realtime;
 
 public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request>
 {
@@ -48,7 +48,7 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request>
 
     public override void Configure()
     {
-        Post("/api/applications/{applicationId}/rpcs/realtime");
+        Post("/api/Applications/{ApplicationId}/Rpcs/Realtime");
         Roles(AuthRoles.ADMIN);
     }
 

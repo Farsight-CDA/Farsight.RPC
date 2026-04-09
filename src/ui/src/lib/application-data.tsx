@@ -139,7 +139,7 @@ export function ApplicationDataProvider(props: ParentProps) {
     activeApiKeysLoad = (async () => {
       try {
         const nextApiKeys = await fetchApplicationList<ConsumerApiKeySummary>(
-          `/api/applications/${id}/api-keys`,
+          `/api/Applications/${id}/ApiKeys`,
           token,
           "Failed to load API keys",
         );
@@ -202,7 +202,7 @@ export function ApplicationDataProvider(props: ParentProps) {
         const rpcGroups = await Promise.all(
           envs.map((environment) =>
             fetchApplicationList<ApplicationRpc>(
-              `/api/applications/${id}/rpcs/${encodeURIComponent(environment)}`,
+              `/api/Applications/${id}/Rpcs/${encodeURIComponent(environment)}`,
               token,
               "Failed to load RPCs",
             ),

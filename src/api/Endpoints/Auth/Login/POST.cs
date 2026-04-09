@@ -24,7 +24,7 @@ public sealed class POST(AdminLoginConfiguration adminLoginConfiguration, JwtCon
 
     public override void Configure()
     {
-        Post("/api/auth/login");
+        Post("/api/Auth/Login");
         AllowAnonymous();
     }
 

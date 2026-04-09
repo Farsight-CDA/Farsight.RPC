@@ -25,7 +25,7 @@ public sealed class PUT(AppDbContext dbContext) : Endpoint<PUT.Request>
 
     public override void Configure()
     {
-        Put("/api/applications/{id}");
+        Put("/api/Applications/{Id}");
         Roles(AuthRoles.ADMIN);
     }
 

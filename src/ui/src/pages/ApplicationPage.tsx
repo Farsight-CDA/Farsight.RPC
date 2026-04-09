@@ -14,6 +14,7 @@ import TrashIcon from "../components/icons/TrashIcon";
 import PencilIcon from "../components/icons/PencilIcon";
 import LightningIcon from "../components/icons/LightningIcon";
 import EmptyStateIcon from "../components/icons/EmptyStateIcon";
+import ProviderIcon from "../components/icons/ProviderIcon";
 import { useReferenceData } from "../lib/reference-data";
 import {
   useApplicationData,
@@ -63,9 +64,12 @@ export default function ApplicationPage() {
   const apiKeys = applicationData.apiKeys.data;
   const apiKeysState = applicationData.apiKeys.state;
   const apiKeysError = applicationData.apiKeys.error;
+  const providers = referenceData.rpcProviders.data;
+  const providersState = referenceData.rpcProviders.state;
+  const providersError = referenceData.rpcProviders.error;
 
   const [activeTab, setActiveTab] = createSignal<
-    "rpcs" | "api-keys" | "general"
+    "rpcs" | "api-keys" | "general" | "providers"
   >("rpcs");
 
   const [selectedEnvironment, setSelectedEnvironment] = createSignal<
@@ -325,6 +329,18 @@ export default function ApplicationPage() {
                 >
                   <SettingsIcon class="size-3.5" />
                   General
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("providers")}
+                  class={`ml-auto flex items-center gap-1.5 px-3 py-2 text-[0.65rem] font-bold uppercase tracking-widest transition-all duration-200 ${
+                    activeTab() === "providers"
+                      ? "border-b-4 border-b-accent bg-b-accent/10 text-b-accent"
+                      : "text-b-ink/60 hover:bg-b-ink/5 hover:text-b-ink"
+                  }`}
+                >
+                  <ProviderIcon class="size-3.5" />
+                  Providers
                 </button>
               </div>
             </div>
@@ -817,6 +833,106 @@ export default function ApplicationPage() {
                     </Show>
                     {deleteLoading() ? "Deleting…" : "Delete Application"}
                   </button>
+                </div>
+              </section>
+            </div>
+          </Show>
+
+          {/* Providers Tab */}
+          <Show when={activeTab() === "providers"}>
+            <div class="flex flex-col gap-6">
+              <section class="border-4 border-[var(--color-b-ink)] bg-b-field">
+                <div class="border-b-4 border-[var(--color-b-ink)] bg-b-paper px-6 py-4">
+                  <div class="flex items-center gap-3">
+                    <div class="flex size-10 items-center justify-center border-2 border-[var(--color-b-accent)] bg-b-accent/10">
+                      <ProviderIcon class="size-5 text-b-accent" />
+                    </div>
+                    <div>
+                      <h2 class="font-['Anton',sans-serif] text-xl uppercase tracking-wide text-b-ink">
+                        Global Providers
+                      </h2>
+                      <p class="text-xs font-bold uppercase tracking-widest text-b-ink/50">
+                        Available RPC providers across all applications
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="p-6">
+                  {/* Loading State */}
+                  <Show when={providersState() === "pending"}>
+                    <div class="flex items-center justify-center gap-3 py-8 text-xs font-bold uppercase tracking-widest text-b-ink/80">
+                      <LoadingSpinner class="size-4" />
+                      Loading providers…
+                    </div>
+                  </Show>
+
+                  <Show when={providersState() === "refreshing"}>
+                    <div class="mb-4 flex items-center gap-3 text-xs font-bold uppercase tracking-widest text-b-ink/80">
+                      <LoadingSpinner class="size-4" />
+                      Updating providers…
+                    </div>
+                  </Show>
+
+                  {/* Error State */}
+                  <Show when={providersError()}>
+                    <p class="border-4 border-red-500/50 bg-red-500/10 px-3 py-3 text-xs font-bold uppercase leading-snug text-red-400">
+                      {providersError()!.message}
+                    </p>
+                  </Show>
+
+                  {/* Providers List */}
+                  <Show
+                    when={
+                      !providersError() &&
+                      (providersState() === "ready" ||
+                        providersState() === "refreshing") &&
+                      providers().length > 0
+                    }
+                  >
+                    <div class="flex flex-col gap-3">
+                      <For each={providers()}>
+                        {(provider) => (
+                          <div class="flex flex-col gap-3 border-4 border-[var(--color-b-ink)] bg-b-paper p-4 sm:flex-row sm:items-center sm:justify-between">
+                            <div class="min-w-0 flex-1">
+                              <div class="flex items-center gap-2">
+                                <span class="font-['Anton',sans-serif] text-lg uppercase tracking-wide text-b-ink">
+                                  {provider.name}
+                                </span>
+                              </div>
+                              <div class="mt-2 flex items-center gap-4 text-xs font-semibold uppercase tracking-wider text-b-ink/60">
+                                <span class="inline-flex items-center gap-1">
+                                  <LightningIcon class="size-3.5" />
+                                  {provider.rateLimit} req/s
+                                </span>
+                                <span class="inline-flex items-center gap-1">
+                                  <RpcIcon class="size-3.5" />
+                                  {provider.rpcCount} RPCs
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </For>
+                    </div>
+                  </Show>
+
+                  {/* No Providers State */}
+                  <Show
+                    when={
+                      !providersError() &&
+                      (providersState() === "ready" ||
+                        providersState() === "refreshing") &&
+                      providers().length === 0
+                    }
+                  >
+                    <div class="flex flex-col items-center justify-center gap-3 py-8 border-4 border-dashed border-b-ink/20">
+                      <EmptyStateIcon class="size-10 text-b-ink/30" />
+                      <p class="text-sm font-semibold uppercase tracking-wider text-b-ink/60">
+                        No providers available.
+                      </p>
+                    </div>
+                  </Show>
                 </div>
               </section>
             </div>

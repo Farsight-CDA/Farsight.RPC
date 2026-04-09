@@ -87,6 +87,10 @@ export default function ApplicationRpcsPage() {
   const [rpcToEdit, setRpcToEdit] = createSignal<ApplicationRpc | null>(null);
   const [editRpcAddress, setEditRpcAddress] = createSignal("");
   const [editRpcProviderId, setEditRpcProviderId] = createSignal<string>("");
+  const [editRpcTracingMode, setEditRpcTracingMode] = createSignal<"Debug" | "Trace">("Debug");
+  const [editRpcIndexerStepSize, setEditRpcIndexerStepSize] = createSignal("1");
+  const [editRpcDexIndexerStepSize, setEditRpcDexIndexerStepSize] = createSignal("1");
+  const [editRpcIndexerBlockOffset, setEditRpcIndexerBlockOffset] = createSignal("1");
   const [editRpcError, setEditRpcError] = createSignal<string | null>(null);
   const [editRpcLoading, setEditRpcLoading] = createSignal(false);
 
@@ -186,6 +190,24 @@ export default function ApplicationRpcsPage() {
     setRpcToEdit(rpc);
     setEditRpcAddress(rpc.address);
     setEditRpcProviderId(rpc.providerId);
+    setEditRpcTracingMode(
+      rpc.type === "Tracing" && rpc.tracingMode === "Trace" ? "Trace" : "Debug",
+    );
+    setEditRpcIndexerStepSize(
+      rpc.type === "Archive" && rpc.indexerStepSize
+        ? String(rpc.indexerStepSize)
+        : "1",
+    );
+    setEditRpcDexIndexerStepSize(
+      rpc.type === "Archive" && rpc.dexIndexerStepSize
+        ? String(rpc.dexIndexerStepSize)
+        : "1",
+    );
+    setEditRpcIndexerBlockOffset(
+      rpc.type === "Archive" && rpc.indexerBlockOffset
+        ? String(rpc.indexerBlockOffset)
+        : "1",
+    );
     setEditRpcModalOpen(true);
   };
 
@@ -279,18 +301,36 @@ export default function ApplicationRpcsPage() {
     setEditRpcError(null);
     setEditRpcLoading(true);
     try {
+      const body: Record<string, number | string> = {
+        address,
+        providerId: editRpcProviderId(),
+      };
+
+      if (rpc.type === "Tracing") {
+        body.tracingMode = editRpcTracingMode();
+      }
+
+      if (rpc.type === "Archive") {
+        body.indexerStepSize = Number.parseInt(editRpcIndexerStepSize(), 10);
+        body.dexIndexerStepSize = Number.parseInt(
+          editRpcDexIndexerStepSize(),
+          10,
+        );
+        body.indexerBlockOffset = Number.parseInt(
+          editRpcIndexerBlockOffset(),
+          10,
+        );
+      }
+
       const response = await fetch(
-        `/api/Applications/${app}/Rpcs/${rpc.id}`,
+        `/api/Applications/${app}/Rpcs/${rpc.type}/${rpc.id}`,
         {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({
-            address,
-            providerId: editRpcProviderId(),
-          }),
+          body: JSON.stringify(body),
         },
       );
       if (!response.ok) {
@@ -991,6 +1031,82 @@ export default function ApplicationRpcsPage() {
                   {addressHint}
                 </p>
               </div>
+
+              <Show when={rpcToEdit()?.type === "Tracing"}>
+                <div class="flex flex-col gap-2">
+                  <label for="edit-rpc-tracing-mode" class="text-xs font-bold uppercase tracking-widest text-b-ink/70">
+                    Tracing Mode
+                  </label>
+                  <div class="relative">
+                    <select
+                      id="edit-rpc-tracing-mode"
+                      value={editRpcTracingMode()}
+                      onChange={(e) => setEditRpcTracingMode(e.currentTarget.value as "Debug" | "Trace")}
+                      class="h-11 w-full appearance-none border border-b-border bg-b-field px-4 pr-10 text-sm font-bold uppercase tracking-widest text-b-ink outline-none focus-visible:border-b-accent/50 focus-visible:ring-2 focus-visible:ring-b-accent/20 hover:border-b-border-hover transition-all duration-200 cursor-pointer"
+                    >
+                      <option value="Debug" class="bg-b-field">
+                        Debug
+                      </option>
+                      <option value="Trace" class="bg-b-field">
+                        Trace
+                      </option>
+                    </select>
+                    <div class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2">
+                      <ChevronDownIcon class="size-5 text-b-ink/50" />
+                    </div>
+                  </div>
+                </div>
+              </Show>
+
+              <Show when={rpcToEdit()?.type === "Archive"}>
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                  <div class="flex flex-col gap-2">
+                    <label for="edit-rpc-indexer-step-size" class="text-xs font-bold uppercase tracking-widest text-b-ink/70">
+                      Indexer Step
+                    </label>
+                    <input
+                      id="edit-rpc-indexer-step-size"
+                      type="number"
+                      min="1"
+                      required={rpcToEdit()?.type === "Archive"}
+                      value={editRpcIndexerStepSize()}
+                      onInput={(e) => setEditRpcIndexerStepSize(e.currentTarget.value)}
+                      class="h-11 w-full border border-b-border bg-b-paper px-4 text-sm font-semibold text-b-ink placeholder:text-b-ink/25 outline-none focus-visible:border-b-accent/50 focus-visible:ring-2 focus-visible:ring-b-accent/20 hover:border-b-border-hover transition-all duration-200"
+                      inputmode="numeric"
+                    />
+                  </div>
+                  <div class="flex flex-col gap-2">
+                    <label for="edit-rpc-dex-indexer-step-size" class="text-xs font-bold uppercase tracking-widest text-b-ink/70">
+                      Dex Step
+                    </label>
+                    <input
+                      id="edit-rpc-dex-indexer-step-size"
+                      type="number"
+                      min="1"
+                      required={rpcToEdit()?.type === "Archive"}
+                      value={editRpcDexIndexerStepSize()}
+                      onInput={(e) => setEditRpcDexIndexerStepSize(e.currentTarget.value)}
+                      class="h-11 w-full border border-b-border bg-b-paper px-4 text-sm font-semibold text-b-ink placeholder:text-b-ink/25 outline-none focus-visible:border-b-accent/50 focus-visible:ring-2 focus-visible:ring-b-accent/20 hover:border-b-border-hover transition-all duration-200"
+                      inputmode="numeric"
+                    />
+                  </div>
+                  <div class="flex flex-col gap-2">
+                    <label for="edit-rpc-indexer-block-offset" class="text-xs font-bold uppercase tracking-widest text-b-ink/70">
+                      Block Offset
+                    </label>
+                    <input
+                      id="edit-rpc-indexer-block-offset"
+                      type="number"
+                      min="1"
+                      required={rpcToEdit()?.type === "Archive"}
+                      value={editRpcIndexerBlockOffset()}
+                      onInput={(e) => setEditRpcIndexerBlockOffset(e.currentTarget.value)}
+                      class="h-11 w-full border border-b-border bg-b-paper px-4 text-sm font-semibold text-b-ink placeholder:text-b-ink/25 outline-none focus-visible:border-b-accent/50 focus-visible:ring-2 focus-visible:ring-b-accent/20 hover:border-b-border-hover transition-all duration-200"
+                      inputmode="numeric"
+                    />
+                  </div>
+                </div>
+              </Show>
 
               <Show when={editRpcError()}>
                 <p class="border border-red-500/40 bg-red-500/10 px-3 py-3 text-xs font-bold uppercase leading-snug text-red-400">

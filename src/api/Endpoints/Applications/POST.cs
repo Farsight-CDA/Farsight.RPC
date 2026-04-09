@@ -19,9 +19,11 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request>
             RuleFor(x => x.Name)
                 .Cascade(CascadeMode.Stop)
                 .Must(static name => !String.IsNullOrWhiteSpace(name))
-                .WithMessage("Name is required.")
+                .WithMessage(ApplicationNameValidation.REQUIRED_MESSAGE)
                 .Must(static name => name.AsSpan().Trim().Length == name.Length)
-                .WithMessage("Name cannot have leading or trailing whitespace.");
+                .WithMessage(ApplicationNameValidation.OUTER_WHITESPACE_MESSAGE)
+                .Must(ApplicationNameValidation.HasAllowedCharacters)
+                .WithMessage(ApplicationNameValidation.ALLOWED_CHARACTERS_MESSAGE);
         }
     }
 
@@ -33,6 +35,11 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request>
 
     public override async Task HandleAsync(Request req, CancellationToken ct)
     {
+        if(ApplicationNameValidation.GetValidationError(req.Name) is { } validationError)
+        {
+            ThrowError(validationError);
+        }
+
         if(await dbContext.ConsumerApplications.AnyAsync(a => a.Name == req.Name, ct))
         {
             ThrowError("An application with this name already exists.", 409);

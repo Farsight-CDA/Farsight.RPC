@@ -24,9 +24,11 @@ public sealed class PUT(AppDbContext dbContext) : Endpoint<PUT.Request>
             RuleFor(x => x.Name)
                 .Cascade(CascadeMode.Stop)
                 .Must(static name => !String.IsNullOrWhiteSpace(name))
-                .WithMessage("Name is required.")
+                .WithMessage(ApplicationNameValidation.REQUIRED_MESSAGE)
                 .Must(static name => name!.AsSpan().Trim().Length == name!.Length)
-                .WithMessage("Name cannot have leading or trailing whitespace.");
+                .WithMessage(ApplicationNameValidation.OUTER_WHITESPACE_MESSAGE)
+                .Must(ApplicationNameValidation.HasAllowedCharacters)
+                .WithMessage(ApplicationNameValidation.ALLOWED_CHARACTERS_MESSAGE);
         }
     }
 
@@ -38,6 +40,11 @@ public sealed class PUT(AppDbContext dbContext) : Endpoint<PUT.Request>
 
     public override async Task HandleAsync(Request req, CancellationToken ct)
     {
+        if(ApplicationNameValidation.GetValidationError(req.Name) is { } validationError)
+        {
+            ThrowError(validationError);
+        }
+
         var application = await dbContext.ConsumerApplications
             .SingleOrDefaultAsync(a => a.Id == req.Id, ct);
 

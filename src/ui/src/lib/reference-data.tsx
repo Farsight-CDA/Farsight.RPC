@@ -139,9 +139,8 @@ export function ReferenceDataProvider(props: ReferenceDataProviderProps) {
   );
   const [hostEnvironmentsState, setHostEnvironmentsState] =
     createSignal<LoadState>(initialData ? "ready" : "idle");
-  const [hostEnvironmentsError, setHostEnvironmentsError] = createSignal<
-    Error | null
-  >(null);
+  const [hostEnvironmentsError, setHostEnvironmentsError] =
+    createSignal<Error | null>(null);
 
   let activeLoad: Promise<void> | null = null;
   let activeLoadToken: string | null = null;
@@ -190,29 +189,33 @@ export function ReferenceDataProvider(props: ReferenceDataProviderProps) {
 
     activeLoadToken = token;
     activeLoad = (async () => {
-      const [applicationsResult, rpcProvidersResult, chainsResult, hostEnvironmentsResult] =
-        await Promise.allSettled([
-          fetchReferenceList<ApplicationSummary>(
-            "/api/applications",
-            token,
-            "Failed to load applications",
-          ),
-          fetchReferenceList<RpcProviderSummary>(
-            "/api/rpc-providers",
-            token,
-            "Failed to load RPC providers",
-          ),
-          fetchReferenceList<string>(
-            "/api/chains",
-            token,
-            "Failed to load chains",
-          ),
-          fetchReferenceList<string>(
-            "/api/host-environments",
-            token,
-            "Failed to load environments",
-          ),
-        ]);
+      const [
+        applicationsResult,
+        rpcProvidersResult,
+        chainsResult,
+        hostEnvironmentsResult,
+      ] = await Promise.allSettled([
+        fetchReferenceList<ApplicationSummary>(
+          "/api/applications",
+          token,
+          "Failed to load applications",
+        ),
+        fetchReferenceList<RpcProviderSummary>(
+          "/api/rpc-providers",
+          token,
+          "Failed to load RPC providers",
+        ),
+        fetchReferenceList<string>(
+          "/api/chains",
+          token,
+          "Failed to load chains",
+        ),
+        fetchReferenceList<string>(
+          "/api/host-environments",
+          token,
+          "Failed to load environments",
+        ),
+      ]);
 
       if (applicationsResult.status === "fulfilled") {
         setApplications(applicationsResult.value);
@@ -294,14 +297,18 @@ export function ReferenceDataProvider(props: ReferenceDataProviderProps) {
       setLoadedToken(token);
     } catch (error) {
       setApplicationsError(
-        error instanceof Error ? error : new Error("Failed to load applications"),
+        error instanceof Error
+          ? error
+          : new Error("Failed to load applications"),
       );
       setApplicationsState("errored");
     }
   };
 
   const removeApplication = (applicationId: string) => {
-    setApplications((current) => current.filter((app) => app.id !== applicationId));
+    setApplications((current) =>
+      current.filter((app) => app.id !== applicationId),
+    );
     setApplicationsError(null);
     setApplicationsState("ready");
   };

@@ -64,7 +64,9 @@ export default function ApplicationPage() {
   const apiKeysState = applicationData.apiKeys.state;
   const apiKeysError = applicationData.apiKeys.error;
 
-  const [activeTab, setActiveTab] = createSignal<"rpcs" | "api-keys" | "general">("rpcs");
+  const [activeTab, setActiveTab] = createSignal<
+    "rpcs" | "api-keys" | "general"
+  >("rpcs");
 
   const [selectedEnvironment, setSelectedEnvironment] = createSignal<
     string | undefined
@@ -354,18 +356,28 @@ export default function ApplicationPage() {
                     {environmentsError()!.message}
                   </p>
                 </Show>
-                <Show when={environmentsState() === "ready" && selectedEnvironment()}>
+                <Show
+                  when={
+                    environmentsState() === "ready" && selectedEnvironment()
+                  }
+                >
                   <div class="relative">
                     <select
                       id="environment-select"
                       value={selectedEnvironment()}
                       onChange={(e) =>
-                        setSelectedEnvironment(e.currentTarget.value || undefined)
+                        setSelectedEnvironment(
+                          e.currentTarget.value || undefined,
+                        )
                       }
                       class="h-12 w-full appearance-none border-4 border-[var(--color-b-ink)] bg-b-paper px-3 pr-10 text-sm font-bold uppercase tracking-widest text-b-ink outline-none focus-visible:ring-4 focus-visible:ring-b-accent/50 hover:border-b-accent/50 transition-colors duration-200 cursor-pointer sm:w-48"
                     >
                       <For each={environments()}>
-                        {(env) => <option value={env} class="bg-b-paper">{env}</option>}
+                        {(env) => (
+                          <option value={env} class="bg-b-paper">
+                            {env}
+                          </option>
+                        )}
                       </For>
                     </select>
                     <div class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2">
@@ -416,7 +428,8 @@ export default function ApplicationPage() {
                     Available Chains
                   </p>
                   <span class="text-xs font-bold uppercase tracking-widest text-b-ink/50">
-                    {filteredChains().length} / {availableChains().length} chains
+                    {filteredChains().length} / {availableChains().length}{" "}
+                    chains
                   </span>
                 </div>
 
@@ -461,7 +474,8 @@ export default function ApplicationPage() {
               <Show
                 when={
                   !chainsError() &&
-                  (chainsState() === "ready" || chainsState() === "refreshing") &&
+                  (chainsState() === "ready" ||
+                    chainsState() === "refreshing") &&
                   availableChains().length === 0
                 }
               >
@@ -476,7 +490,8 @@ export default function ApplicationPage() {
               <Show
                 when={
                   !chainsError() &&
-                  (chainsState() === "ready" || chainsState() === "refreshing") &&
+                  (chainsState() === "ready" ||
+                    chainsState() === "refreshing") &&
                   availableChains().length > 0 &&
                   filteredChains().length === 0
                 }
@@ -539,7 +554,8 @@ export default function ApplicationPage() {
                   <Show
                     when={
                       !apiKeysError() &&
-                      (apiKeysState() === "ready" || apiKeysState() === "refreshing") &&
+                      (apiKeysState() === "ready" ||
+                        apiKeysState() === "refreshing") &&
                       apiKeys().length > 0
                     }
                   >
@@ -577,7 +593,9 @@ export default function ApplicationPage() {
                                   setDeleteKeyError(null);
                                   setApiKeyToDelete(k);
                                 }}
-                                disabled={createKeyLoading() || deleteKeyLoading()}
+                                disabled={
+                                  createKeyLoading() || deleteKeyLoading()
+                                }
                                 class="btn btn-sm btn-interactive btn-disabled btn-danger shrink-0"
                               >
                                 Revoke
@@ -593,7 +611,8 @@ export default function ApplicationPage() {
                   <Show
                     when={
                       !apiKeysError() &&
-                      (apiKeysState() === "ready" || apiKeysState() === "refreshing") &&
+                      (apiKeysState() === "ready" ||
+                        apiKeysState() === "refreshing") &&
                       apiKeys().length === 0
                     }
                   >
@@ -610,7 +629,10 @@ export default function ApplicationPage() {
                     <p class="mb-4 text-xs font-bold uppercase tracking-widest text-b-ink/50">
                       Create New Key
                     </p>
-                    <form onSubmit={handleCreateKey} class="flex flex-col gap-4">
+                    <form
+                      onSubmit={handleCreateKey}
+                      class="flex flex-col gap-4"
+                    >
                       <div class="flex flex-col gap-2 sm:flex-row sm:items-end">
                         <div class="flex-1">
                           <label
@@ -632,12 +654,19 @@ export default function ApplicationPage() {
                               {environmentsError()!.message}
                             </p>
                           </Show>
-                          <Show when={environmentsState() === "ready" && newKeyEnvironment()}>
+                          <Show
+                            when={
+                              environmentsState() === "ready" &&
+                              newKeyEnvironment()
+                            }
+                          >
                             <select
                               id="new-key-environment"
                               value={newKeyEnvironment()}
                               onChange={(e) =>
-                                setNewKeyEnvironment(e.currentTarget.value || undefined)
+                                setNewKeyEnvironment(
+                                  e.currentTarget.value || undefined,
+                                )
                               }
                               class="h-12 w-full appearance-none border-4 border-[var(--color-b-ink)] bg-b-paper px-3 pr-10 text-sm font-bold uppercase tracking-widest text-b-ink outline-none focus-visible:ring-4 focus-visible:ring-b-accent/50 hover:border-b-accent/50 transition-colors duration-200 cursor-pointer"
                             >
@@ -713,7 +742,9 @@ export default function ApplicationPage() {
                             required
                             pattern={applicationNamePattern}
                             value={renameName() || application()?.name || ""}
-                            onInput={(e) => setRenameName(e.currentTarget.value)}
+                            onInput={(e) =>
+                              setRenameName(e.currentTarget.value)
+                            }
                             class="h-12 w-full border-4 border-[var(--color-b-ink)] bg-b-paper px-3 text-sm font-semibold text-b-ink placeholder:text-b-ink/30 outline-none focus-visible:ring-4 focus-visible:ring-b-accent/50 hover:border-b-accent/50 transition-colors duration-200"
                             placeholder="MY APPLICATION"
                             title={applicationNameHint}
@@ -765,7 +796,8 @@ export default function ApplicationPage() {
 
                 <div class="p-6">
                   <p class="mb-4 text-sm text-b-ink/80">
-                    Once deleted, this application and all its associated data will be permanently removed. This action cannot be undone.
+                    Once deleted, this application and all its associated data
+                    will be permanently removed. This action cannot be undone.
                   </p>
 
                   <Show when={deleteError()}>
@@ -817,8 +849,8 @@ export default function ApplicationPage() {
             </h3>
             <p class="mb-8 text-sm font-semibold text-b-ink/80">
               Permanently delete{" "}
-              <span class="font-bold text-red-400">{application()?.name}</span>? This
-              cannot be undone.
+              <span class="font-bold text-red-400">{application()?.name}</span>?
+              This cannot be undone.
             </p>
 
             <Show when={deleteError()}>

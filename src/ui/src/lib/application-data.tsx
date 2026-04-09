@@ -81,7 +81,9 @@ export function ApplicationDataProvider(props: ParentProps) {
   const [apiKeys, setApiKeys] = createSignal<ConsumerApiKeySummary[]>([]);
   const [apiKeysState, setApiKeysState] = createSignal<LoadState>("idle");
   const [apiKeysError, setApiKeysError] = createSignal<Error | null>(null);
-  const [loadedApiKeysKey, setLoadedApiKeysKey] = createSignal<string | null>(null);
+  const [loadedApiKeysKey, setLoadedApiKeysKey] = createSignal<string | null>(
+    null,
+  );
 
   const [rpcs, setRpcs] = createSignal<ApplicationRpc[]>([]);
   const [rpcsState, setRpcsState] = createSignal<LoadState>("idle");
@@ -126,7 +128,9 @@ export function ApplicationDataProvider(props: ParentProps) {
     }
 
     const isRefresh = loadedApiKeysKey() === requestKey;
-    setApiKeysState(apiKeys().length > 0 && isRefresh ? "refreshing" : "pending");
+    setApiKeysState(
+      apiKeys().length > 0 && isRefresh ? "refreshing" : "pending",
+    );
     setApiKeysError(null);
 
     activeApiKeysLoadKey = requestKey;
@@ -207,7 +211,9 @@ export function ApplicationDataProvider(props: ParentProps) {
         setRpcsState("ready");
         setLoadedRpcsKey(requestKey);
       } catch (error) {
-        setRpcsError(error instanceof Error ? error : new Error("Failed to load RPCs"));
+        setRpcsError(
+          error instanceof Error ? error : new Error("Failed to load RPCs"),
+        );
         setRpcsState("errored");
       }
     })();

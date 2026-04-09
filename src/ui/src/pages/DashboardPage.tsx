@@ -135,7 +135,7 @@ export default function DashboardPage() {
             (applications() ?? []).length > 0
           }
         >
-              <ul class="mt-8 flex flex-col gap-4">
+          <ul class="mt-8 flex flex-col gap-4">
             <For each={applications()}>
               {(app) => (
                 <li>

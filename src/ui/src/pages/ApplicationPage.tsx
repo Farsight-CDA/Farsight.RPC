@@ -1,5 +1,5 @@
 import { useParams } from "@solidjs/router";
-import { createEffect, createResource, createSignal, For, Show } from "solid-js";
+import { createEffect, createMemo, createResource, createSignal, For, Show } from "solid-js";
 import LoadingSpinner from "../components/LoadingSpinner";
 import { useAuth } from "../lib/auth";
 
@@ -20,6 +20,7 @@ export default function ApplicationPage() {
   const applicationId = () => params.applicationId;
 
   const [selectedEnvironment, setSelectedEnvironment] = createSignal<HostEnvironment | undefined>(undefined);
+  const [filterText, setFilterText] = createSignal("");
 
   // Set initial environment once data is loaded
   createEffect(() => {
@@ -71,6 +72,13 @@ export default function ApplicationPage() {
       return response.json() as Promise<HostEnvironment[]>;
     },
   );
+
+  const filteredChains = createMemo(() => {
+    const allChains = chains() ?? [];
+    const filter = filterText().trim().toLowerCase();
+    if (!filter) return allChains;
+    return allChains.filter((chain) => chain.toLowerCase().includes(filter));
+  });
 
   return (
     <main class="flex flex-1 flex-col">
@@ -180,12 +188,40 @@ export default function ApplicationPage() {
                 Select a Chain
               </p>
               <span class="text-xs font-bold uppercase tracking-widest text-b-ink/60">
-                {chains()?.length} available
+                {filteredChains().length} / {chains()?.length} chains
               </span>
             </div>
 
+            {/* Filter Textbox */}
+            <div class="mb-6">
+              <div class="relative">
+                <input
+                  type="text"
+                  value={filterText()}
+                  onInput={(e) => setFilterText(e.currentTarget.value)}
+                  placeholder="Filter chains..."
+                  class="h-12 w-full border-4 border-[var(--color-b-ink)] bg-b-paper px-4 pr-12 text-sm font-semibold text-b-ink placeholder:text-b-ink/40 outline-none focus-visible:ring-4 focus-visible:ring-b-accent"
+                />
+                <div class="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2">
+                  <svg
+                    class="size-5 text-b-ink/40"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                    />
+                  </svg>
+                </div>
+              </div>
+            </div>
+
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              <For each={chains()}>
+              <For each={filteredChains()}>
                 {(chain) => (
                   <button
                     type="button"
@@ -222,6 +258,14 @@ export default function ApplicationPage() {
             <div class="flex flex-col items-center justify-center gap-4 py-16">
               <p class="text-center text-sm font-semibold uppercase tracking-wider text-b-ink/80">
                 No chains available.
+              </p>
+            </div>
+          </Show>
+
+          <Show when={chains() && chains.state === "ready" && chains()!.length > 0 && filteredChains().length === 0}>
+            <div class="flex flex-col items-center justify-center gap-4 py-16">
+              <p class="text-center text-sm font-semibold uppercase tracking-wider text-b-ink/80">
+                No chains match your filter.
               </p>
             </div>
           </Show>

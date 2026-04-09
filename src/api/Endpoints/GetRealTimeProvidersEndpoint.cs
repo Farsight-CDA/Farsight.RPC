@@ -1,7 +1,6 @@
 using Farsight.Rpc.Api.Auth;
 using Farsight.Rpc.Types;
 using Farsight.Rpc.Api.Persistence;
-using Farsight.Rpc.Api.Services;
 using FastEndpoints;
 using Microsoft.EntityFrameworkCore;
 
@@ -20,9 +19,8 @@ public sealed class GetRealTimeProvidersEndpoint(RpcProvidersDbContext dbContext
         string normalizedChain = req.Chain.Trim().ToLowerInvariant();
         var providers = await dbContext.RealTimeEndpoints.AsNoTracking()
             .Where(x => x.Environment == ApiClientClaimTypes.GetRequiredEnvironment(User) && x.ApplicationId == ApiClientClaimTypes.GetRequiredApplicationId(User) && x.Chain.Name == normalizedChain)
-            .OrderByDescending(x => x.ProbedUtc)
-            .ThenByDescending(x => x.UpdatedUtc)
-            .Select(x => new RealTimeRpcEndpointDto(x.Id, x.Environment, x.Application.Name, x.Chain.Name, x.Provider.Name, x.Address, x.UpdatedUtc, x.ProbedUtc))
+            .OrderByDescending(x => x.UpdatedUtc)
+            .Select(x => new RealTimeRpcEndpointDto(x.Id, x.Environment, x.Application.Name, x.Chain.Name, x.Provider.Name, x.Address, x.UpdatedUtc))
             .ToListAsync(ct);
 
         await Send.OkAsync(providers, ct);

@@ -14,5 +14,4 @@ public abstract class ProviderEndpointEntity
     public ProviderEntity Provider { get; set; } = null!;
     public Uri Address { get; set; } = null!;
     public DateTimeOffset UpdatedUtc { get; set; }
-    public DateTimeOffset? ProbedUtc { get; set; }
 }

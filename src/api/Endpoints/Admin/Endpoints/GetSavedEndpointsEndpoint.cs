@@ -36,14 +36,14 @@ public sealed class GetSavedEndpointsEndpoint(RpcProvidersDbContext dbContext) :
         var rows = new List<ProviderListItem>();
         rows.AddRange(await dbContext.RealTimeEndpoints.AsNoTracking().Include(x => x.Application).Include(x => x.Chain).Include(x => x.Provider)
             .Where(x => x.ApplicationId == appId && x.ChainId == chainId && x.Environment == req.Environment)
-            .Select(x => new ProviderListItem(x.Id, RpcEndpointType.RealTime, x.Environment, x.Application.Name, x.Chain.Name, x.Provider.Name, x.Address, null, null, null, null, x.UpdatedUtc, x.ProbedUtc)).ToListAsync(ct));
+            .Select(x => new ProviderListItem(x.Id, RpcEndpointType.RealTime, x.Environment, x.Application.Name, x.Chain.Name, x.Provider.Name, x.Address, null, null, null, null, x.UpdatedUtc)).ToListAsync(ct));
         rows.AddRange(await dbContext.ArchiveEndpoints.AsNoTracking().Include(x => x.Application).Include(x => x.Chain).Include(x => x.Provider)
             .Where(x => x.ApplicationId == appId && x.ChainId == chainId && x.Environment == req.Environment)
-            .Select(x => new ProviderListItem(x.Id, RpcEndpointType.Archive, x.Environment, x.Application.Name, x.Chain.Name, x.Provider.Name, x.Address, x.IndexerStepSize, x.DexIndexStepSize, x.IndexBlockOffset, null, x.UpdatedUtc, x.ProbedUtc)).ToListAsync(ct));
+            .Select(x => new ProviderListItem(x.Id, RpcEndpointType.Archive, x.Environment, x.Application.Name, x.Chain.Name, x.Provider.Name, x.Address, x.IndexerStepSize, x.DexIndexStepSize, x.IndexBlockOffset, null, x.UpdatedUtc)).ToListAsync(ct));
         rows.AddRange(await dbContext.TracingEndpoints.AsNoTracking().Include(x => x.Application).Include(x => x.Chain).Include(x => x.Provider)
             .Where(x => x.ApplicationId == appId && x.ChainId == chainId && x.Environment == req.Environment)
-            .Select(x => new ProviderListItem(x.Id, RpcEndpointType.Tracing, x.Environment, x.Application.Name, x.Chain.Name, x.Provider.Name, x.Address, null, null, null, x.TracingMode, x.UpdatedUtc, x.ProbedUtc)).ToListAsync(ct));
+            .Select(x => new ProviderListItem(x.Id, RpcEndpointType.Tracing, x.Environment, x.Application.Name, x.Chain.Name, x.Provider.Name, x.Address, null, null, null, x.TracingMode, x.UpdatedUtc)).ToListAsync(ct));
 
-        await Send.OkAsync([.. rows.OrderBy(x => x.Type).ThenBy(x => x.Provider).ThenByDescending(x => x.ProbedUtc).ThenByDescending(x => x.UpdatedUtc)], ct);
+        await Send.OkAsync([.. rows.OrderBy(x => x.Type).ThenBy(x => x.Provider).ThenByDescending(x => x.UpdatedUtc)], ct);
     }
 }

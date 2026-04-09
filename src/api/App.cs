@@ -39,14 +39,12 @@ public static class App
         });
 
         builder.Services.AddFastEndpoints();
-        builder.Services.AddHttpClient();
         builder.Services.AddProblemDetails();
 
         builder.Services.AddDbContext<RpcProvidersDbContext>((provider, options) =>
             options.UseNpgsql(provider.GetRequiredService<DatabaseConfiguration>().PostgresConnectionString));
 
         builder.Services.AddScoped<IValidator<ProviderEditModel>, ProviderEditModelValidator>();
-        builder.Services.AddScoped<IValidator<ProbeRequest>, ProbeRequestValidator>();
 
         var jwtConfiguration = builder.Configuration
             .GetRequiredSection(JwtConfiguration.SECTION_NAME)

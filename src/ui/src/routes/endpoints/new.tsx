@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from "@solidjs/router";
 import { createMemo, createSignal } from "solid-js";
 import { EndpointForm } from "../../components/EndpointForm";
 import { MessageBanner } from "../../components/MessageBanner";
-import { createEndpoint, getApplications, getChains, getEndpointTypeLookups, getEnvironmentLookups, getProviders, getTracingModeLookups, probeEndpointAddress } from "../../lib/api";
+import { createEndpoint, getApplications, getChains, getEndpointTypeLookups, getEnvironmentLookups, getProviders, getTracingModeLookups } from "../../lib/api";
 import { queryKeys } from "../../lib/query";
 import type { LookupItem, ProviderEditModel, ProviderRateLimitRow } from "../../lib/types";
 
@@ -57,17 +57,6 @@ export default function NewEndpointPage() {
     }
   };
 
-  const probe = async () => {
-    try {
-      const result = await probeEndpointAddress(model().type, model().address);
-      setMessage(result.message);
-      setError(null);
-    }
-    catch(err) {
-      setError(err instanceof Error ? err.message : "Probe failed.");
-    }
-  };
-
   return (
     <div class="stack">
       <div class="page-header"><div><h1>New Endpoint</h1><p class="muted">Create a new RPC endpoint with the full schema editor.</p></div></div>
@@ -86,7 +75,6 @@ export default function NewEndpointPage() {
         />
         <div class="actions">
           <button class="button" type="submit">Save</button>
-          <button class="button secondary" type="button" onClick={probe}>Probe</button>
         </div>
       </form>
     </div>

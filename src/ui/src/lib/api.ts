@@ -5,7 +5,6 @@ import type {
   ApiClientListItem,
   HostEnvironment,
   LookupItem,
-  ProbeResult,
   ProviderEditModel,
   ProviderListItem,
   ProviderRateLimitRow,
@@ -93,11 +92,6 @@ export const getEndpoint = (type: RpcEndpointType, id: string) => apiFetch<Provi
 export const createEndpoint = (model: ProviderEditModel) => apiFetch<void>("/api/admin/endpoints", { method: "POST", body: JSON.stringify(model) });
 export const updateEndpoint = (model: ProviderEditModel) => apiFetch<void>("/api/admin/endpoints", { method: "PUT", body: JSON.stringify(model) });
 export const deleteEndpoint = (type: RpcEndpointType, id: string) => apiFetch<void>(`/api/admin/endpoints/${type}/${id}`, { method: "DELETE" });
-export const probeSavedEndpoint = (type: RpcEndpointType, id: string) => apiFetch<ProbeResult>(`/api/admin/endpoints/${type}/${id}/probe`, { method: "POST" });
-export const probeEndpointAddress = (type: RpcEndpointType, address: string) => apiFetch<ProbeResult>("/api/admin/endpoints/probe", {
-  method: "POST",
-  body: JSON.stringify({ type, address }),
-});
 
 export const getApiKeys = () => apiFetch<ApiClientListItem[]>("/api/admin/api-keys");
 export const createApiKey = (applicationId: string, environment: HostEnvironment) => apiFetch<ApiClientCreateResult>("/api/admin/api-keys", {

@@ -10,6 +10,5 @@ public sealed record ArchiveRpcEndpointDto(
     ulong IndexerStepSize,
     ulong? DexIndexStepSize,
     ulong IndexBlockOffset,
-    DateTimeOffset UpdatedUtc,
-    DateTimeOffset? ProbedUtc
+    DateTimeOffset UpdatedUtc
 );

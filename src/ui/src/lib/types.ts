@@ -20,7 +20,6 @@ export interface ProviderListItem {
   indexBlockOffset: number | null;
   tracingMode: TracingMode | null;
   updatedUtc: string;
-  probedUtc: string | null;
 }
 
 export interface ProviderEditModel {
@@ -35,12 +34,6 @@ export interface ProviderEditModel {
   dexIndexStepSize: number | null;
   indexBlockOffset: number | null;
   tracingMode: TracingMode;
-}
-
-export interface ProbeResult {
-  succeeded: boolean;
-  message: string;
-  detectedTracingMode: TracingMode | null;
 }
 
 export interface ApiClientListItem {

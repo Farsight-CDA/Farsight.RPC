@@ -14,6 +14,5 @@ public sealed record ProviderListItem(
     ulong? DexIndexStepSize,
     ulong? IndexBlockOffset,
     TracingMode? TracingMode,
-    DateTimeOffset UpdatedUtc,
-    DateTimeOffset? ProbedUtc
+    DateTimeOffset UpdatedUtc
 );

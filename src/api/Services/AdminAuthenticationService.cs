@@ -1,9 +1,9 @@
 using Farsight.Common;
 using Farsight.Rpc.Api.Configuration;
 using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
-using System.IdentityModel.Tokens.Jwt;
 using System.Text;
 
 namespace Farsight.Rpc.Api.Services;
@@ -14,14 +14,7 @@ public partial class AdminAuthenticationService : Singleton
     [Inject] private readonly JwtConfiguration _jwtConfiguration;
 
     public bool IsValidCredentials(string userName, string password)
-    {
-        if(!IsValidUserName(userName) || !IsValidPassword(password))
-        {
-            return false;
-        }
-
-        return true;
-    }
+        => IsValidUserName(userName) && IsValidPassword(password);
 
     public string CreateToken(string userName)
     {
@@ -42,7 +35,8 @@ public partial class AdminAuthenticationService : Singleton
             claims: claims,
             notBefore: now.UtcDateTime,
             expires: now.AddMinutes(_jwtConfiguration.ExpiryMinutes).UtcDateTime,
-            signingCredentials: new SigningCredentials(new SymmetricSecurityKey(keyBytes), SecurityAlgorithms.HmacSha256));
+            signingCredentials: new SigningCredentials(new SymmetricSecurityKey(keyBytes), SecurityAlgorithms.HmacSha256)
+        );
 
         return new JwtSecurityTokenHandler().WriteToken(token);
     }

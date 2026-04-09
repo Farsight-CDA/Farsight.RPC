@@ -34,9 +34,6 @@ internal sealed class TracingEndpointEntityConfiguration : IEntityTypeConfigurat
         entity.Property(x => x.UpdatedUtc)
             .IsRequired();
 
-        entity.Property(x => x.ProbedUtc)
-            .IsRequired(false);
-
         entity.Property(x => x.TracingMode)
             .IsRequired()
             .HasConversion<string>()

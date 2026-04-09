@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from "@solidjs/router";
 import { Show, createEffect, createMemo, createSignal } from "solid-js";
 import { EndpointForm } from "../../components/EndpointForm";
 import { MessageBanner } from "../../components/MessageBanner";
-import { deleteEndpoint, getApplications, getChains, getEndpoint, getEndpointTypeLookups, getEnvironmentLookups, getProviders, getTracingModeLookups, probeEndpointAddress, updateEndpoint } from "../../lib/api";
+import { deleteEndpoint, getApplications, getChains, getEndpoint, getEndpointTypeLookups, getEnvironmentLookups, getProviders, getTracingModeLookups, updateEndpoint } from "../../lib/api";
 import { queryKeys } from "../../lib/query";
 import type { LookupItem, ProviderEditModel, ProviderRateLimitRow } from "../../lib/types";
 
@@ -70,21 +70,6 @@ export default function EditEndpointPage() {
     }
   };
 
-  const probe = async () => {
-    if(!model()) {
-      return;
-    }
-
-    try {
-      const result = await probeEndpointAddress(model()!.type, model()!.address);
-      setMessage(result.message);
-      setError(null);
-    }
-    catch(err) {
-      setError(err instanceof Error ? err.message : "Probe failed.");
-    }
-  };
-
   const remove = async () => {
     if(!model() || !model()!.id) {
       return;
@@ -105,7 +90,7 @@ export default function EditEndpointPage() {
 
   return (
     <div class="stack">
-      <div class="page-header"><div><h1>Edit Endpoint</h1><p class="muted">Update the endpoint shape, provider assignment, and probe target.</p></div></div>
+      <div class="page-header"><div><h1>Edit Endpoint</h1><p class="muted">Update the endpoint shape and provider assignment.</p></div></div>
       <MessageBanner message={message()} tone="success" />
       <MessageBanner message={currentError()} tone="error" />
       <Show when={model()} fallback={<div class="panel">Loading endpoint...</div>}>
@@ -123,7 +108,6 @@ export default function EditEndpointPage() {
             />
             <div class="actions">
               <button class="button" type="submit">Save</button>
-              <button class="button secondary" type="button" onClick={probe}>Probe</button>
               <button class="button danger" type="button" onClick={remove}>Delete</button>
             </div>
           </form>

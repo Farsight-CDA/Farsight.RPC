@@ -2,7 +2,7 @@ import { createQuery, useQueryClient } from "@tanstack/solid-query";
 import { A } from "@solidjs/router";
 import { For, Show, createMemo, createSignal } from "solid-js";
 import { MessageBanner } from "../components/MessageBanner";
-import { createEndpoint, deleteEndpoint, getApplications, getChains, getEndpoints, getEndpointTypeLookups, getEnvironmentLookups, getProviders, probeSavedEndpoint } from "../lib/api";
+import { createEndpoint, deleteEndpoint, getApplications, getChains, getEndpoints, getEndpointTypeLookups, getEnvironmentLookups, getProviders } from "../lib/api";
 import { queryKeys } from "../lib/query";
 import type { HostEnvironment, LookupItem, ProviderListItem, ProviderRateLimitRow, RpcEndpointType } from "../lib/types";
 
@@ -76,18 +76,6 @@ export default function DashboardPage() {
     }
     catch(err) {
       setError(err instanceof Error ? err.message : "Failed to add endpoint.");
-    }
-  };
-
-  const runProbe = async (row: ProviderListItem) => {
-    try {
-      const result = await probeSavedEndpoint(row.type, row.id);
-      setMessage(result.message);
-      setError(null);
-      await queryClient.invalidateQueries({ queryKey: queryKeys.endpoints(applicationId(), chainId(), environment()) });
-    }
-    catch(err) {
-      setError(err instanceof Error ? err.message : "Probe failed.");
     }
   };
 
@@ -181,7 +169,7 @@ export default function DashboardPage() {
         <div class="page-header">
           <div>
             <h2>Matching Endpoints</h2>
-            <p class="muted">Ordered from most recently probed to least active.</p>
+            <p class="muted">Ordered by type, provider, and most recently updated.</p>
           </div>
         </div>
         <Show when={rows().length > 0} fallback={<div class="muted">No endpoints match the current selection.</div>}>
@@ -193,7 +181,6 @@ export default function DashboardPage() {
                   <th>Provider</th>
                   <th>Address</th>
                   <th>Updated</th>
-                  <th>Probed</th>
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -204,11 +191,9 @@ export default function DashboardPage() {
                     <td>{row.provider}</td>
                     <td class="mono">{row.address}</td>
                     <td>{new Date(row.updatedUtc).toLocaleString()}</td>
-                    <td>{row.probedUtc ? new Date(row.probedUtc).toLocaleString() : "Never"}</td>
                     <td>
                       <div class="actions">
                         <A class="button secondary" href={`/endpoints/edit?type=${encodeURIComponent(row.type)}&id=${encodeURIComponent(row.id)}`}>Edit</A>
-                        <button class="button ghost" type="button" onClick={() => runProbe(row)}>Probe</button>
                         <button class="button danger" type="button" onClick={() => removeEndpoint(row)}>Delete</button>
                       </div>
                     </td>

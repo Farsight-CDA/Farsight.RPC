@@ -34,9 +34,6 @@ internal sealed class RealTimeEndpointEntityConfiguration : IEntityTypeConfigura
         entity.Property(x => x.UpdatedUtc)
             .IsRequired();
 
-        entity.Property(x => x.ProbedUtc)
-            .IsRequired(false);
-
         entity.HasOne(x => x.Application)
             .WithMany()
             .HasForeignKey(x => x.ApplicationId)

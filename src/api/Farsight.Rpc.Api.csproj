@@ -29,7 +29,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Farsight.Rpc.Types\Farsight.Rpc.Types.csproj" />
+    <ProjectReference Include="..\types\Farsight.Rpc.Types.csproj" />
   </ItemGroup>
 
 </Project>

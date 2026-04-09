@@ -19,7 +19,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Farsight.Rpc.Types\Farsight.Rpc.Types.csproj" PrivateAssets="all" />
+    <ProjectReference Include="..\types\Farsight.Rpc.Types.csproj" PrivateAssets="all" />
     <None Include="README.md" Pack="true" PackagePath="/" />
   </ItemGroup>
 

@@ -2,8 +2,18 @@ import { useNavigate, useParams } from "@solidjs/router";
 import { createEffect, createMemo, createResource, createSignal, For, Show } from "solid-js";
 import LoadingSpinner from "../components/LoadingSpinner";
 import { useAuth } from "../lib/auth";
+import ArrowLeftIcon from "../components/icons/ArrowLeftIcon";
 import KeyIcon from "../components/icons/KeyIcon";
 import RpcIcon from "../components/icons/RpcIcon";
+import SettingsIcon from "../components/icons/SettingsIcon";
+import CopyIcon from "../components/icons/CopyIcon";
+import SearchIcon from "../components/icons/SearchIcon";
+import ChevronDownIcon from "../components/icons/ChevronDownIcon";
+import ChevronRightIcon from "../components/icons/ChevronRightIcon";
+import TrashIcon from "../components/icons/TrashIcon";
+import PencilIcon from "../components/icons/PencilIcon";
+import LightningIcon from "../components/icons/LightningIcon";
+import EmptyStateIcon from "../components/icons/EmptyStateIcon";
 
 type Application = {
   id: string;
@@ -287,7 +297,7 @@ export default function ApplicationPage() {
   return (
     <main class="flex flex-1 flex-col">
       {/* Header Section */}
-      <div class="border-b-4 border-[var(--color-b-ink)] bg-b-field px-6 py-8">
+      <div class="border-b-4 border-[var(--color-b-ink)] bg-b-field px-6 py-4">
         <div class="mx-auto max-w-7xl">
           <Show when={application.state === "pending"}>
             <div class="flex items-center gap-3 text-sm font-semibold uppercase tracking-wider text-b-ink/70">
@@ -303,77 +313,57 @@ export default function ApplicationPage() {
           </Show>
 
           <Show when={application() && application.state === "ready"}>
-            <div class="flex flex-col gap-6">
+            <div class="flex flex-col gap-3">
               {/* Breadcrumb */}
               <button
                 onClick={() => navigate("/")}
-                class="group flex items-center gap-2 self-start text-xs font-bold uppercase tracking-widest text-b-ink/50 transition-colors hover:text-b-accent"
+                class="group flex items-center gap-1.5 self-start text-[0.65rem] font-bold uppercase tracking-widest text-b-ink/50 transition-colors hover:text-b-accent"
               >
-                <svg
-                  class="size-4 transition-transform group-hover:-translate-x-1"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M10 19l-7-7m0 0l7-7m-7 7h18"
-                  />
-                </svg>
+                <ArrowLeftIcon class="size-3.5 transition-transform group-hover:-translate-x-1" />
                 Applications
               </button>
 
               {/* Title */}
-              <div>
-                <p class="mb-2 text-xs font-bold uppercase tracking-[0.4em] text-b-accent">
-                  Application
-                </p>
-                <h1 class="font-['Anton',sans-serif] text-4xl uppercase leading-none tracking-wide text-b-ink sm:text-6xl">
-                  {application()?.name}
-                </h1>
-              </div>
+              <h1 class="font-['Anton',sans-serif] text-3xl uppercase leading-none tracking-wide text-b-ink sm:text-4xl">
+                {application()?.name}
+              </h1>
 
               {/* Tab Navigation */}
-              <div class="mt-4 flex border-b-4 border-[var(--color-b-ink)]/20">
+              <div class="flex border-b-4 border-[var(--color-b-ink)]/20">
                 <button
                   type="button"
                   onClick={() => setActiveTab("rpcs")}
-                  class={`flex items-center gap-2 px-4 py-3 text-xs font-bold uppercase tracking-widest transition-all duration-200 ${
+                  class={`flex items-center gap-1.5 px-3 py-2 text-[0.65rem] font-bold uppercase tracking-widest transition-all duration-200 ${
                     activeTab() === "rpcs"
                       ? "border-b-4 border-b-accent bg-b-accent/10 text-b-accent"
                       : "text-b-ink/60 hover:bg-b-ink/5 hover:text-b-ink"
                   }`}
                 >
-                  <RpcIcon class="size-4" />
+                  <RpcIcon class="size-3.5" />
                   RPCs
                 </button>
                 <button
                   type="button"
                   onClick={() => setActiveTab("api-keys")}
-                  class={`flex items-center gap-2 px-4 py-3 text-xs font-bold uppercase tracking-widest transition-all duration-200 ${
+                  class={`flex items-center gap-1.5 px-3 py-2 text-[0.65rem] font-bold uppercase tracking-widest transition-all duration-200 ${
                     activeTab() === "api-keys"
                       ? "border-b-4 border-b-accent bg-b-accent/10 text-b-accent"
                       : "text-b-ink/60 hover:bg-b-ink/5 hover:text-b-ink"
                   }`}
                 >
-                  <KeyIcon class="size-4" />
+                  <KeyIcon class="size-3.5" />
                   API Keys
                 </button>
                 <button
                   type="button"
                   onClick={() => setActiveTab("general")}
-                  class={`flex items-center gap-2 px-4 py-3 text-xs font-bold uppercase tracking-widest transition-all duration-200 ${
+                  class={`flex items-center gap-1.5 px-3 py-2 text-[0.65rem] font-bold uppercase tracking-widest transition-all duration-200 ${
                     activeTab() === "general"
                       ? "border-b-4 border-b-accent bg-b-accent/10 text-b-accent"
                       : "text-b-ink/60 hover:bg-b-ink/5 hover:text-b-ink"
                   }`}
                 >
-                  <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
+                  <SettingsIcon class="size-3.5" />
                   General
                 </button>
               </div>
@@ -383,7 +373,7 @@ export default function ApplicationPage() {
       </div>
 
       {/* Tab Content */}
-      <div class="flex-1 px-6 py-8">
+      <div class="flex-1 px-6 py-6">
         <div class="mx-auto max-w-7xl">
           {/* RPCs Tab */}
           <Show when={activeTab() === "rpcs"}>
@@ -416,19 +406,7 @@ export default function ApplicationPage() {
                       </For>
                     </select>
                     <div class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2">
-                      <svg
-                        class="size-5 text-b-ink/70"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          stroke-width="3"
-                          d="M19 9l-7 7-7-7"
-                        />
-                      </svg>
+                      <ChevronDownIcon class="size-5 text-b-ink/70" />
                     </div>
                   </div>
                 </Show>
@@ -477,19 +455,7 @@ export default function ApplicationPage() {
                     class="h-12 w-full border-4 border-[var(--color-b-ink)] bg-b-paper px-4 pr-12 text-sm font-semibold text-b-ink placeholder:text-b-ink/30 outline-none focus-visible:ring-4 focus-visible:ring-b-accent/50 hover:border-b-accent/50 transition-colors duration-200"
                   />
                   <div class="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2">
-                    <svg
-                      class="size-5 text-b-ink/30"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                      />
-                    </svg>
+                    <SearchIcon class="size-5 text-b-ink/30" />
                   </div>
                 </div>
 
@@ -506,19 +472,7 @@ export default function ApplicationPage() {
                             {chain}
                           </span>
                           <div class="flex size-8 items-center justify-center border-2 border-[var(--color-b-ink)] bg-b-field transition-all duration-200 group-hover:bg-b-accent group-hover:border-b-accent group-hover:shadow-[0_0_12px_rgba(255,87,34,0.4)]">
-                            <svg
-                              class="size-4 text-b-ink transition-colors duration-200 group-hover:text-b-paper"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                stroke-width="3"
-                                d="M9 5l7 7-7 7"
-                              />
-                            </svg>
+                            <ChevronRightIcon class="size-4 text-b-ink transition-colors duration-200 group-hover:text-b-paper" />
                           </div>
                         </div>
                         <div class="h-1 w-12 bg-b-ink/60 transition-all duration-200 group-hover:w-full group-hover:bg-b-accent" />
@@ -531,19 +485,7 @@ export default function ApplicationPage() {
               {/* Empty States */}
               <Show when={chains() && chains.state === "ready" && chains()!.length === 0}>
                 <div class="flex flex-col items-center justify-center gap-4 py-16 border-4 border-dashed border-b-ink/20">
-                  <svg
-                    class="size-12 text-b-ink/30"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="1.5"
-                      d="M13 10V3L4 14h7v7l9-11h-7z"
-                    />
-                  </svg>
+                  <LightningIcon class="size-12 text-b-ink/30" />
                   <p class="text-center text-sm font-semibold uppercase tracking-wider text-b-ink/60">
                     No chains available.
                   </p>
@@ -552,19 +494,7 @@ export default function ApplicationPage() {
 
               <Show when={chains() && chains.state === "ready" && chains()!.length > 0 && filteredChains().length === 0}>
                 <div class="flex flex-col items-center justify-center gap-4 py-16 border-4 border-dashed border-b-ink/20">
-                  <svg
-                    class="size-12 text-b-ink/30"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="1.5"
-                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                    />
-                  </svg>
+                  <SearchIcon class="size-12 text-b-ink/30" />
                   <p class="text-center text-sm font-semibold uppercase tracking-wider text-b-ink/60">
                     No chains match your filter.
                   </p>
@@ -636,9 +566,7 @@ export default function ApplicationPage() {
                                     class="shrink-0 text-b-ink/40 hover:text-b-accent transition-colors"
                                     title="Copy to clipboard"
                                   >
-                                    <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                                    </svg>
+                                    <CopyIcon class="size-4" />
                                   </button>
                                 </div>
                               </div>
@@ -663,9 +591,7 @@ export default function ApplicationPage() {
                   {/* No Keys State */}
                   <Show when={apiKeys() && apiKeys.state === "ready" && (apiKeys() ?? []).length === 0}>
                     <div class="mb-6 flex flex-col items-center justify-center gap-3 py-8 border-4 border-dashed border-b-ink/20">
-                      <svg class="size-10 text-b-ink/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-                      </svg>
+                      <EmptyStateIcon class="size-10 text-b-ink/30" />
                       <p class="text-sm font-semibold uppercase tracking-wider text-b-ink/60">
                         No API keys yet.
                       </p>
@@ -741,9 +667,7 @@ export default function ApplicationPage() {
                               class="shrink-0 text-b-ink/60 hover:text-b-accent transition-colors"
                               title="Copy to clipboard"
                             >
-                              <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                              </svg>
+                              <CopyIcon class="size-5" />
                             </button>
                           </div>
                           <p class="mt-2 text-xs text-b-ink/50">
@@ -772,9 +696,7 @@ export default function ApplicationPage() {
                 <div class="border-b-4 border-[var(--color-b-ink)] bg-b-paper px-6 py-4">
                   <div class="flex items-center gap-3">
                     <div class="flex size-10 items-center justify-center border-2 border-b-ink/50 bg-b-ink/10">
-                      <svg class="size-5 text-b-ink" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                      </svg>
+                      <PencilIcon class="size-5 text-b-ink" />
                     </div>
                     <div>
                       <h2 class="font-['Anton',sans-serif] text-xl uppercase tracking-wide text-b-ink">
@@ -834,9 +756,7 @@ export default function ApplicationPage() {
                 <div class="border-b-4 border-red-500/50 bg-red-500/10 px-6 py-4">
                   <div class="flex items-center gap-3">
                     <div class="flex size-10 items-center justify-center border-2 border-red-500 bg-red-500/20">
-                      <svg class="size-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
+                      <TrashIcon class="size-5 text-red-400" />
                     </div>
                     <div>
                       <h2 class="font-['Anton',sans-serif] text-xl uppercase tracking-wide text-red-400">

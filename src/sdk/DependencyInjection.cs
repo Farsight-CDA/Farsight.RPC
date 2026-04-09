@@ -24,8 +24,6 @@ public static class DependencyInjection
                 var options = new FarsightRpcOptions();
                 configureOptions(sp, options);
 
-                options.SerializerOptions ??= new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web);
-
                 return new RegistrationOptions(options);
             });
 

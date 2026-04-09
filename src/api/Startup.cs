@@ -21,7 +21,7 @@ public partial class Startup : FarsightStartup
     private async Task MigrateDatabaseAsync(CancellationToken cancellationToken)
     {
         await using var scope = _provider.CreateAsyncScope();
-        var dbContext = scope.ServiceProvider.GetRequiredService<RpcProvidersDbContext>();
+        var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         await dbContext.Database.MigrateAsync(cancellationToken);
     }
 }

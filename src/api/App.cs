@@ -1,15 +1,7 @@
 using Farsight.Rpc.Api.Auth;
 using Farsight.Rpc.Api.Configuration;
-using Farsight.Rpc.Api.Models;
 using Farsight.Rpc.Api.Persistence;
-using Farsight.Rpc.Api.Services;
-using Farsight.Rpc.Api.Validation;
-using FastEndpoints;
-using FluentValidation;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpOverrides;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
 using System.Net;
 using System.Text;
 
@@ -40,13 +32,9 @@ public static class App
         });
 
         builder.Services.AddFastEndpoints();
-        builder.Services.AddProblemDetails();
-        builder.Services.AddSingleton<ChainService>();
 
-        builder.Services.AddDbContext<RpcProvidersDbContext>((provider, options) =>
+        builder.Services.AddDbContext<AppDbContext>((provider, options) =>
             options.UseNpgsql(provider.GetRequiredService<DatabaseConfiguration>().PostgresConnectionString));
-
-        builder.Services.AddScoped<IValidator<ProviderEditModel>, ProviderEditModelValidator>();
 
         var jwtConfiguration = builder.Configuration
             .GetRequiredSection(JwtConfiguration.SECTION_NAME)
@@ -68,21 +56,14 @@ public static class App
                 IssuerSigningKey = new SymmetricSecurityKey(signingKey),
                 ValidateLifetime = true,
                 ClockSkew = TimeSpan.FromMinutes(1)
-            })
-            .AddScheme<ApiKeyAuthenticationOptions, ApiKeyAuthenticationHandler>(ApiKeyAuthenticationDefaults.SCHEME, _ => { });
+            });
 
         builder.Services.AddAuthorizationBuilder()
-            .AddPolicy(AuthorizationPolicies.ADMIN_ONLY, policy =>
+            .AddPolicy(AuthPolicies.ADMIN_ONLY, policy =>
             {
                 policy.AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme);
                 policy.RequireAuthenticatedUser();
-                policy.RequireRole(AppRoles.ADMIN);
-            })
-            .AddPolicy(AuthorizationPolicies.VIEWER_ONLY, policy =>
-            {
-                policy.AddAuthenticationSchemes(ApiKeyAuthenticationDefaults.SCHEME);
-                policy.RequireAuthenticatedUser();
-                policy.RequireRole(AppRoles.VIEWER);
+                policy.RequireRole(AuthRoles.ADMIN);
             });
 
         builder.Services.Configure<ForwardedHeadersOptions>(options =>

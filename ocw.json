@@ -1,0 +1,10 @@
+{
+  "containerMounts": [
+    {
+      "sourceType": "namedVolume",
+      "source": "Farsight-Chains-Node-Modules",
+      "containerPath": "/workspace/Farsight.Rpc/src/ui/node_modules",
+      "accessMode": "readWrite"
+    }
+  ]
+}

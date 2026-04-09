@@ -1,17 +1,20 @@
-import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "vite";
-import solid from "vite-plugin-solid";
-
-const apiProxyTarget = process.env.VITE_API_PROXY_TARGET ?? "http://127.0.0.1:8080";
+import solidPlugin from "vite-plugin-solid";
+import tailwindcss from "@tailwindcss/vite";
 
 export default defineConfig({
-  plugins: [tailwindcss(), solid()],
+  plugins: [solidPlugin(), tailwindcss()],
   server: {
+    port: 3000,
     proxy: {
       "/api": {
-        target: apiProxyTarget,
+        target: "http://localhost:5555",
         changeOrigin: true,
       },
     },
+  },
+  build: {
+    target: "esnext",
+    outDir: "dist",
   },
 });

@@ -1,19 +1,10 @@
-import { useNavigate } from "@solidjs/router";
-import { onMount, Show, createSignal, type ParentComponent } from "solid-js";
-import { isAuthenticated } from "../lib/auth";
+import { type ParentComponent } from "solid-js";
+import { Navigate } from "@solidjs/router";
+import { useAuth } from "../lib/auth";
 
-export const RequireAuth: ParentComponent = (props) => {
-  const navigate = useNavigate();
-  const [ready, setReady] = createSignal(false);
-
-  onMount(() => {
-    if(!isAuthenticated()) {
-      navigate("/login", { replace: true });
-      return;
-    }
-
-    setReady(true);
-  });
-
-  return <Show when={ready()}>{props.children}</Show>;
+const RequireAuth: ParentComponent = (props) => {
+  const auth = useAuth();
+  return auth.isAuthenticated() ? <>{props.children}</> : <Navigate href="/login" />;
 };
+
+export default RequireAuth;

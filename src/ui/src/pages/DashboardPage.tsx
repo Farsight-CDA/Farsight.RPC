@@ -193,10 +193,10 @@ export default function DashboardPage() {
 
   return (
     <main class="flex flex-1 flex-col items-center gap-8 px-6 py-16">
-      <div class="w-full max-w-2xl border-4 border-[var(--color-b-ink)] bg-b-field p-10 shadow-[10px_10px_0_0_var(--color-b-ink)]">
+      <div class="w-full max-w-2xl border-4 border-[var(--color-b-ink)] bg-b-field p-10 shadow-[10px_10px_0_0_rgba(255,87,34,0.12)] hover:shadow-[12px_12px_0_0_rgba(255,87,34,0.2)] transition-shadow duration-300">
         <div class="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p class="mb-3 text-xs font-bold uppercase tracking-[0.4em] text-b-ink">
+            <p class="mb-3 text-xs font-bold uppercase tracking-[0.4em] text-b-accent">
               Applications
             </p>
             <h2 class="font-['Anton',sans-serif] text-5xl uppercase leading-none text-b-ink">
@@ -211,7 +211,7 @@ export default function DashboardPage() {
             New application
           </button>
         </div>
-        <div class="mt-6 h-1 w-full bg-b-ink" />
+        <div class="mt-6 h-1 w-full bg-gradient-to-r from-b-accent/60 via-b-accent/30 to-transparent" />
 
         <Show when={applications.state === "refreshing"}>
           <div class="mt-6 flex items-center gap-3 text-xs font-bold uppercase tracking-widest text-b-ink/80">
@@ -221,7 +221,7 @@ export default function DashboardPage() {
         </Show>
 
         <Show when={applications.error}>
-          <p class="mt-8 border-4 border-[var(--color-b-accent)] bg-b-paper px-3 py-3 text-xs font-bold uppercase leading-snug text-b-accent">
+          <p class="mt-8 border-4 border-red-500/50 bg-red-500/10 px-3 py-3 text-xs font-bold uppercase leading-snug text-red-400">
             {applications.error.message}
           </p>
         </Show>
@@ -245,22 +245,22 @@ export default function DashboardPage() {
             <For each={applications()}>
               {(app) => (
                 <li>
-                  <div class="flex flex-col gap-3 border-4 border-[var(--color-b-ink)] bg-b-paper p-4 shadow-[4px_4px_0_0_var(--color-b-ink)] sm:flex-row sm:items-stretch sm:gap-4">
+                  <div class="group flex flex-col gap-3 border-4 border-[var(--color-b-ink)] bg-b-paper p-4 shadow-[4px_4px_0_0_rgba(232,228,220,0.1)] hover:shadow-[6px_6px_0_0_rgba(255,87,34,0.2)] transition-all duration-200 hover:border-b-accent/50 sm:flex-row sm:items-stretch sm:gap-4">
                     <div class="flex min-w-0 flex-1 flex-col justify-between">
                       <A
                         href={`/applications/${app.id}`}
-                        class="block text-left outline-none transition hover:translate-x-px hover:translate-y-px focus-visible:ring-4 focus-visible:ring-b-accent"
+                        class="block text-left outline-none transition-all duration-200 hover:translate-x-1 hover:text-b-accent focus-visible:ring-4 focus-visible:ring-b-accent/50"
                       >
-                        <span class="font-['Anton',sans-serif] text-2xl uppercase tracking-wide text-b-ink">
+                        <span class="font-['Anton',sans-serif] text-2xl uppercase tracking-wide text-b-ink group-hover:text-b-accent transition-colors duration-200">
                           {app.name}
                         </span>
                       </A>
-                      <div class="mt-3 flex items-center gap-4 text-xs font-bold uppercase tracking-widest text-b-ink/70">
-                        <div class="flex items-center gap-1">
+                      <div class="mt-3 flex items-center gap-4 text-xs font-bold uppercase tracking-widest text-b-ink/60">
+                        <div class="flex items-center gap-1 group-hover:text-b-accent/80 transition-colors duration-200">
                           <KeyIcon class="size-4" />
                           {app.apiKeyCount}
                         </div>
-                        <div class="flex items-center gap-1">
+                        <div class="flex items-center gap-1 group-hover:text-b-accent/80 transition-colors duration-200">
                           <RpcIcon class="size-4" />
                           {app.tracingCount + app.realtimeCount + app.archiveCount}
                         </div>
@@ -296,7 +296,7 @@ export default function DashboardPage() {
             (applications() ?? []).length === 0
           }
         >
-          <p class="mt-8 text-sm font-semibold uppercase tracking-wider text-b-ink/80">
+          <p class="mt-8 text-sm font-semibold uppercase tracking-wider text-b-ink/60">
             No applications available.
           </p>
         </Show>
@@ -304,7 +304,7 @@ export default function DashboardPage() {
 
       <Show when={modalOpen()}>
         <div
-          class="fixed inset-0 z-50 flex items-center justify-center bg-b-ink/60 px-4 py-8"
+          class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-4 py-8"
           role="presentation"
           onClick={closeModal}
         >
@@ -312,10 +312,10 @@ export default function DashboardPage() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="new-application-title"
-            class="w-full max-w-md border-4 border-[var(--color-b-ink)] bg-b-field p-8 shadow-[12px_12px_0_0_var(--color-b-ink)]"
+            class="w-full max-w-md border-4 border-[var(--color-b-ink)] bg-b-field p-8 shadow-[12px_12px_0_0_rgba(255,87,34,0.15)]"
             onClick={(e) => e.stopPropagation()}
           >
-            <p class="mb-2 text-xs font-bold uppercase tracking-[0.35em] text-b-ink">
+            <p class="mb-2 text-xs font-bold uppercase tracking-[0.35em] text-b-accent">
               Create
             </p>
             <h3
@@ -329,7 +329,7 @@ export default function DashboardPage() {
               <div class="flex flex-col gap-2">
                 <label
                   for="new-app-name"
-                  class="text-xs font-bold uppercase tracking-widest text-b-ink"
+                  class="text-xs font-bold uppercase tracking-widest text-b-ink/80"
                 >
                   Name
                 </label>
@@ -339,14 +339,14 @@ export default function DashboardPage() {
                   required
                   value={newName()}
                   onInput={(e) => setNewName(e.currentTarget.value)}
-                  class="border-4 border-[var(--color-b-ink)] bg-b-paper px-3 py-3 text-sm font-semibold text-b-ink placeholder:text-b-ink/40 outline-none focus-visible:ring-4 focus-visible:ring-b-accent"
+                  class="border-4 border-[var(--color-b-ink)] bg-b-paper px-3 py-3 text-sm font-semibold text-b-ink placeholder:text-b-ink/30 outline-none focus-visible:ring-4 focus-visible:ring-b-accent/50 hover:border-b-accent/50 transition-colors duration-200"
                   placeholder="MY APPLICATION"
                   autocomplete="off"
                 />
               </div>
 
               <Show when={createError()}>
-                <p class="border-4 border-[var(--color-b-accent)] bg-b-paper px-3 py-3 text-xs font-bold uppercase leading-snug text-b-accent">
+                <p class="border-4 border-red-500/50 bg-red-500/10 px-3 py-3 text-xs font-bold uppercase leading-snug text-red-400">
                   {createError()}
                 </p>
               </Show>
@@ -378,7 +378,7 @@ export default function DashboardPage() {
 
       <Show when={renameApp()}>
         <div
-          class="fixed inset-0 z-50 flex items-center justify-center bg-b-ink/60 px-4 py-8"
+          class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-4 py-8"
           role="presentation"
           onClick={closeRenameModal}
         >
@@ -386,10 +386,10 @@ export default function DashboardPage() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="rename-application-title"
-            class="w-full max-w-md border-4 border-[var(--color-b-ink)] bg-b-field p-8 shadow-[12px_12px_0_0_var(--color-b-ink)]"
+            class="w-full max-w-md border-4 border-[var(--color-b-ink)] bg-b-field p-8 shadow-[12px_12px_0_0_rgba(255,87,34,0.15)]"
             onClick={(e) => e.stopPropagation()}
           >
-            <p class="mb-2 text-xs font-bold uppercase tracking-[0.35em] text-b-ink">
+            <p class="mb-2 text-xs font-bold uppercase tracking-[0.35em] text-b-accent">
               Rename
             </p>
             <h3
@@ -403,7 +403,7 @@ export default function DashboardPage() {
               <div class="flex flex-col gap-2">
                 <label
                   for="rename-app-name"
-                  class="text-xs font-bold uppercase tracking-widest text-b-ink"
+                  class="text-xs font-bold uppercase tracking-widest text-b-ink/80"
                 >
                   Name
                 </label>
@@ -413,14 +413,14 @@ export default function DashboardPage() {
                   required
                   value={renameName()}
                   onInput={(e) => setRenameName(e.currentTarget.value)}
-                  class="border-4 border-[var(--color-b-ink)] bg-b-paper px-3 py-3 text-sm font-semibold text-b-ink placeholder:text-b-ink/40 outline-none focus-visible:ring-4 focus-visible:ring-b-accent"
+                  class="border-4 border-[var(--color-b-ink)] bg-b-paper px-3 py-3 text-sm font-semibold text-b-ink placeholder:text-b-ink/30 outline-none focus-visible:ring-4 focus-visible:ring-b-accent/50 hover:border-b-accent/50 transition-colors duration-200"
                   placeholder="MY APPLICATION"
                   autocomplete="off"
                 />
               </div>
 
               <Show when={renameError()}>
-                <p class="border-4 border-[var(--color-b-accent)] bg-b-paper px-3 py-3 text-xs font-bold uppercase leading-snug text-b-accent">
+                <p class="border-4 border-red-500/50 bg-red-500/10 px-3 py-3 text-xs font-bold uppercase leading-snug text-red-400">
                   {renameError()}
                 </p>
               </Show>
@@ -452,7 +452,7 @@ export default function DashboardPage() {
 
       <Show when={deleteApp()}>
         <div
-          class="fixed inset-0 z-50 flex items-center justify-center bg-b-ink/60 px-4 py-8"
+          class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-4 py-8"
           role="presentation"
           onClick={closeDeleteModal}
         >
@@ -460,10 +460,10 @@ export default function DashboardPage() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="delete-application-title"
-            class="w-full max-w-md border-4 border-[var(--color-b-ink)] bg-b-field p-8 shadow-[12px_12px_0_0_var(--color-b-ink)]"
+            class="w-full max-w-md border-4 border-red-500/50 bg-b-field p-8 shadow-[12px_12px_0_0_rgba(239,68,68,0.15)]"
             onClick={(e) => e.stopPropagation()}
           >
-            <p class="mb-2 text-xs font-bold uppercase tracking-[0.35em] text-b-accent">
+            <p class="mb-2 text-xs font-bold uppercase tracking-[0.35em] text-red-400">
               Delete
             </p>
             <h3
@@ -472,14 +472,14 @@ export default function DashboardPage() {
             >
               Application
             </h3>
-            <p class="mb-8 text-sm font-semibold text-b-ink/90">
+            <p class="mb-8 text-sm font-semibold text-b-ink/80">
               Permanently delete{" "}
-              <span class="font-bold text-b-ink">{deleteApp()!.name}</span>? This
+              <span class="font-bold text-red-400">{deleteApp()!.name}</span>? This
               cannot be undone.
             </p>
 
             <Show when={deleteError()}>
-              <p class="mb-6 border-4 border-[var(--color-b-accent)] bg-b-paper px-3 py-3 text-xs font-bold uppercase leading-snug text-b-accent">
+              <p class="mb-6 border-4 border-red-500/50 bg-red-500/10 px-3 py-3 text-xs font-bold uppercase leading-snug text-red-400">
                 {deleteError()}
               </p>
             </Show>

@@ -11,8 +11,8 @@ export default function Navbar() {
   };
 
   return (
-    <header class="flex h-16 shrink-0 items-center justify-between border-b-4 border-[var(--color-b-ink)] bg-b-paper px-5">
-      <span class="font-['Anton',sans-serif] text-2xl uppercase tracking-wide text-b-ink">
+    <header class="flex h-16 shrink-0 items-center justify-between border-b-4 border-[var(--color-b-ink)] bg-b-paper/80 backdrop-blur-sm px-5 sticky top-0 z-40">
+      <span class="font-['Anton',sans-serif] text-2xl uppercase tracking-wide text-b-ink hover:text-b-accent transition-colors duration-200 cursor-default">
         Farsight RPC
       </span>
       <button

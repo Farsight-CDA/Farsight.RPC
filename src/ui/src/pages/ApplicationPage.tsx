@@ -86,14 +86,14 @@ export default function ApplicationPage() {
       <div class="border-b-4 border-[var(--color-b-ink)] bg-b-field px-6 py-8">
         <div class="mx-auto max-w-7xl">
           <Show when={application.state === "pending"}>
-            <div class="flex items-center gap-3 text-sm font-semibold uppercase tracking-wider text-b-ink/80">
+            <div class="flex items-center gap-3 text-sm font-semibold uppercase tracking-wider text-b-ink/70">
               <LoadingSpinner class="size-5" />
               Loading application…
             </div>
           </Show>
 
           <Show when={application.error}>
-            <p class="border-4 border-[var(--color-b-accent)] bg-b-paper px-3 py-3 text-xs font-bold uppercase leading-snug text-b-accent">
+            <p class="border-4 border-red-500/50 bg-red-500/10 px-3 py-3 text-xs font-bold uppercase leading-snug text-red-400">
               {application.error.message}
             </p>
           </Show>
@@ -101,7 +101,7 @@ export default function ApplicationPage() {
           <Show when={application() && application.state === "ready"}>
             <div class="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
               <div>
-                <p class="mb-2 text-xs font-bold uppercase tracking-[0.4em] text-b-ink">
+                <p class="mb-2 text-xs font-bold uppercase tracking-[0.4em] text-b-accent">
                   Application
                 </p>
                 <h1 class="font-['Anton',sans-serif] text-4xl uppercase leading-none tracking-wide text-b-ink sm:text-5xl">
@@ -113,14 +113,14 @@ export default function ApplicationPage() {
               <div class="flex flex-col gap-2">
                 <label
                   for="environment-select"
-                  class="text-xs font-bold uppercase tracking-widest text-b-ink"
+                  class="text-xs font-bold uppercase tracking-widest text-b-ink/80"
                 >
                   Environment
                 </label>
                 <Show when={environments.state === "pending" || !selectedEnvironment()}>
                   <div class="flex h-12 items-center gap-2 border-4 border-[var(--color-b-ink)] bg-b-paper px-3 sm:w-48">
                     <LoadingSpinner class="size-4" />
-                    <span class="text-xs font-bold uppercase tracking-widest text-b-ink/60">
+                    <span class="text-xs font-bold uppercase tracking-widest text-b-ink/50">
                       Loading…
                     </span>
                   </div>
@@ -133,15 +133,15 @@ export default function ApplicationPage() {
                       onChange={(e) =>
                         setSelectedEnvironment(e.currentTarget.value as HostEnvironment)
                       }
-                      class="h-12 w-full appearance-none border-4 border-[var(--color-b-ink)] bg-b-paper px-3 pr-10 text-sm font-bold uppercase tracking-widest text-b-ink outline-none focus-visible:ring-4 focus-visible:ring-b-accent sm:w-48"
+                      class="h-12 w-full appearance-none border-4 border-[var(--color-b-ink)] bg-b-paper px-3 pr-10 text-sm font-bold uppercase tracking-widest text-b-ink outline-none focus-visible:ring-4 focus-visible:ring-b-accent/50 hover:border-b-accent/50 transition-colors duration-200 cursor-pointer sm:w-48"
                     >
                       <For each={environments()}>
-                        {(env) => <option value={env}>{env}</option>}
+                        {(env) => <option value={env} class="bg-b-paper">{env}</option>}
                       </For>
                     </select>
                     <div class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2">
                       <svg
-                        class="size-5 text-b-ink"
+                        class="size-5 text-b-ink/70"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -176,7 +176,7 @@ export default function ApplicationPage() {
 
           <Show when={chains.error}>
             <div class="mx-auto max-w-md">
-              <p class="border-4 border-[var(--color-b-accent)] bg-b-paper px-4 py-4 text-center text-xs font-bold uppercase leading-snug text-b-accent">
+              <p class="border-4 border-red-500/50 bg-red-500/10 px-4 py-4 text-center text-xs font-bold uppercase leading-snug text-red-400">
                 {chains.error.message}
               </p>
             </div>
@@ -184,10 +184,10 @@ export default function ApplicationPage() {
 
           <Show when={chains() && chains.state === "ready"}>
             <div class="mb-6 flex items-center justify-between">
-              <p class="text-xs font-bold uppercase tracking-[0.4em] text-b-ink">
+              <p class="text-xs font-bold uppercase tracking-[0.4em] text-b-accent">
                 Select a Chain
               </p>
-              <span class="text-xs font-bold uppercase tracking-widest text-b-ink/60">
+              <span class="text-xs font-bold uppercase tracking-widest text-b-ink/50">
                 {filteredChains().length} / {chains()?.length} chains
               </span>
             </div>
@@ -200,11 +200,11 @@ export default function ApplicationPage() {
                   value={filterText()}
                   onInput={(e) => setFilterText(e.currentTarget.value)}
                   placeholder="Filter chains..."
-                  class="h-12 w-full border-4 border-[var(--color-b-ink)] bg-b-paper px-4 pr-12 text-sm font-semibold text-b-ink placeholder:text-b-ink/40 outline-none focus-visible:ring-4 focus-visible:ring-b-accent"
+                  class="h-12 w-full border-4 border-[var(--color-b-ink)] bg-b-paper px-4 pr-12 text-sm font-semibold text-b-ink placeholder:text-b-ink/30 outline-none focus-visible:ring-4 focus-visible:ring-b-accent/50 hover:border-b-accent/50 transition-colors duration-200"
                 />
                 <div class="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2">
                   <svg
-                    class="size-5 text-b-ink/40"
+                    class="size-5 text-b-ink/30"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -225,15 +225,15 @@ export default function ApplicationPage() {
                 {(chain) => (
                   <button
                     type="button"
-                    class="group relative flex flex-col items-start gap-3 border-4 border-[var(--color-b-ink)] bg-b-paper p-5 shadow-[6px_6px_0_0_var(--color-b-ink)] transition-all hover:translate-x-1 hover:translate-y-1 hover:shadow-[2px_2px_0_0_var(--color-b-ink)] hover:bg-b-field focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-b-accent active:translate-x-1.5 active:translate-y-1.5 active:shadow-none"
+                    class="group relative flex flex-col items-start gap-3 border-4 border-[var(--color-b-ink)] bg-b-paper p-5 shadow-[6px_6px_0_0_rgba(232,228,220,0.08)] transition-all duration-200 hover:translate-x-1 hover:translate-y-1 hover:shadow-[3px_3px_0_0_rgba(255,87,34,0.2)] hover:border-b-accent/60 hover:bg-b-field focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-b-accent/50 active:translate-x-1.5 active:translate-y-1.5 active:shadow-none"
                   >
                     <div class="flex w-full items-center justify-between">
-                      <span class="font-['Anton',sans-serif] text-xl uppercase tracking-wide text-b-ink">
+                      <span class="font-['Anton',sans-serif] text-xl uppercase tracking-wide text-b-ink group-hover:text-b-accent transition-colors duration-200">
                         {chain}
                       </span>
-                      <div class="flex size-8 items-center justify-center border-2 border-[var(--color-b-ink)] bg-b-field transition-colors group-hover:bg-b-accent group-hover:border-b-accent">
+                      <div class="flex size-8 items-center justify-center border-2 border-[var(--color-b-ink)] bg-b-field transition-all duration-200 group-hover:bg-b-accent group-hover:border-b-accent group-hover:shadow-[0_0_12px_rgba(255,87,34,0.4)]">
                         <svg
-                          class="size-4 text-b-ink transition-colors group-hover:text-b-paper"
+                          class="size-4 text-b-ink transition-colors duration-200 group-hover:text-b-paper"
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
@@ -247,7 +247,7 @@ export default function ApplicationPage() {
                         </svg>
                       </div>
                     </div>
-                    <div class="h-1 w-12 bg-b-ink transition-all group-hover:w-full" />
+                    <div class="h-1 w-12 bg-b-ink/60 transition-all duration-200 group-hover:w-full group-hover:bg-b-accent" />
                   </button>
                 )}
               </For>
@@ -256,7 +256,7 @@ export default function ApplicationPage() {
 
           <Show when={chains() && chains.state === "ready" && chains()!.length === 0}>
             <div class="flex flex-col items-center justify-center gap-4 py-16">
-              <p class="text-center text-sm font-semibold uppercase tracking-wider text-b-ink/80">
+              <p class="text-center text-sm font-semibold uppercase tracking-wider text-b-ink/60">
                 No chains available.
               </p>
             </div>
@@ -264,7 +264,7 @@ export default function ApplicationPage() {
 
           <Show when={chains() && chains.state === "ready" && chains()!.length > 0 && filteredChains().length === 0}>
             <div class="flex flex-col items-center justify-center gap-4 py-16">
-              <p class="text-center text-sm font-semibold uppercase tracking-wider text-b-ink/80">
+              <p class="text-center text-sm font-semibold uppercase tracking-wider text-b-ink/60">
                 No chains match your filter.
               </p>
             </div>

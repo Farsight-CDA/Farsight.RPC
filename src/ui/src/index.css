@@ -1,11 +1,12 @@
 @import "tailwindcss";
 
 @theme {
-  --color-b-paper: #e6e2d8;
-  --color-b-ink: #0a0a0a;
-  --color-b-accent: #ff2d00;
-  --color-b-field: #f7f5f0;
-  --color-b-stripe: #d4cfc3;
+  /* Dark theme color palette */
+  --color-b-paper: #121212;
+  --color-b-ink: #e8e4dc;
+  --color-b-accent: #ff5722;
+  --color-b-field: #1e1e1e;
+  --color-b-stripe: #2a2a2a;
 }
 
 /* Button component utilities */
@@ -30,15 +31,15 @@
 }
 
 @utility btn-primary {
-  @apply border-[var(--color-b-ink)] bg-b-ink text-b-paper shadow-[4px_4px_0_0_var(--color-b-accent)] disabled:shadow-none disabled:hover:shadow-none;
+  @apply border-[var(--color-b-accent)] bg-b-accent text-b-paper shadow-[4px_4px_0_0_rgba(255,87,34,0.4)] hover:shadow-[6px_6px_0_0_rgba(255,87,34,0.6)] disabled:shadow-none disabled:hover:shadow-none;
 }
 
 @utility btn-secondary {
-  @apply border-[var(--color-b-ink)] bg-b-paper text-b-ink shadow-[4px_4px_0_0_var(--color-b-ink)] disabled:hover:shadow-[4px_4px_0_0_var(--color-b-ink)];
+  @apply border-[var(--color-b-ink)] bg-b-field text-b-ink shadow-[4px_4px_0_0_rgba(232,228,220,0.15)] hover:shadow-[6px_6px_0_0_rgba(232,228,220,0.25)] disabled:hover:shadow-[4px_4px_0_0_rgba(232,228,220,0.15)];
 }
 
 @utility btn-danger {
-  @apply border-[var(--color-b-accent)] bg-b-paper text-b-accent shadow-[4px_4px_0_0_var(--color-b-accent)] disabled:hover:shadow-[4px_4px_0_0_var(--color-b-accent)];
+  @apply border-red-500 bg-red-500/10 text-red-400 shadow-[4px_4px_0_0_rgba(239,68,68,0.3)] hover:shadow-[6px_6px_0_0_rgba(239,68,68,0.5)] hover:bg-red-500/20 disabled:hover:shadow-[4px_4px_0_0_rgba(239,68,68,0.3)];
 }
 
 @layer base {
@@ -66,7 +67,7 @@
   }
 
   ::selection {
-    background-color: var(--color-b-ink);
+    background-color: var(--color-b-accent);
     color: var(--color-b-paper);
   }
 }

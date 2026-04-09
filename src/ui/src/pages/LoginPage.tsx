@@ -27,8 +27,8 @@ export default function LoginPage() {
 
   return (
     <div class="flex min-h-screen items-center justify-center px-4 py-12">
-      <div class="w-full max-w-md border-4 border-[var(--color-b-ink)] bg-b-field p-8 shadow-[12px_12px_0_0_var(--color-b-ink)]">
-        <p class="mb-2 text-xs font-bold uppercase tracking-[0.35em] text-b-ink">
+      <div class="w-full max-w-md border-4 border-[var(--color-b-ink)] bg-b-field p-8 shadow-[12px_12px_0_0_rgba(255,87,34,0.15)] hover:shadow-[16px_16px_0_0_rgba(255,87,34,0.25)] transition-shadow duration-300">
+        <p class="mb-2 text-xs font-bold uppercase tracking-[0.35em] text-b-accent">
           Access
         </p>
         <h1 class="mb-10 font-['Anton',sans-serif] text-5xl uppercase leading-none tracking-wide text-b-ink">
@@ -39,7 +39,7 @@ export default function LoginPage() {
           <div class="flex flex-col gap-2">
             <label
               for="username"
-              class="text-xs font-bold uppercase tracking-widest text-b-ink"
+              class="text-xs font-bold uppercase tracking-widest text-b-ink/80"
             >
               Username
             </label>
@@ -50,7 +50,7 @@ export default function LoginPage() {
               required
               value={username()}
               onInput={(e) => setUsername(e.currentTarget.value)}
-              class="border-4 border-[var(--color-b-ink)] bg-b-paper px-3 py-3 text-sm font-semibold text-b-ink placeholder:text-b-ink/40 outline-none focus-visible:ring-4 focus-visible:ring-b-accent"
+              class="border-4 border-[var(--color-b-ink)] bg-b-paper px-3 py-3 text-sm font-semibold text-b-ink placeholder:text-b-ink/30 outline-none focus-visible:ring-4 focus-visible:ring-b-accent/50 hover:border-b-accent/50 transition-colors duration-200"
               placeholder="ADMIN"
             />
           </div>
@@ -58,7 +58,7 @@ export default function LoginPage() {
           <div class="flex flex-col gap-2">
             <label
               for="password"
-              class="text-xs font-bold uppercase tracking-widest text-b-ink"
+              class="text-xs font-bold uppercase tracking-widest text-b-ink/80"
             >
               Password
             </label>
@@ -69,13 +69,13 @@ export default function LoginPage() {
               required
               value={password()}
               onInput={(e) => setPassword(e.currentTarget.value)}
-              class="border-4 border-[var(--color-b-ink)] bg-b-paper px-3 py-3 text-sm font-semibold text-b-ink placeholder:text-b-ink/40 outline-none focus-visible:ring-4 focus-visible:ring-b-accent"
+              class="border-4 border-[var(--color-b-ink)] bg-b-paper px-3 py-3 text-sm font-semibold text-b-ink placeholder:text-b-ink/30 outline-none focus-visible:ring-4 focus-visible:ring-b-accent/50 hover:border-b-accent/50 transition-colors duration-200"
               placeholder="********"
             />
           </div>
 
           {error() && (
-            <p class="border-4 border-[var(--color-b-accent)] bg-b-paper px-3 py-3 text-xs font-bold uppercase leading-snug text-b-accent">
+            <p class="border-4 border-red-500/50 bg-red-500/10 px-3 py-3 text-xs font-bold uppercase leading-snug text-red-400">
               {error()}
             </p>
           )}

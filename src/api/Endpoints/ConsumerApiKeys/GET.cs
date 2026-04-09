@@ -6,15 +6,15 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Farsight.Rpc.Api.Endpoints.ConsumerApiKeys;
 
-public sealed class GET(AppDbContext dbContext) : Endpoint<GET.Request, GET.ConsumerApiKeySummary[]>
+public sealed class GET(AppDbContext dbContext) : Endpoint<GET.Request, GET.ApiKeySummary[]>
 {
+    public sealed record ApiKeySummary(Guid Id, HostEnvironment Environment, string Key);
+
     public sealed class Request
     {
         [RouteParam]
         public Guid ApplicationId { get; init; }
     }
-
-    public sealed record ConsumerApiKeySummary(Guid Id, HostEnvironment Environment, string Key);
 
     public override void Configure()
     {
@@ -33,7 +33,7 @@ public sealed class GET(AppDbContext dbContext) : Endpoint<GET.Request, GET.Cons
             .Where(k => k.ApplicationId == req.ApplicationId)
             .OrderBy(k => k.Environment)
             .ThenBy(k => k.Id)
-            .Select(k => new ConsumerApiKeySummary(
+            .Select(k => new ApiKeySummary(
                 k.Id,
                 k.Environment,
                 k.Key))

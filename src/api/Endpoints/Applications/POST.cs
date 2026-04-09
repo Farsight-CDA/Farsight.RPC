@@ -1,7 +1,6 @@
 using Farsight.Rpc.Api.Auth;
 using Farsight.Rpc.Api.Persistence;
 using Farsight.Rpc.Api.Persistence.Entities;
-using Farsight.Rpc.Types;
 using FastEndpoints;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
@@ -9,7 +8,7 @@ using Npgsql;
 
 namespace Farsight.Rpc.Api.Endpoints.Applications;
 
-public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request, ApplicationSummary>
+public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request>
 {
     public sealed record Request(string Name);
 
@@ -55,6 +54,6 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request, Applic
             ThrowError("An application with this name already exists.", 409);
         }
 
-        await Send.OkAsync(new ApplicationSummary(application.Id, application.Name, 0, 0), ct);
+        await Send.NoContentAsync(ct);
     }
 }

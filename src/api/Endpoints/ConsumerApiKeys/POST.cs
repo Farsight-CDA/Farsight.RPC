@@ -9,7 +9,7 @@ using System.Security.Cryptography;
 
 namespace Farsight.Rpc.Api.Endpoints.ConsumerApiKeys;
 
-public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request, POST.Response>
+public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request>
 {
     public sealed class Request
     {
@@ -18,8 +18,6 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request, POST.R
 
         public required HostEnvironment? Environment { get; init; }
     }
-
-    public new sealed record Response(Guid Id, Guid ApplicationId, HostEnvironment Environment, string Key);
 
     public sealed class Validator : AbstractValidator<Request>
     {
@@ -56,7 +54,6 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request, POST.R
 
         dbContext.ConsumerApiKeys.Add(apiKey);
         await dbContext.SaveChangesAsync(ct);
-
-        await Send.OkAsync(new Response(apiKey.Id, apiKey.ApplicationId, apiKey.Environment, apiKey.Key), ct);
+        await Send.NoContentAsync(ct);
     }
 }

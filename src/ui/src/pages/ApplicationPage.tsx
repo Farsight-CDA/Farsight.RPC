@@ -78,7 +78,6 @@ export default function ApplicationPage() {
   const [createKeyLoading, setCreateKeyLoading] = createSignal(false);
   const [deleteKeyError, setDeleteKeyError] = createSignal<string | null>(null);
   const [deleteKeyLoading, setDeleteKeyLoading] = createSignal(false);
-  const [createdKey, setCreatedKey] = createSignal<string | null>(null);
 
   const [application, { refetch: refetchApplication }] = createResource(
     () => ({ token: auth.token, id: applicationId() }),
@@ -230,7 +229,6 @@ export default function ApplicationPage() {
     if (!token || !app || !env) return;
     setCreateKeyError(null);
     setCreateKeyLoading(true);
-    setCreatedKey(null);
     try {
       const response = await fetch(`/api/applications/${app.id}/api-keys`, {
         method: "POST",
@@ -245,8 +243,6 @@ export default function ApplicationPage() {
           await readErrorMessage(response, "Failed to create API key"),
         );
       }
-      const data = await response.json();
-      setCreatedKey(data.key);
       await refetchApiKeys();
       await refetchApplication();
     } catch (err) {

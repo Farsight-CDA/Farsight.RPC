@@ -1,1 +1,36 @@
 @import "tailwindcss";
+
+@theme {
+  --color-b-paper: #e6e2d8;
+  --color-b-ink: #0a0a0a;
+  --color-b-accent: #ff2d00;
+  --color-b-field: #f7f5f0;
+  --color-b-stripe: #d4cfc3;
+}
+
+@layer base {
+  html {
+    @apply antialiased;
+  }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    background-color: var(--color-b-paper);
+    color: var(--color-b-ink);
+    background-image: linear-gradient(var(--color-b-stripe) 1px, transparent 1px),
+      linear-gradient(90deg, var(--color-b-stripe) 1px, transparent 1px);
+    background-size: 24px 24px;
+    background-position: -1px -1px;
+  }
+
+  #root {
+    min-height: 100vh;
+  }
+
+  ::selection {
+    background-color: var(--color-b-ink);
+    color: var(--color-b-paper);
+  }
+}

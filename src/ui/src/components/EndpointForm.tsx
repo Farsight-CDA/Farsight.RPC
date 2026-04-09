@@ -4,7 +4,7 @@ import type { LookupItem, ProviderEditModel, RpcEndpointType } from "../lib/type
 interface Props {
   model: ProviderEditModel;
   applications: LookupItem[];
-  chains: LookupItem[];
+  chains: string[];
   providers: LookupItem[];
   environments: string[];
   endpointTypes: string[];
@@ -54,9 +54,9 @@ export const EndpointForm: Component<Props> = (props) => (
 
     <div class="grid gap-2">
       <label class="text-sm text-slate-300" for="chain">Chain</label>
-      <select id="chain" class="w-full rounded border border-white/10 bg-slate-950 px-3 py-2 text-sm" value={props.model.chainId} onInput={(event) => props.onChange("chainId", event.currentTarget.value)}>
+      <select id="chain" class="w-full rounded border border-white/10 bg-slate-950 px-3 py-2 text-sm" value={props.model.chain} onInput={(event) => props.onChange("chain", event.currentTarget.value)}>
         <option value="">Select chain</option>
-        <For each={props.chains}>{(item) => <option value={item.id}>{item.name}</option>}</For>
+        <For each={props.chains}>{(item) => <option value={item}>{item}</option>}</For>
       </select>
     </div>
 

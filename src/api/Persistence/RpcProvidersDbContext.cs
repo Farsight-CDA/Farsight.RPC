@@ -7,7 +7,6 @@ public sealed class RpcProvidersDbContext(DbContextOptions<RpcProvidersDbContext
 {
     public DbSet<ApiClientEntity> ApiClients => Set<ApiClientEntity>();
     public DbSet<ApplicationEntity> Applications => Set<ApplicationEntity>();
-    public DbSet<ChainEntity> Chains => Set<ChainEntity>();
     public DbSet<ProviderEntity> Providers => Set<ProviderEntity>();
     public DbSet<RealTimeEndpointEntity> RealTimeEndpoints => Set<RealTimeEndpointEntity>();
     public DbSet<ArchiveEndpointEntity> ArchiveEndpoints => Set<ArchiveEndpointEntity>();

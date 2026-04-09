@@ -11,13 +11,13 @@ export default function DashboardPage() {
   const [message, setMessage] = createSignal<string | null>(null);
   const [error, setError] = createSignal<string | null>(null);
   const [applicationId, setApplicationId] = createSignal("");
-  const [chainId, setChainId] = createSignal("");
+  const [chain, setChain] = createSignal("");
   const [environment, setEnvironment] = createSignal<HostEnvironment>("Development");
   const [type, setType] = createSignal<RpcEndpointType>("RealTime");
   const [providerId, setProviderId] = createSignal("");
   const [address, setAddress] = createSignal("");
 
-  const canQuery = createMemo(() => Boolean(applicationId() && chainId()));
+  const canQuery = createMemo(() => Boolean(applicationId() && chain()));
   const applicationsQuery = createQuery(() => ({
     queryKey: queryKeys.applications,
     queryFn: getApplications,
@@ -39,8 +39,8 @@ export default function DashboardPage() {
     queryFn: getEndpointTypeLookups,
   }));
   const rowsQuery = createQuery(() => ({
-    queryKey: queryKeys.rpcs(applicationId() || undefined, chainId() || undefined, environment()),
-    queryFn: () => getRpcs({ applicationId: applicationId(), chainId: chainId(), environment: environment() }),
+    queryKey: queryKeys.rpcs(applicationId() || undefined, chain() || undefined, environment()),
+    queryFn: () => getRpcs({ applicationId: applicationId(), chain: chain(), environment: environment() }),
     enabled: canQuery(),
   }));
   const rows = () => rowsQuery.data ?? [];
@@ -62,7 +62,7 @@ export default function DashboardPage() {
         type: type(),
         environment: environment(),
         applicationId: applicationId(),
-        chainId: chainId(),
+        chain: chain(),
         providerId: providerId(),
         address: address(),
         indexerStepSize: null,
@@ -72,7 +72,7 @@ export default function DashboardPage() {
       });
       setAddress("");
       setMessage("RPC endpoint added.");
-      await queryClient.invalidateQueries({ queryKey: queryKeys.rpcs(applicationId(), chainId(), environment()) });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.rpcs(applicationId(), chain(), environment()) });
     }
     catch(err) {
       setError(err instanceof Error ? err.message : "Failed to add endpoint.");
@@ -88,7 +88,7 @@ export default function DashboardPage() {
       await deleteRpc(row.type, row.id);
       setMessage("RPC endpoint removed.");
       setError(null);
-      await queryClient.invalidateQueries({ queryKey: queryKeys.rpcs(applicationId(), chainId(), environment()) });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.rpcs(applicationId(), chain(), environment()) });
     }
     catch(err) {
       setError(err instanceof Error ? err.message : "Delete failed.");
@@ -117,9 +117,9 @@ export default function DashboardPage() {
           </div>
           <div class="grid gap-2">
             <label class="text-sm text-slate-300">Chain</label>
-            <select class="w-full rounded border border-white/10 bg-slate-950 px-3 py-2 text-sm" value={chainId()} onInput={(event) => setChainId(event.currentTarget.value)}>
+            <select class="w-full rounded border border-white/10 bg-slate-950 px-3 py-2 text-sm" value={chain()} onInput={(event) => setChain(event.currentTarget.value)}>
               <option value="">Select chain</option>
-              <For each={chainsQuery.data ?? []}>{(item) => <option value={item.id}>{item.name}</option>}</For>
+              <For each={chainsQuery.data ?? []}>{(item) => <option value={item}>{item}</option>}</For>
             </select>
           </div>
           <div class="grid gap-2">

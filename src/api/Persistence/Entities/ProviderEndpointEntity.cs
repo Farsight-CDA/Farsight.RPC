@@ -8,8 +8,7 @@ public abstract class ProviderEndpointEntity
     public HostEnvironment Environment { get; set; }
     public Guid ApplicationId { get; set; }
     public ApplicationEntity Application { get; set; } = null!;
-    public Guid ChainId { get; set; }
-    public ChainEntity Chain { get; set; } = null!;
+    public string Chain { get; set; } = String.Empty;
     public Guid ProviderId { get; set; }
     public ProviderEntity Provider { get; set; } = null!;
     public Uri Address { get; set; } = null!;

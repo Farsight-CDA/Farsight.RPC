@@ -5,7 +5,6 @@ import { AppShell } from "./components/AppShell";
 import { queryClient } from "./lib/query";
 import AdminPage from "./routes/admin";
 import ApplicationsPage from "./routes/applications";
-import ChainsPage from "./routes/chains";
 import DashboardPage from "./routes";
 import EditEndpointPage from "./routes/endpoints/edit";
 import EndpointsPage from "./routes/endpoints";
@@ -26,7 +25,6 @@ export default function App() {
       >
         <Route path="/" component={DashboardPage} />
         <Route path="/applications" component={ApplicationsPage} />
-        <Route path="/chains" component={ChainsPage} />
         <Route path="/providers-admin" component={ProvidersAdminPage} />
         <Route path="/endpoints" component={EndpointsPage} />
         <Route path="/endpoints/new" component={NewEndpointPage} />

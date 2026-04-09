@@ -8,7 +8,7 @@ public sealed class ProviderEditModel
     public RpcEndpointType Type { get; set; }
     public HostEnvironment Environment { get; set; }
     public Guid ApplicationId { get; set; }
-    public Guid ChainId { get; set; }
+    public string Chain { get; set; } = String.Empty;
     public Guid ProviderId { get; set; }
     public string Address { get; set; } = String.Empty;
     public ulong? IndexerStepSize { get; set; }

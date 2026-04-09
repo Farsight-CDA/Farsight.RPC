@@ -11,7 +11,7 @@ const defaultModel = (type = "RealTime"): ProviderEditModel => ({
   type,
   environment: "Development",
   applicationId: "",
-  chainId: "",
+  chain: "",
   providerId: "",
   address: "",
   indexerStepSize: null,

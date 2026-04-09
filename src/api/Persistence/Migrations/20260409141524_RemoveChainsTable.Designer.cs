@@ -3,17 +3,20 @@ using System;
 using Farsight.Rpc.Api.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
-namespace Farsight.Rpc.Api.Migrations
+namespace Farsight.Rpc.Api.Persistence.Migrations
 {
     [DbContext(typeof(RpcProvidersDbContext))]
-    partial class RpcProvidersDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260409141524_RemoveChainsTable")]
+    partial class RemoveChainsTable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

@@ -12,7 +12,7 @@ public sealed class ProviderEditModelValidator : AbstractValidator<ProviderEditM
             .NotEmpty()
             .WithMessage("Application is required.");
 
-        RuleFor(x => x.ChainId)
+        RuleFor(x => x.Chain)
             .NotEmpty()
             .WithMessage("Chain is required.");
 

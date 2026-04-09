@@ -22,6 +22,6 @@ export const queryKeys = {
   apiKeys: ["api-keys"] as const,
   dashboardLookups: ["dashboard", "lookups"] as const,
   rpcEditorLookups: ["rpc-editor", "lookups"] as const,
-  rpcs: (applicationId: string | undefined, chainId: string | undefined, environment: string) => ["rpcs", applicationId ?? "", chainId ?? "", environment] as const,
+  rpcs: (applicationId: string | undefined, chain: string | undefined, environment: string) => ["rpcs", applicationId ?? "", chain ?? "", environment] as const,
   rpc: (type: string | undefined, id: string | undefined) => ["rpc", type ?? "", id ?? ""] as const,
 };

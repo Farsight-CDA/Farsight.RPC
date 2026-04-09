@@ -13,6 +13,7 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+    <PackageReference Include="Farsight.Chains" Version="1.1.0-private.31.1" />
     <PackageReference Include="FastEndpoints" Version="8.0.1" />
     <PackageReference Include="Farsight.Common" Version="0.9.7-private.33.1" />
     <PackageReference Include="FluentValidation" Version="12.1.1" />

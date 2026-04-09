@@ -20,8 +20,10 @@ internal sealed class ArchiveEndpointEntityConfiguration : IEntityTypeConfigurat
         entity.Property(x => x.ApplicationId)
             .IsRequired();
 
-        entity.Property(x => x.ChainId)
-            .IsRequired();
+        entity.Property(x => x.Chain)
+            .IsRequired()
+            .HasColumnType("citext")
+            .HasMaxLength(100);
 
         entity.Property(x => x.ProviderId)
             .IsRequired();
@@ -49,19 +51,13 @@ internal sealed class ArchiveEndpointEntityConfiguration : IEntityTypeConfigurat
             .OnDelete(DeleteBehavior.Restrict)
             .IsRequired();
 
-        entity.HasOne(x => x.Chain)
-            .WithMany()
-            .HasForeignKey(x => x.ChainId)
-            .OnDelete(DeleteBehavior.Cascade)
-            .IsRequired();
-
         entity.HasOne(x => x.Provider)
             .WithMany()
             .HasForeignKey(x => x.ProviderId)
             .OnDelete(DeleteBehavior.Restrict)
             .IsRequired();
 
-        entity.HasIndex(x => new { x.ApplicationId, x.Environment, x.ChainId });
+        entity.HasIndex(x => new { x.ApplicationId, x.Environment, x.Chain });
 
         entity.ToTable("rpc_archive_endpoints", tableBuilder =>
         {

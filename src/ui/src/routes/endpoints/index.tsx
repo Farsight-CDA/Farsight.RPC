@@ -8,7 +8,7 @@ import type { HostEnvironment } from "../../lib/types";
 
 export default function EndpointsPage() {
   const [applicationId, setApplicationId] = createSignal("");
-  const [chainId, setChainId] = createSignal("");
+  const [chain, setChain] = createSignal("");
   const [environment, setEnvironment] = createSignal<HostEnvironment>("Development");
   const applicationsQuery = createQuery(() => ({
     queryKey: queryKeys.applications,
@@ -23,8 +23,8 @@ export default function EndpointsPage() {
     queryFn: getEnvironmentLookups,
   }));
   const rowsQuery = createQuery(() => ({
-    queryKey: queryKeys.rpcs(applicationId() || undefined, chainId() || undefined, environment()),
-    queryFn: () => getRpcs({ applicationId: applicationId() || undefined, chainId: chainId() || undefined, environment: environment() }),
+    queryKey: queryKeys.rpcs(applicationId() || undefined, chain() || undefined, environment()),
+    queryFn: () => getRpcs({ applicationId: applicationId() || undefined, chain: chain() || undefined, environment: environment() }),
   }));
   const currentError = () => (applicationsQuery.error instanceof Error ? applicationsQuery.error.message : null)
     ?? (chainsQuery.error instanceof Error ? chainsQuery.error.message : null)
@@ -55,9 +55,9 @@ export default function EndpointsPage() {
           </div>
           <div class="grid gap-2">
             <label class="text-sm text-slate-300">Chain</label>
-            <select class="w-full rounded border border-white/10 bg-slate-950 px-3 py-2 text-sm" value={chainId()} onInput={(event) => setChainId(event.currentTarget.value)}>
+            <select class="w-full rounded border border-white/10 bg-slate-950 px-3 py-2 text-sm" value={chain()} onInput={(event) => setChain(event.currentTarget.value)}>
               <option value="">All available</option>
-              <For each={chainsQuery.data ?? []}>{(item) => <option value={item.id}>{item.name}</option>}</For>
+              <For each={chainsQuery.data ?? []}>{(item) => <option value={item}>{item}</option>}</For>
             </select>
           </div>
           <div class="grid gap-2">

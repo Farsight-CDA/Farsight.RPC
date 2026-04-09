@@ -27,7 +27,7 @@ export interface ProviderEditModel {
   type: RpcEndpointType;
   environment: HostEnvironment;
   applicationId: string;
-  chainId: string;
+  chain: string;
   providerId: string;
   address: string;
   indexerStepSize: number | null;

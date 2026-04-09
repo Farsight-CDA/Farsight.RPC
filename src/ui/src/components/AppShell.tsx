@@ -6,7 +6,6 @@ import { RequireAuth } from "./RequireAuth";
 const navItems = [
   { href: "/", label: "Dashboard" },
   { href: "/applications", label: "Applications" },
-  { href: "/chains", label: "Chains" },
   { href: "/providers-admin", label: "Providers" },
   { href: "/endpoints", label: "Endpoints" },
   { href: "/admin", label: "API Keys" },

@@ -1,13 +1,17 @@
-using Farsight.Rpc.Api.Models;
-using Farsight.Rpc.Api.Persistence;
 using Farsight.Rpc.Api.Services;
 using FastEndpoints;
-using Microsoft.EntityFrameworkCore;
 
 namespace Farsight.Rpc.Api.Endpoints.Admin.Chains;
 
-public sealed class GetChainsEndpoint(RpcProvidersDbContext dbContext) : EndpointWithoutRequest<IReadOnlyList<LookupItem>>
+public sealed class GetChainsEndpoint : EndpointWithoutRequest<ReadOnlyMemory<string>>
 {
+    private readonly ChainService _chainService;
+
+    public GetChainsEndpoint(ChainService chainService)
+    {
+        _chainService = chainService;
+    }
+
     public override void Configure()
     {
         Get("/api/admin/chains");
@@ -15,5 +19,5 @@ public sealed class GetChainsEndpoint(RpcProvidersDbContext dbContext) : Endpoin
     }
 
     public override async Task HandleAsync(CancellationToken ct)
-        => await Send.OkAsync(await dbContext.Chains.AsNoTracking().OrderBy(x => x.Name).Select(x => new LookupItem(x.Id, x.Name)).ToListAsync(ct), ct);
+        => await Send.OkAsync(_chainService.GetAllChainNames(), ct);
 }

@@ -16,11 +16,11 @@ public sealed class GetArchiveProvidersEndpoint(RpcProvidersDbContext dbContext)
 
     public override async Task HandleAsync(GetProvidersRequest req, CancellationToken ct)
     {
-        string normalizedChain = req.Chain.Trim().ToLowerInvariant();
+        string chain = req.Chain.Trim();
         var providers = await dbContext.ArchiveEndpoints.AsNoTracking()
-            .Where(x => x.Environment == ApiClientClaimTypes.GetRequiredEnvironment(User) && x.ApplicationId == ApiClientClaimTypes.GetRequiredApplicationId(User) && x.Chain.Name == normalizedChain)
+            .Where(x => x.Environment == ApiClientClaimTypes.GetRequiredEnvironment(User) && x.ApplicationId == ApiClientClaimTypes.GetRequiredApplicationId(User) && x.Chain == chain)
             .OrderByDescending(x => x.UpdatedUtc)
-            .Select(x => new ArchiveRpcEndpointDto(x.Id, x.Environment, x.Application.Name, x.Chain.Name, x.Provider.Name, x.Address, x.IndexerStepSize, x.DexIndexStepSize, x.IndexBlockOffset, x.UpdatedUtc))
+            .Select(x => new ArchiveRpcEndpointDto(x.Id, x.Environment, x.Application.Name, x.Chain, x.Provider.Name, x.Address, x.IndexerStepSize, x.DexIndexStepSize, x.IndexBlockOffset, x.UpdatedUtc))
             .ToListAsync(ct);
 
         await Send.OkAsync(providers, ct);

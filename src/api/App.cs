@@ -2,6 +2,7 @@ using Farsight.Rpc.Api.Auth;
 using Farsight.Rpc.Api.Configuration;
 using Farsight.Rpc.Api.Models;
 using Farsight.Rpc.Api.Persistence;
+using Farsight.Rpc.Api.Services;
 using Farsight.Rpc.Api.Validation;
 using FastEndpoints;
 using FluentValidation;
@@ -40,6 +41,7 @@ public static class App
 
         builder.Services.AddFastEndpoints();
         builder.Services.AddProblemDetails();
+        builder.Services.AddSingleton<ChainService>();
 
         builder.Services.AddDbContext<RpcProvidersDbContext>((provider, options) =>
             options.UseNpgsql(provider.GetRequiredService<DatabaseConfiguration>().PostgresConnectionString));

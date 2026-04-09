@@ -12,13 +12,13 @@ internal static class RpcDbHelpers
         => type switch
         {
             RpcEndpointType.RealTime => await dbContext.RealTimeEndpoints.AsNoTracking().SingleOrDefaultAsync(x => x.Id == id, cancellationToken) is { } entity
-                ? new ProviderEditModel { Id = entity.Id, Type = RpcEndpointType.RealTime, Environment = entity.Environment, ApplicationId = entity.ApplicationId, ChainId = entity.ChainId, ProviderId = entity.ProviderId, Address = entity.Address.ToString() }
+                ? new ProviderEditModel { Id = entity.Id, Type = RpcEndpointType.RealTime, Environment = entity.Environment, ApplicationId = entity.ApplicationId, Chain = entity.Chain, ProviderId = entity.ProviderId, Address = entity.Address.ToString() }
                 : null,
             RpcEndpointType.Archive => await dbContext.ArchiveEndpoints.AsNoTracking().SingleOrDefaultAsync(x => x.Id == id, cancellationToken) is { } archive
-                ? new ProviderEditModel { Id = archive.Id, Type = RpcEndpointType.Archive, Environment = archive.Environment, ApplicationId = archive.ApplicationId, ChainId = archive.ChainId, ProviderId = archive.ProviderId, Address = archive.Address.ToString(), IndexerStepSize = archive.IndexerStepSize, DexIndexStepSize = archive.DexIndexStepSize, IndexBlockOffset = archive.IndexBlockOffset }
+                ? new ProviderEditModel { Id = archive.Id, Type = RpcEndpointType.Archive, Environment = archive.Environment, ApplicationId = archive.ApplicationId, Chain = archive.Chain, ProviderId = archive.ProviderId, Address = archive.Address.ToString(), IndexerStepSize = archive.IndexerStepSize, DexIndexStepSize = archive.DexIndexStepSize, IndexBlockOffset = archive.IndexBlockOffset }
                 : null,
             RpcEndpointType.Tracing => await dbContext.TracingEndpoints.AsNoTracking().SingleOrDefaultAsync(x => x.Id == id, cancellationToken) is { } tracing
-                ? new ProviderEditModel { Id = tracing.Id, Type = RpcEndpointType.Tracing, Environment = tracing.Environment, ApplicationId = tracing.ApplicationId, ChainId = tracing.ChainId, ProviderId = tracing.ProviderId, Address = tracing.Address.ToString(), TracingMode = tracing.TracingMode }
+                ? new ProviderEditModel { Id = tracing.Id, Type = RpcEndpointType.Tracing, Environment = tracing.Environment, ApplicationId = tracing.ApplicationId, Chain = tracing.Chain, ProviderId = tracing.ProviderId, Address = tracing.Address.ToString(), TracingMode = tracing.TracingMode }
                 : null,
             _ => throw new ArgumentOutOfRangeException(nameof(type), type, null)
         };
@@ -73,7 +73,7 @@ internal static class RpcDbHelpers
     {
         entity.Environment = model.Environment;
         entity.ApplicationId = model.ApplicationId;
-        entity.ChainId = model.ChainId;
+        entity.Chain = model.Chain;
         entity.ProviderId = model.ProviderId;
         entity.Address = new Uri(model.Address.Trim(), UriKind.Absolute);
         entity.UpdatedUtc = now;

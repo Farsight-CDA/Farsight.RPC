@@ -11,6 +11,7 @@ import type {
   RpcEndpointType,
 } from "./types";
 
+
 async function parseError(response: Response) {
   try {
     const payload = await response.json();
@@ -63,9 +64,7 @@ export const getApplications = () => apiFetch<LookupItem[]>("/api/admin/applicat
 export const createApplication = (name: string) => apiFetch<void>("/api/admin/applications", { method: "POST", body: JSON.stringify({ name }) });
 export const deleteApplication = (id: string) => apiFetch<void>(`/api/admin/applications/${id}`, { method: "DELETE" });
 
-export const getChains = () => apiFetch<LookupItem[]>("/api/admin/chains");
-export const createChain = (name: string) => apiFetch<void>("/api/admin/chains", { method: "POST", body: JSON.stringify({ name }) });
-export const deleteChain = (id: string) => apiFetch<void>(`/api/admin/chains/${id}`, { method: "DELETE" });
+export const getChains = () => apiFetch<string[]>("/api/admin/chains");
 
 export const getProviders = () => apiFetch<ProviderRateLimitRow[]>("/api/admin/providers");
 export const createProvider = (name: string, rateLimit: number) => apiFetch<void>("/api/admin/providers", {
@@ -78,13 +77,13 @@ export const updateProvider = (id: string, rateLimit: number) => apiFetch<void>(
   body: JSON.stringify({ rateLimit }),
 });
 
-export const getRpcs = (query: { applicationId?: string; chainId?: string; environment: HostEnvironment }) => {
+export const getRpcs = (query: { applicationId?: string; chain?: string; environment: HostEnvironment }) => {
   const params = new URLSearchParams({ environment: query.environment });
   if(query.applicationId) {
     params.set("applicationId", query.applicationId);
   }
-  if(query.chainId) {
-    params.set("chainId", query.chainId);
+  if(query.chain) {
+    params.set("chain", query.chain);
   }
   return apiFetch<ProviderListItem[]>(`/api/admin/rpcs?${params.toString()}`);
 };

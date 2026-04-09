@@ -13,7 +13,8 @@ public partial interface IFarsightRpcClient
         /// Represents a successful RPC lookup.
         /// </summary>
         /// <param name="Rpcs">The RPC endpoints available to the configured API key, grouped by chain name.</param>
-        public sealed record Success(Dictionary<string, RpcEndpointDto[]> Rpcs) : GetRpcsResult;
+        /// <param name="Providers">The providers referenced by the returned RPC endpoints.</param>
+        public sealed record Success(Dictionary<string, RpcEndpointDto[]> Rpcs, RpcProviderDto[] Providers) : GetRpcsResult;
 
         /// <summary>
         /// Represents a response where the provided API key was not found.
@@ -28,6 +29,6 @@ public partial interface IFarsightRpcClient
     /// Gets the RPC endpoints available to the configured API key.
     /// </summary>
     /// <param name="cancellationToken">The token used to cancel the operation.</param>
-    /// <returns>The RPC endpoints for the configured API key, grouped by chain name.</returns>
+    /// <returns>The RPC endpoints and provider metadata for the configured API key.</returns>
     public Task<GetRpcsResult> GetRpcsAsync(CancellationToken cancellationToken = default);
 }

@@ -17,6 +17,11 @@ var result = await serviceProvider
 
 if(result is Farsight.Rpc.Sdk.Client.IFarsightRpcClient.GetRpcsResult.Success success)
 {
+    foreach(var provider in success.Providers)
+    {
+        Console.WriteLine($"{provider.Name}: {provider.RateLimit}");
+    }
+
     foreach(var (chain, rpcs) in success.Rpcs)
     {
         foreach(var rpc in rpcs)

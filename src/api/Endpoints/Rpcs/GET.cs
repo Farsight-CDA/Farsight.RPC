@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Farsight.Rpc.Api.Endpoints.Rpcs;
 
-public sealed class GET(AppDbContext dbContext) : Endpoint<GET.Request, Dictionary<string, RpcEndpointDto[]>>
+public sealed class GET(AppDbContext dbContext) : Endpoint<GET.Request, ApiKeyRpcsDto>
 {
     public sealed record Request(
         [property: FromHeader(ApiKeyHeaders.API_KEY)] string ApiKey
@@ -54,9 +54,27 @@ public sealed class GET(AppDbContext dbContext) : Endpoint<GET.Request, Dictiona
             .ThenBy(rpc => rpc.Id)
             .ToArrayAsync(ct);
 
-        await Send.OkAsync(rpcs
-            .GroupBy(rpc => rpc.Chain)
-            .ToDictionary(group => group.Key, group => group.Select(MapRpc).ToArray()), ct);
+        var providerIds = rpcs
+            .Select(rpc => rpc.ProviderId)
+            .Distinct()
+            .ToArray();
+
+        var providers = await dbContext.RpcProviders
+            .AsNoTracking()
+            .Where(provider => providerIds.Contains(provider.Id))
+            .OrderBy(provider => provider.Name)
+            .Select(provider => new RpcProviderDto(
+                provider.Id,
+                provider.Name,
+                provider.RateLimit
+            ))
+            .ToArrayAsync(ct);
+
+        await Send.OkAsync(new ApiKeyRpcsDto(
+            rpcs.GroupBy(rpc => rpc.Chain)
+                .ToDictionary(group => group.Key, group => group.Select(MapRpc).ToArray()),
+            providers
+        ), ct);
     }
 
     private static RpcEndpointDto MapRpc(RpcEndpoint rpc)

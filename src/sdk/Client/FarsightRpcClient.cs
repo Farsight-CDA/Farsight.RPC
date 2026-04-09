@@ -19,9 +19,9 @@ internal sealed class FarsightRpcClient(IHttpClientFactory httpClientFactory, Fa
             case HttpStatusCode.NotFound:
                 return GetRpcsResult.NotFound.Instance;
             case HttpStatusCode.OK:
-                var result = await response.Content.ReadFromJsonAsync<Dictionary<string, RpcEndpointDto[]>>(_options.SerializerOptions, cancellationToken)
+                var result = await response.Content.ReadFromJsonAsync<ApiKeyRpcsDto>(_options.SerializerOptions, cancellationToken)
                     ?? throw new InvalidOperationException("Null response");
-                return new GetRpcsResult.Success(result);
+                return new GetRpcsResult.Success(result.Rpcs, result.Providers);
             default:
                 response.EnsureSuccessStatusCode();
                 throw new InvalidOperationException();

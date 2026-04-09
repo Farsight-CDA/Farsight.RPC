@@ -8,7 +8,5 @@ public sealed record RpcProvider
     public required string Name { get; init; }
     public required int RateLimit { get; set; }
 
-    public List<RealtimeRpc>? RealtimeRpcs { get; private set; }
-    public List<ArchiveRpc>? ArchiveRpcs { get; private set; }
-    public List<TracingRpc>? TracingRpcs { get; private set; }
+    public List<RpcEndpoint>? Rpcs { get; private set; }
 }

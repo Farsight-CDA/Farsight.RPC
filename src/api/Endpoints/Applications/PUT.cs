@@ -1,5 +1,6 @@
 using Farsight.Rpc.Api.Auth;
 using Farsight.Rpc.Api.Persistence;
+using Farsight.Rpc.Types;
 using FastEndpoints;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
@@ -7,17 +8,15 @@ using Npgsql;
 
 namespace Farsight.Rpc.Api.Endpoints.Applications;
 
-public sealed class PUT(AppDbContext dbContext) : Endpoint<PUT.Request, PUT.Response>
+public sealed class PUT(AppDbContext dbContext) : Endpoint<PUT.Request, ApplicationSummary>
 {
     public sealed class Request
     {
         [RouteParam]
         public Guid Id { get; init; }
 
-        public string? Name { get; init; }
+        public required string Name { get; init; }
     }
-
-    public new sealed record Response(Guid Id, string Name, int TracingCount, int RealtimeCount, int ArchiveCount);
 
     public sealed class Validator : AbstractValidator<Request>
     {
@@ -40,8 +39,6 @@ public sealed class PUT(AppDbContext dbContext) : Endpoint<PUT.Request, PUT.Resp
 
     public override async Task HandleAsync(Request req, CancellationToken ct)
     {
-        var name = req.Name!;
-
         var application = await dbContext.ConsumerApplications
             .SingleOrDefaultAsync(a => a.Id == req.Id, ct);
 
@@ -50,12 +47,12 @@ public sealed class PUT(AppDbContext dbContext) : Endpoint<PUT.Request, PUT.Resp
             ThrowError("Application not found.", 404);
         }
 
-        if(await dbContext.ConsumerApplications.AnyAsync(a => a.Id != req.Id && a.Name == name, ct))
+        if(await dbContext.ConsumerApplications.AnyAsync(a => a.Id != req.Id && a.Name == req.Name, ct))
         {
             ThrowError("An application with this name already exists.", 409);
         }
 
-        application.Name = name;
+        application.Name = req.Name;
 
         try
         {
@@ -67,12 +64,11 @@ public sealed class PUT(AppDbContext dbContext) : Endpoint<PUT.Request, PUT.Resp
         }
 
         var response = await dbContext.ConsumerApplications
-            .Select(a => new Response(
+            .Select(a => new ApplicationSummary(
                 a.Id,
                 a.Name,
-                a.TracingRpcs!.Count,
-                a.RealtimeRpcs!.Count,
-                a.ArchiveRpcs!.Count
+                a.ApiKeys!.Count,
+                a.Rpcs!.Count
             ))
             .SingleAsync(a => a.Id == req.Id, ct);
 

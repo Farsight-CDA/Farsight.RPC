@@ -12,6 +12,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     public DbSet<ConsumerApiKey> ConsumerApiKeys => Set<ConsumerApiKey>();
     public DbSet<RpcProvider> RpcProviders => Set<RpcProvider>();
 
+    public DbSet<RpcEndpoint> Rpcs => Set<RpcEndpoint>();
     public DbSet<RealtimeRpc> RealtimeRpcs => Set<RealtimeRpc>();
     public DbSet<ArchiveRpc> ArchiveRpcs => Set<ArchiveRpc>();
     public DbSet<TracingRpc> TracingRpcs => Set<TracingRpc>();

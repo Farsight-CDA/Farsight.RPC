@@ -20,15 +20,7 @@ internal sealed class ConsumerApplicationEFConfiguration : IEntityTypeConfigurat
             .WithOne(x => x.Application)
             .HasForeignKey(x => x.ApplicationId);
 
-        entity.HasMany(x => x.RealtimeRpcs)
-            .WithOne(x => x.Application)
-            .HasForeignKey(x => x.ApplicationId);
-
-        entity.HasMany(x => x.ArchiveRpcs)
-            .WithOne(x => x.Application)
-            .HasForeignKey(x => x.ApplicationId);
-
-        entity.HasMany(x => x.TracingRpcs)
+        entity.HasMany(x => x.Rpcs)
             .WithOne(x => x.Application)
             .HasForeignKey(x => x.ApplicationId);
 

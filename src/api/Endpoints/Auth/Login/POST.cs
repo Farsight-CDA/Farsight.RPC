@@ -36,7 +36,7 @@ public sealed class POST(AdminLoginConfiguration adminLoginConfiguration, JwtCon
         }
 
         var expiresUtc = DateTimeOffset.UtcNow.AddMinutes(jwtConfiguration.ExpiryMinutes);
-        var token = JwtBearer.CreateToken(options =>
+        string token = JwtBearer.CreateToken(options =>
         {
             options.ExpireAt = expiresUtc.UtcDateTime;
             options.User.Roles.Add(AuthRoles.ADMIN);

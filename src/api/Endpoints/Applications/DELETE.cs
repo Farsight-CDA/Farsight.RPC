@@ -21,7 +21,7 @@ public sealed class DELETE(AppDbContext dbContext) : Endpoint<DELETE.Request>
 
     public override async Task HandleAsync(Request req, CancellationToken ct)
     {
-        var deletedRows = await dbContext.ConsumerApplications
+        int deletedRows = await dbContext.ConsumerApplications
             .Where(a => a.Id == req.Id)
             .ExecuteDeleteAsync(ct);
 

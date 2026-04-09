@@ -651,31 +651,6 @@ export default function ApplicationPage() {
                         </button>
                       </div>
 
-                      {/* Created Key Display */}
-                      <Show when={createdKey()}>
-                        <div class="border-4 border-b-accent/50 bg-b-accent/10 p-4">
-                          <p class="mb-2 text-xs font-bold uppercase tracking-widest text-b-accent">
-                            New API Key Created
-                          </p>
-                          <div class="flex items-center gap-2">
-                            <code class="flex-1 break-all font-mono text-sm font-semibold text-b-ink">
-                              {createdKey()}
-                            </code>
-                            <button
-                              type="button"
-                              onClick={() => copyToClipboard(createdKey()!)}
-                              class="shrink-0 text-b-ink/60 hover:text-b-accent transition-colors"
-                              title="Copy to clipboard"
-                            >
-                              <CopyIcon class="size-5" />
-                            </button>
-                          </div>
-                          <p class="mt-2 text-xs text-b-ink/50">
-                            Copy this key now. You won't be able to see it again.
-                          </p>
-                        </div>
-                      </Show>
-
                       <Show when={createKeyError()}>
                         <p class="border-4 border-red-500/50 bg-red-500/10 px-3 py-3 text-xs font-bold uppercase leading-snug text-red-400">
                           {createKeyError()}

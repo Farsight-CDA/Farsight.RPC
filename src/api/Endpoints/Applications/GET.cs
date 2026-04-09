@@ -1,14 +1,13 @@
 using Farsight.Rpc.Api.Auth;
 using Farsight.Rpc.Api.Persistence;
+using Farsight.Rpc.Types;
 using FastEndpoints;
 using Microsoft.EntityFrameworkCore;
 
 namespace Farsight.Rpc.Api.Endpoints.Applications;
 
-public sealed class GET(AppDbContext dbContext) : EndpointWithoutRequest<GET.ApplicationSummary[]>
+public sealed class GET(AppDbContext dbContext) : EndpointWithoutRequest<ApplicationSummary[]>
 {
-    public sealed record ApplicationSummary(Guid Id, string Name, int ApiKeyCount, int TracingCount, int RealtimeCount, int ArchiveCount);
-
     public override void Configure()
     {
         Get("/api/applications");
@@ -22,9 +21,7 @@ public sealed class GET(AppDbContext dbContext) : EndpointWithoutRequest<GET.App
                 a.Id,
                 a.Name,
                 a.ApiKeys!.Count,
-                a.TracingRpcs!.Count,
-                a.RealtimeRpcs!.Count,
-                a.ArchiveRpcs!.Count
+                a.Rpcs!.Count
             ))
             .ToArrayAsync(ct);
 

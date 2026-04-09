@@ -65,49 +65,7 @@ namespace Farsight.Rpc.Api.Persistence.Migrations
                     b.ToTable("ConsumerApplications", (string)null);
                 });
 
-            modelBuilder.Entity("Farsight.Rpc.Api.Persistence.Entities.Rpc.ArchiveRpc", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Address")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<Guid>("ApplicationId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Chain")
-                        .IsRequired()
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)");
-
-                    b.Property<decimal>("DexIndexerStepSize")
-                        .HasColumnType("numeric(20,0)");
-
-                    b.Property<int>("Environment")
-                        .HasColumnType("integer");
-
-                    b.Property<decimal>("IndexerBlockOffset")
-                        .HasColumnType("numeric(20,0)");
-
-                    b.Property<decimal>("IndexerStepSize")
-                        .HasColumnType("numeric(20,0)");
-
-                    b.Property<Guid>("ProviderId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ProviderId");
-
-                    b.HasIndex("ApplicationId", "Environment");
-
-                    b.ToTable("ArchiveRpcs", (string)null);
-                });
-
-            modelBuilder.Entity("Farsight.Rpc.Api.Persistence.Entities.Rpc.RealtimeRpc", b =>
+            modelBuilder.Entity("Farsight.Rpc.Api.Persistence.Entities.Rpc.RpcEndpoint", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -131,41 +89,10 @@ namespace Farsight.Rpc.Api.Persistence.Migrations
                     b.Property<Guid>("ProviderId")
                         .HasColumnType("uuid");
 
-                    b.HasKey("Id");
-
-                    b.HasIndex("ProviderId");
-
-                    b.HasIndex("ApplicationId", "Environment");
-
-                    b.ToTable("RealtimeRpcs", (string)null);
-                });
-
-            modelBuilder.Entity("Farsight.Rpc.Api.Persistence.Entities.Rpc.TracingRpc", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Address")
+                    b.Property<string>("RpcType")
                         .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<Guid>("ApplicationId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Chain")
-                        .IsRequired()
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)");
-
-                    b.Property<int>("Environment")
-                        .HasColumnType("integer");
-
-                    b.Property<Guid>("ProviderId")
-                        .HasColumnType("uuid");
-
-                    b.Property<int>("TracingMode")
-                        .HasColumnType("integer");
+                        .HasMaxLength(13)
+                        .HasColumnType("character varying(13)");
 
                     b.HasKey("Id");
 
@@ -173,7 +100,11 @@ namespace Farsight.Rpc.Api.Persistence.Migrations
 
                     b.HasIndex("ApplicationId", "Environment");
 
-                    b.ToTable("TracingRpcs", (string)null);
+                    b.ToTable("Rpcs", (string)null);
+
+                    b.HasDiscriminator<string>("RpcType").HasValue("RpcEndpoint");
+
+                    b.UseTphMappingStrategy();
                 });
 
             modelBuilder.Entity("Farsight.Rpc.Api.Persistence.Entities.RpcProvider", b =>
@@ -198,6 +129,39 @@ namespace Farsight.Rpc.Api.Persistence.Migrations
                     b.ToTable("RpcProviders", (string)null);
                 });
 
+            modelBuilder.Entity("Farsight.Rpc.Api.Persistence.Entities.Rpc.ArchiveRpc", b =>
+                {
+                    b.HasBaseType("Farsight.Rpc.Api.Persistence.Entities.Rpc.RpcEndpoint");
+
+                    b.Property<decimal>("DexIndexerStepSize")
+                        .HasColumnType("numeric(20,0)");
+
+                    b.Property<decimal>("IndexerBlockOffset")
+                        .HasColumnType("numeric(20,0)");
+
+                    b.Property<decimal>("IndexerStepSize")
+                        .HasColumnType("numeric(20,0)");
+
+                    b.HasDiscriminator().HasValue("Archive");
+                });
+
+            modelBuilder.Entity("Farsight.Rpc.Api.Persistence.Entities.Rpc.RealtimeRpc", b =>
+                {
+                    b.HasBaseType("Farsight.Rpc.Api.Persistence.Entities.Rpc.RpcEndpoint");
+
+                    b.HasDiscriminator().HasValue("Realtime");
+                });
+
+            modelBuilder.Entity("Farsight.Rpc.Api.Persistence.Entities.Rpc.TracingRpc", b =>
+                {
+                    b.HasBaseType("Farsight.Rpc.Api.Persistence.Entities.Rpc.RpcEndpoint");
+
+                    b.Property<int>("TracingMode")
+                        .HasColumnType("integer");
+
+                    b.HasDiscriminator().HasValue("Tracing");
+                });
+
             modelBuilder.Entity("Farsight.Rpc.Api.Persistence.Entities.ConsumerApiKey", b =>
                 {
                     b.HasOne("Farsight.Rpc.Api.Persistence.Entities.ConsumerApplication", "Application")
@@ -209,54 +173,16 @@ namespace Farsight.Rpc.Api.Persistence.Migrations
                     b.Navigation("Application");
                 });
 
-            modelBuilder.Entity("Farsight.Rpc.Api.Persistence.Entities.Rpc.ArchiveRpc", b =>
+            modelBuilder.Entity("Farsight.Rpc.Api.Persistence.Entities.Rpc.RpcEndpoint", b =>
                 {
                     b.HasOne("Farsight.Rpc.Api.Persistence.Entities.ConsumerApplication", "Application")
-                        .WithMany("ArchiveRpcs")
+                        .WithMany("Rpcs")
                         .HasForeignKey("ApplicationId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("Farsight.Rpc.Api.Persistence.Entities.RpcProvider", "Provider")
-                        .WithMany("ArchiveRpcs")
-                        .HasForeignKey("ProviderId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Application");
-
-                    b.Navigation("Provider");
-                });
-
-            modelBuilder.Entity("Farsight.Rpc.Api.Persistence.Entities.Rpc.RealtimeRpc", b =>
-                {
-                    b.HasOne("Farsight.Rpc.Api.Persistence.Entities.ConsumerApplication", "Application")
-                        .WithMany("RealtimeRpcs")
-                        .HasForeignKey("ApplicationId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Farsight.Rpc.Api.Persistence.Entities.RpcProvider", "Provider")
-                        .WithMany("RealtimeRpcs")
-                        .HasForeignKey("ProviderId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Application");
-
-                    b.Navigation("Provider");
-                });
-
-            modelBuilder.Entity("Farsight.Rpc.Api.Persistence.Entities.Rpc.TracingRpc", b =>
-                {
-                    b.HasOne("Farsight.Rpc.Api.Persistence.Entities.ConsumerApplication", "Application")
-                        .WithMany("TracingRpcs")
-                        .HasForeignKey("ApplicationId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Farsight.Rpc.Api.Persistence.Entities.RpcProvider", "Provider")
-                        .WithMany("TracingRpcs")
+                        .WithMany("Rpcs")
                         .HasForeignKey("ProviderId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -270,20 +196,12 @@ namespace Farsight.Rpc.Api.Persistence.Migrations
                 {
                     b.Navigation("ApiKeys");
 
-                    b.Navigation("ArchiveRpcs");
-
-                    b.Navigation("RealtimeRpcs");
-
-                    b.Navigation("TracingRpcs");
+                    b.Navigation("Rpcs");
                 });
 
             modelBuilder.Entity("Farsight.Rpc.Api.Persistence.Entities.RpcProvider", b =>
                 {
-                    b.Navigation("ArchiveRpcs");
-
-                    b.Navigation("RealtimeRpcs");
-
-                    b.Navigation("TracingRpcs");
+                    b.Navigation("Rpcs");
                 });
 #pragma warning restore 612, 618
         }

@@ -10,14 +10,10 @@ namespace Farsight.Rpc.Api.Endpoints.Rpcs;
 
 public sealed class GET(AppDbContext dbContext) : Endpoint<GET.Request, RpcEndpoint[]>
 {
-    public sealed class Request
-    {
-        [RouteParam]
-        public Guid ApplicationId { get; init; }
-
-        [RouteParam]
-        public required string Environment { get; init; }
-    }
+    public sealed record Request(
+        [property: RouteParam] Guid ApplicationId,
+        [property: RouteParam] string Environment
+    );
 
     public sealed class Validator : AbstractValidator<Request>
     {

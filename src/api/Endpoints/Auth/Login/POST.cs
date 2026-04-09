@@ -15,6 +15,7 @@ public sealed class POST(AdminLoginConfiguration adminLoginConfiguration, JwtCon
         string Username,
         string Password
     );
+
     public new sealed record Response(
         string Token,
         string Username,

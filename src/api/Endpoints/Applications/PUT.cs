@@ -10,12 +10,10 @@ namespace Farsight.Rpc.Api.Endpoints.Applications;
 
 public sealed class PUT(AppDbContext dbContext) : Endpoint<PUT.Request>
 {
-    public sealed class Request
-    {
-        [RouteParam]
-        public Guid Id { get; init; }
-        public required string Name { get; init; }
-    }
+    public sealed record Request(
+        [property: RouteParam] Guid Id,
+        string Name
+    );
 
     public sealed class Validator : AbstractValidator<Request>
     {

@@ -7,14 +7,10 @@ namespace Farsight.Rpc.Api.Endpoints.ConsumerApiKeys;
 
 public sealed class DELETE(AppDbContext dbContext) : Endpoint<DELETE.Request>
 {
-    public sealed class Request
-    {
-        [RouteParam]
-        public Guid ApplicationId { get; init; }
-
-        [RouteParam]
-        public Guid Id { get; init; }
-    }
+    public sealed record Request(
+        [property: RouteParam] Guid ApplicationId,
+        [property: RouteParam] Guid Id
+    );
 
     public override void Configure()
     {

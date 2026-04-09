@@ -7,7 +7,12 @@ namespace Farsight.Rpc.Api.Endpoints.Applications;
 
 public sealed class GET(AppDbContext dbContext) : EndpointWithoutRequest<GET.ApplicationSummary[]>
 {
-    public sealed record ApplicationSummary(Guid Id, string Name, int ApiKeyCount, int RpcCount);
+    public sealed record ApplicationSummary(
+        Guid Id,
+        string Name,
+        int ApiKeyCount,
+        int RpcCount
+    );
 
     public override void Configure()
     {

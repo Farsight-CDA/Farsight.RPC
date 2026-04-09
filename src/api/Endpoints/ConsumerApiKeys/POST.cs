@@ -11,13 +11,10 @@ namespace Farsight.Rpc.Api.Endpoints.ConsumerApiKeys;
 
 public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request>
 {
-    public sealed class Request
-    {
-        [RouteParam]
-        public Guid ApplicationId { get; init; }
-
-        public required HostEnvironment? Environment { get; init; }
-    }
+    public sealed record Request(
+        [property: RouteParam] Guid ApplicationId,
+        HostEnvironment? Environment
+    );
 
     public sealed class Validator : AbstractValidator<Request>
     {

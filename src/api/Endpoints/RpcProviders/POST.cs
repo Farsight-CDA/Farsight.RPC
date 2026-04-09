@@ -11,11 +11,10 @@ namespace Farsight.Rpc.Api.Endpoints.RpcProviders;
 
 public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request>
 {
-    public sealed class Request
-    {
-        public required string Name { get; init; }
-        public required int RateLimit { get; init; }
-    }
+    public sealed record Request(
+        string Name,
+        int RateLimit
+    );
 
     public sealed class Validator : AbstractValidator<Request>
     {

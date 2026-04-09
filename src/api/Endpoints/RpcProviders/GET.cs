@@ -7,7 +7,12 @@ namespace Farsight.Rpc.Api.Endpoints.RpcProviders;
 
 public sealed class GET(AppDbContext dbContext) : EndpointWithoutRequest<GET.RpcProviderSummary[]>
 {
-    public sealed record RpcProviderSummary(Guid Id, string Name, int RateLimit, int RpcCount);
+    public sealed record RpcProviderSummary(
+        Guid Id,
+        string Name,
+        int RateLimit,
+        int RpcCount
+    );
 
     public override void Configure()
     {

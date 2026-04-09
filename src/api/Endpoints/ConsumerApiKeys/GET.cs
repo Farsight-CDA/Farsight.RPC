@@ -8,13 +8,15 @@ namespace Farsight.Rpc.Api.Endpoints.ConsumerApiKeys;
 
 public sealed class GET(AppDbContext dbContext) : Endpoint<GET.Request, GET.ApiKeySummary[]>
 {
-    public sealed record ApiKeySummary(Guid Id, HostEnvironment Environment, string Key);
+    public sealed record ApiKeySummary(
+        Guid Id,
+        HostEnvironment Environment,
+        string Key
+    );
 
-    public sealed class Request
-    {
-        [RouteParam]
-        public Guid ApplicationId { get; init; }
-    }
+    public sealed record Request(
+        [property: RouteParam] Guid ApplicationId
+    );
 
     public override void Configure()
     {

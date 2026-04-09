@@ -11,7 +11,9 @@ namespace Farsight.Rpc.Api.Endpoints.Applications;
 
 public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request>
 {
-    public sealed record Request(string Name);
+    public sealed record Request(
+        string Name
+    );
 
     public sealed class Validator : AbstractValidator<Request>
     {

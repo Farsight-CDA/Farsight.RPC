@@ -6,6 +6,7 @@ import EmptyStateIcon from "../components/icons/EmptyStateIcon";
 import RpcIcon from "../components/icons/RpcIcon";
 import { useAuth } from "../lib/auth";
 import { useReferenceData, type RpcProviderSummary } from "../lib/reference-data";
+import { useApplicationData } from "../lib/application-data";
 
 async function readErrorMessage(
   response: Response,
@@ -33,6 +34,7 @@ const applicationNameHint = "Use only letters, numbers, underscores, and hyphens
 export default function ApplicationProvidersPage() {
   const auth = useAuth();
   const referenceData = useReferenceData();
+  const applicationData = useApplicationData();
 
   const providers = referenceData.rpcProviders.data;
   const providersState = referenceData.rpcProviders.state;
@@ -120,6 +122,8 @@ export default function ApplicationProvidersPage() {
       }
       setProviderToDelete(null);
       await referenceData.refreshRpcProviders();
+      // Refresh RPCs since deleting a provider also deletes its dependent RPCs
+      await applicationData.refreshRpcs();
     } catch (err) {
       setDeleteProviderError(
         err instanceof Error ? err.message : "Failed to delete RPC provider",
@@ -372,7 +376,16 @@ export default function ApplicationProvidersPage() {
               <span class="font-bold text-red-400">
                 {providerToDelete()!.name}
               </span>
-              ? This cannot be undone.
+              ?{providerToDelete()!.rpcCount > 0 && (
+                <>
+                  {" "}
+                  This will also delete{" "}
+                  <span class="font-bold text-b-ink">
+                    {providerToDelete()!.rpcCount} endpoint{providerToDelete()!.rpcCount === 1 ? "" : "s"}
+                  </span>
+                  {" "}depending on this provider.
+                </>
+              )} This cannot be undone.
             </p>
 
             <Show when={deleteProviderError()}>

@@ -2,16 +2,17 @@ import { createEffect, createMemo, createSignal, For, Show } from "solid-js";
 import { useNavigate, useParams } from "@solidjs/router";
 import LoadingSpinner from "../components/LoadingSpinner";
 import SearchIcon from "../components/icons/SearchIcon";
-import ChevronDownIcon from "../components/icons/ChevronDownIcon";
 import PencilIcon from "../components/icons/PencilIcon";
 import TrashIcon from "../components/icons/TrashIcon";
 import LightningIcon from "../components/icons/LightningIcon";
 import EmptyStateIcon from "../components/icons/EmptyStateIcon";
 import ProviderIcon from "../components/icons/ProviderIcon";
 import PlusIcon from "../components/icons/PlusIcon";
+import ChevronDownIcon from "../components/icons/ChevronDownIcon";
 import { useAuth } from "../lib/auth";
 import { useReferenceData } from "../lib/reference-data";
 import { useApplicationData, type ApplicationRpc } from "../lib/application-data";
+import { useEnvironment } from "../lib/environment-context";
 
 async function readErrorMessage(
   response: Response,
@@ -30,8 +31,22 @@ async function readErrorMessage(
   return fallback;
 }
 
-const addressPattern = "https?://[a-zA-Z0-9-_.:]+(/[a-zA-Z0-9-_.~/%]*)?";
-const addressHint = "Enter a valid HTTP or HTTPS URL.";
+const addressHint = "Enter a valid HTTP, HTTPS, WS, or WSS URL.";
+
+function isValidRpcAddress(value: string): boolean {
+  try {
+    const url = new URL(value.trim());
+    return ["http:", "https:", "ws:", "wss:"].includes(url.protocol);
+  } catch {
+    return false;
+  }
+}
+
+function validateRpcAddressInput(input: HTMLInputElement): boolean {
+  const valid = input.value.length === 0 || isValidRpcAddress(input.value);
+  input.setCustomValidity(valid ? "" : addressHint);
+  return valid;
+}
 
 export default function ApplicationRpcsPage() {
   const auth = useAuth();
@@ -44,9 +59,6 @@ export default function ApplicationRpcsPage() {
   const chains = referenceData.chains.data;
   const chainsState = referenceData.chains.state;
   const chainsError = referenceData.chains.error;
-  const environments = referenceData.hostEnvironments.data;
-  const environmentsState = referenceData.hostEnvironments.state;
-  const environmentsError = referenceData.hostEnvironments.error;
   const providers = referenceData.rpcProviders.data;
   const providersState = referenceData.rpcProviders.state;
   const providersError = referenceData.rpcProviders.error;
@@ -54,7 +66,7 @@ export default function ApplicationRpcsPage() {
   const rpcsState = applicationData.rpcs.state;
   const rpcsError = applicationData.rpcs.error;
 
-  const [selectedEnvironment, setSelectedEnvironment] = createSignal<string | undefined>(undefined);
+  const environment = useEnvironment();
   const [filterText, setFilterText] = createSignal("");
   const [activeChain, setActiveChain] = createSignal<string | null>(null);
   const [onlyChainsWithRpcs, setOnlyChainsWithRpcs] = createSignal(false);
@@ -78,17 +90,12 @@ export default function ApplicationRpcsPage() {
   const [editRpcError, setEditRpcError] = createSignal<string | null>(null);
   const [editRpcLoading, setEditRpcLoading] = createSignal(false);
 
+  let newRpcAddressInput!: HTMLInputElement;
+  let editRpcAddressInput!: HTMLInputElement;
+
   const [rpcToDelete, setRpcToDelete] = createSignal<ApplicationRpc | null>(null);
   const [deleteRpcError, setDeleteRpcError] = createSignal<string | null>(null);
   const [deleteRpcLoading, setDeleteRpcLoading] = createSignal(false);
-
-  createEffect(() => {
-    const envs = environments();
-    const selected = selectedEnvironment();
-    if (envs.length > 0 && (!selected || !envs.includes(selected))) {
-      setSelectedEnvironment(envs[0]);
-    }
-  });
 
   createEffect(() => {
     const prods = providers();
@@ -109,7 +116,7 @@ export default function ApplicationRpcsPage() {
   };
 
   const chainRpcCounts = createMemo(() => {
-    const env = selectedEnvironment() || "";
+    const env = environment.selectedEnvironment() || "";
     const counts: Record<string, number> = {};
     for (const rpc of rpcs()) {
       if (rpc.environment === env) {
@@ -147,7 +154,7 @@ export default function ApplicationRpcsPage() {
 
   const activeChainRpcs = createMemo(() => {
     const chain = activeChain();
-    const env = selectedEnvironment() || "";
+    const env = environment.selectedEnvironment() || "";
     if (!chain) return [];
     return getChainRpcs(chain, env);
   });
@@ -192,16 +199,24 @@ export default function ApplicationRpcsPage() {
     e.preventDefault();
     const token = auth.token;
     const app = applicationId();
-    const env = selectedEnvironment();
+    const env = environment.selectedEnvironment();
     const providerId = newRpcProviderId();
     const chain = selectedChainForRpc();
     const rpcType = newRpcType();
     if (!token || !app || !env || !providerId || !chain) return;
 
+    const address = newRpcAddress().trim();
+    if (!isValidRpcAddress(address)) {
+      setCreateRpcError(addressHint);
+      newRpcAddressInput.setCustomValidity(addressHint);
+      newRpcAddressInput.reportValidity();
+      return;
+    }
+
     const body: Record<string, number | string> = {
       environment: env,
       chain,
-      address: newRpcAddress(),
+      address,
       providerId,
     };
 
@@ -233,6 +248,7 @@ export default function ApplicationRpcsPage() {
         throw new Error(await readErrorMessage(response, "Failed to create RPC"));
       }
       await applicationData.refreshRpcs();
+      await referenceData.refreshRpcProviders();
       setCreateRpcModalOpen(false);
       setNewRpcAddress("");
       setActiveChain(chain);
@@ -252,6 +268,14 @@ export default function ApplicationRpcsPage() {
     const rpc = rpcToEdit();
     if (!token || !app || !rpc) return;
 
+    const address = editRpcAddress().trim();
+    if (!isValidRpcAddress(address)) {
+      setEditRpcError(addressHint);
+      editRpcAddressInput.setCustomValidity(addressHint);
+      editRpcAddressInput.reportValidity();
+      return;
+    }
+
     setEditRpcError(null);
     setEditRpcLoading(true);
     try {
@@ -264,7 +288,7 @@ export default function ApplicationRpcsPage() {
             Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
-            address: editRpcAddress(),
+            address,
             providerId: editRpcProviderId(),
           }),
         },
@@ -273,6 +297,7 @@ export default function ApplicationRpcsPage() {
         throw new Error(await readErrorMessage(response, "Failed to update RPC"));
       }
       await applicationData.refreshRpcs();
+      await referenceData.refreshRpcProviders();
       setEditRpcModalOpen(false);
       setRpcToEdit(null);
     } catch (err) {
@@ -305,6 +330,7 @@ export default function ApplicationRpcsPage() {
       }
       setRpcToDelete(null);
       await applicationData.refreshRpcs();
+      await referenceData.refreshRpcProviders();
     } catch (err) {
       setDeleteRpcError(
         err instanceof Error ? err.message : "Failed to delete RPC",
@@ -335,48 +361,6 @@ export default function ApplicationRpcsPage() {
   return (
     <>
       <div class="flex flex-col gap-6">
-        <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <p class="text-xs font-bold uppercase tracking-[0.4em] text-b-accent">
-            Select Environment
-          </p>
-          <Show when={environmentsState() === "pending"}>
-            <div class="flex h-11 items-center gap-2 border border-b-border bg-b-field px-3 sm:w-48">
-              <LoadingSpinner class="size-4" />
-              <span class="text-xs font-bold uppercase tracking-widest text-b-ink/50">
-                Loading…
-              </span>
-            </div>
-          </Show>
-          <Show when={environmentsError()}>
-            <p class="border border-red-500/40 bg-red-500/10 px-3 py-3 text-xs font-bold uppercase leading-snug text-red-400 sm:w-72">
-              {environmentsError()!.message}
-            </p>
-          </Show>
-          <Show when={environmentsState() === "ready" && selectedEnvironment()}>
-            <div class="relative">
-              <select
-                id="environment-select"
-                value={selectedEnvironment()}
-                onChange={(e) => setSelectedEnvironment(e.currentTarget.value || undefined)}
-                class="h-11 w-full appearance-none border border-b-border bg-b-field px-4 pr-10 text-sm font-bold uppercase tracking-widest text-b-ink outline-none focus-visible:border-b-accent/50 focus-visible:ring-2 focus-visible:ring-b-accent/20 hover:border-b-border-hover transition-all duration-200 cursor-pointer sm:w-48"
-              >
-                <For each={environments()}>
-                  {(env) => (
-                    <option value={env} class="bg-b-field">
-                      {env}
-                    </option>
-                  )}
-                </For>
-              </select>
-              <div class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2">
-                <ChevronDownIcon class="size-5 text-b-ink/50" />
-              </div>
-            </div>
-          </Show>
-        </div>
-
-        <div class="h-px bg-gradient-to-r from-transparent via-b-border to-transparent" />
-
         <Show when={chainsState() === "pending" || rpcsState() === "pending"}>
           <div class="flex flex-col items-center justify-center gap-4 py-16">
             <LoadingSpinner class="size-8" />
@@ -509,7 +493,7 @@ export default function ApplicationRpcsPage() {
                       </h2>
                       <p class="mt-1 text-[0.65rem] font-bold uppercase tracking-widest text-b-ink/45">
                         {activeChainRpcs().length} RPC
-                        {activeChainRpcs().length !== 1 ? "s" : ""} · {selectedEnvironment()}
+                        {activeChainRpcs().length !== 1 ? "s" : ""} · {environment.selectedEnvironment()}
                       </p>
                     </div>
                     <button
@@ -666,7 +650,7 @@ export default function ApplicationRpcsPage() {
               New RPC
             </h3>
             <p class="mb-6 text-xs font-bold uppercase tracking-widest text-b-ink/50">
-              {selectedChainForRpc()} / {selectedEnvironment()}
+              {selectedChainForRpc()} / {environment.selectedEnvironment()}
             </p>
 
             <form onSubmit={handleCreateRpc} class="flex flex-col gap-6">
@@ -749,6 +733,20 @@ export default function ApplicationRpcsPage() {
                     </div>
                   </div>
                 </Show>
+                <Show when={providersState() === "ready" && providers().length === 0}>
+                  <div class="flex flex-col gap-3 border border-dashed border-b-border/50 bg-b-paper/20 px-4 py-4">
+                    <p class="text-xs font-bold uppercase tracking-widest text-b-ink/50">
+                      No providers available.
+                    </p>
+                    <a
+                      href={`/applications/${applicationId()}/providers`}
+                      onClick={closeCreateRpcModal}
+                      class="text-xs font-bold uppercase tracking-widest text-b-accent hover:text-b-accent-hover hover:underline transition-colors"
+                    >
+                      Create a provider first →
+                    </a>
+                  </div>
+                </Show>
               </div>
 
               <div class="flex flex-col gap-2">
@@ -756,12 +754,17 @@ export default function ApplicationRpcsPage() {
                   Address
                 </label>
                 <input
+                  ref={newRpcAddressInput}
                   id="rpc-address"
                   type="url"
                   required
-                  pattern={addressPattern}
                   value={newRpcAddress()}
-                  onInput={(e) => setNewRpcAddress(e.currentTarget.value)}
+                  onInput={(e) => {
+                    setNewRpcAddress(e.currentTarget.value);
+                    validateRpcAddressInput(e.currentTarget);
+                    if (createRpcError() === addressHint) setCreateRpcError(null);
+                  }}
+                  onBlur={(e) => validateRpcAddressInput(e.currentTarget)}
                   class="h-11 w-full border border-b-border bg-b-paper px-4 text-sm font-semibold text-b-ink placeholder:text-b-ink/25 outline-none focus-visible:border-b-accent/50 focus-visible:ring-2 focus-visible:ring-b-accent/20 hover:border-b-border-hover transition-all duration-200"
                   placeholder="https://rpc.example.com"
                   title={addressHint}
@@ -947,6 +950,20 @@ export default function ApplicationRpcsPage() {
                     </div>
                   </div>
                 </Show>
+                <Show when={providersState() === "ready" && providers().length === 0}>
+                  <div class="flex flex-col gap-3 border border-dashed border-b-border/50 bg-b-paper/20 px-4 py-4">
+                    <p class="text-xs font-bold uppercase tracking-widest text-b-ink/50">
+                      No providers available.
+                    </p>
+                    <a
+                      href={`/applications/${applicationId()}/providers`}
+                      onClick={closeEditRpcModal}
+                      class="text-xs font-bold uppercase tracking-widest text-b-accent hover:text-b-accent-hover hover:underline transition-colors"
+                    >
+                      Create a provider first →
+                    </a>
+                  </div>
+                </Show>
               </div>
 
               <div class="flex flex-col gap-2">
@@ -954,12 +971,17 @@ export default function ApplicationRpcsPage() {
                   Address
                 </label>
                 <input
+                  ref={editRpcAddressInput}
                   id="edit-rpc-address"
                   type="url"
                   required
-                  pattern={addressPattern}
                   value={editRpcAddress()}
-                  onInput={(e) => setEditRpcAddress(e.currentTarget.value)}
+                  onInput={(e) => {
+                    setEditRpcAddress(e.currentTarget.value);
+                    validateRpcAddressInput(e.currentTarget);
+                    if (editRpcError() === addressHint) setEditRpcError(null);
+                  }}
+                  onBlur={(e) => validateRpcAddressInput(e.currentTarget)}
                   class="h-11 w-full border border-b-border bg-b-paper px-4 text-sm font-semibold text-b-ink placeholder:text-b-ink/25 outline-none focus-visible:border-b-accent/50 focus-visible:ring-2 focus-visible:ring-b-accent/20 hover:border-b-border-hover transition-all duration-200"
                   placeholder="https://rpc.example.com"
                   title={addressHint}

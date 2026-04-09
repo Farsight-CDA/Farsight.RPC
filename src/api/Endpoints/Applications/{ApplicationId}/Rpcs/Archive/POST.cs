@@ -37,11 +37,7 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request>
                 .ApplyChainValidation(chainService);
 
             RuleFor(x => x.Address)
-                .Cascade(CascadeMode.Stop)
-                .NotNull()
-                .WithMessage("Address is required.")
-                .Must(static address => address.IsAbsoluteUri)
-                .WithMessage("Address must be a valid absolute URI.");
+                .ApplyRpcAddressValidation();
 
             RuleFor(x => x.ProviderId)
                 .Must(static providerId => providerId != Guid.Empty)

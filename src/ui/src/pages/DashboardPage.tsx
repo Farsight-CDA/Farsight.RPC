@@ -55,19 +55,6 @@ export default function DashboardPage() {
   const [createError, setCreateError] = createSignal<string | null>(null);
   const [createLoading, setCreateLoading] = createSignal(false);
 
-  const [renameApp, setRenameApp] = createSignal<ApplicationSummary | null>(
-    null,
-  );
-  const [renameName, setRenameName] = createSignal("");
-  const [renameError, setRenameError] = createSignal<string | null>(null);
-  const [renameLoading, setRenameLoading] = createSignal(false);
-
-  const [deleteApp, setDeleteApp] = createSignal<ApplicationSummary | null>(
-    null,
-  );
-  const [deleteError, setDeleteError] = createSignal<string | null>(null);
-  const [deleteLoading, setDeleteLoading] = createSignal(false);
-
   const openModal = () => {
     setCreateError(null);
     setNewName("");
@@ -77,27 +64,6 @@ export default function DashboardPage() {
   const closeModal = () => {
     if (createLoading()) return;
     setModalOpen(false);
-  };
-
-  const openRename = (app: ApplicationSummary) => {
-    setRenameError(null);
-    setRenameName(app.name);
-    setRenameApp(app);
-  };
-
-  const closeRenameModal = () => {
-    if (renameLoading()) return;
-    setRenameApp(null);
-  };
-
-  const openDelete = (app: ApplicationSummary) => {
-    setDeleteError(null);
-    setDeleteApp(app);
-  };
-
-  const closeDeleteModal = () => {
-    if (deleteLoading()) return;
-    setDeleteApp(null);
   };
 
   const handleCreate = async (e: SubmitEvent) => {
@@ -129,65 +95,6 @@ export default function DashboardPage() {
       );
     } finally {
       setCreateLoading(false);
-    }
-  };
-
-  const handleRename = async (e: SubmitEvent) => {
-    e.preventDefault();
-    const token = auth.token;
-    const app = renameApp();
-    if (!token || !app) return;
-    setRenameError(null);
-    setRenameLoading(true);
-    try {
-      const response = await fetch(`/api/applications/${app.id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ name: renameName() }),
-      });
-      if (!response.ok) {
-        throw new Error(
-          await readErrorMessage(response, "Failed to rename application"),
-        );
-      }
-      setRenameApp(null);
-      await refetch();
-    } catch (err) {
-      setRenameError(
-        err instanceof Error ? err.message : "Failed to rename application",
-      );
-    } finally {
-      setRenameLoading(false);
-    }
-  };
-
-  const handleDelete = async () => {
-    const token = auth.token;
-    const app = deleteApp();
-    if (!token || !app) return;
-    setDeleteError(null);
-    setDeleteLoading(true);
-    try {
-      const response = await fetch(`/api/applications/${app.id}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!response.ok) {
-        throw new Error(
-          await readErrorMessage(response, "Failed to delete application"),
-        );
-      }
-      setDeleteApp(null);
-      await refetch();
-    } catch (err) {
-      setDeleteError(
-        err instanceof Error ? err.message : "Failed to delete application",
-      );
-    } finally {
-      setDeleteLoading(false);
     }
   };
 
@@ -245,42 +152,24 @@ export default function DashboardPage() {
             <For each={applications()}>
               {(app) => (
                 <li>
-                  <div class="group flex flex-col gap-3 border-4 border-[var(--color-b-ink)] bg-b-paper p-4 shadow-[4px_4px_0_0_rgba(232,228,220,0.1)] hover:shadow-[6px_6px_0_0_rgba(255,87,34,0.2)] transition-all duration-200 hover:border-b-accent/50 sm:flex-row sm:items-stretch sm:gap-4">
-                    <div class="flex min-w-0 flex-1 flex-col justify-between">
-                      <A
-                        href={`/applications/${app.id}`}
-                        class="block text-left outline-none transition-all duration-200 hover:translate-x-1 hover:text-b-accent focus-visible:ring-4 focus-visible:ring-b-accent/50"
-                      >
-                        <span class="font-['Anton',sans-serif] text-2xl uppercase tracking-wide text-b-ink group-hover:text-b-accent transition-colors duration-200">
-                          {app.name}
-                        </span>
-                      </A>
-                      <div class="mt-3 flex items-center gap-4 text-xs font-bold uppercase tracking-widest text-b-ink/60">
-                        <div class="flex items-center gap-1 group-hover:text-b-accent/80 transition-colors duration-200">
-                          <KeyIcon class="size-4" />
-                          {app.apiKeyCount}
-                        </div>
-                        <div class="flex items-center gap-1 group-hover:text-b-accent/80 transition-colors duration-200">
-                          <RpcIcon class="size-4" />
-                          {app.tracingCount + app.realtimeCount + app.archiveCount}
-                        </div>
+                  <div class="group border-4 border-[var(--color-b-ink)] bg-b-paper p-4 shadow-[4px_4px_0_0_rgba(232,228,220,0.1)] hover:shadow-[6px_6px_0_0_rgba(255,87,34,0.2)] transition-all duration-200 hover:border-b-accent/50">
+                    <A
+                      href={`/applications/${app.id}`}
+                      class="block text-left outline-none transition-all duration-200 hover:translate-x-1 hover:text-b-accent focus-visible:ring-4 focus-visible:ring-b-accent/50"
+                    >
+                      <span class="font-['Anton',sans-serif] text-2xl uppercase tracking-wide text-b-ink group-hover:text-b-accent transition-colors duration-200">
+                        {app.name}
+                      </span>
+                    </A>
+                    <div class="mt-3 flex items-center gap-4 text-xs font-bold uppercase tracking-widest text-b-ink/60">
+                      <div class="flex items-center gap-1 group-hover:text-b-accent/80 transition-colors duration-200">
+                        <KeyIcon class="size-4" />
+                        {app.apiKeyCount}
                       </div>
-                    </div>
-                    <div class="flex shrink-0 flex-row gap-2 sm:flex-col sm:justify-center">
-                      <button
-                        type="button"
-                        onClick={() => openRename(app)}
-                        class="btn btn-sm btn-interactive btn-disabled btn-secondary flex-1 sm:flex-none"
-                      >
-                        Rename
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => openDelete(app)}
-                        class="btn btn-sm btn-interactive btn-disabled btn-danger flex-1 sm:flex-none"
-                      >
-                        Delete
-                      </button>
+                      <div class="flex items-center gap-1 group-hover:text-b-accent/80 transition-colors duration-200">
+                        <RpcIcon class="size-4" />
+                        {app.tracingCount + app.realtimeCount + app.archiveCount}
+                      </div>
                     </div>
                   </div>
                 </li>
@@ -372,139 +261,6 @@ export default function DashboardPage() {
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      </Show>
-
-      <Show when={renameApp()}>
-        <div
-          class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-4 py-8"
-          role="presentation"
-          onClick={closeRenameModal}
-        >
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="rename-application-title"
-            class="w-full max-w-md border-4 border-[var(--color-b-ink)] bg-b-field p-8 shadow-[12px_12px_0_0_rgba(255,87,34,0.15)]"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <p class="mb-2 text-xs font-bold uppercase tracking-[0.35em] text-b-accent">
-              Rename
-            </p>
-            <h3
-              id="rename-application-title"
-              class="mb-8 font-['Anton',sans-serif] text-4xl uppercase leading-none tracking-wide text-b-ink"
-            >
-              Application
-            </h3>
-
-            <form onSubmit={handleRename} class="flex flex-col gap-6">
-              <div class="flex flex-col gap-2">
-                <label
-                  for="rename-app-name"
-                  class="text-xs font-bold uppercase tracking-widest text-b-ink/80"
-                >
-                  Name
-                </label>
-                <input
-                  id="rename-app-name"
-                  type="text"
-                  required
-                  value={renameName()}
-                  onInput={(e) => setRenameName(e.currentTarget.value)}
-                  class="border-4 border-[var(--color-b-ink)] bg-b-paper px-3 py-3 text-sm font-semibold text-b-ink placeholder:text-b-ink/30 outline-none focus-visible:ring-4 focus-visible:ring-b-accent/50 hover:border-b-accent/50 transition-colors duration-200"
-                  placeholder="MY APPLICATION"
-                  autocomplete="off"
-                />
-              </div>
-
-              <Show when={renameError()}>
-                <p class="border-4 border-red-500/50 bg-red-500/10 px-3 py-3 text-xs font-bold uppercase leading-snug text-red-400">
-                  {renameError()}
-                </p>
-              </Show>
-
-              <div class="flex flex-col gap-3 sm:flex-row sm:justify-end">
-                <button
-                  type="button"
-                  onClick={closeRenameModal}
-                  disabled={renameLoading()}
-                  class="btn btn-md btn-interactive btn-disabled btn-secondary"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={renameLoading()}
-                  class="btn btn-md btn-interactive btn-disabled btn-primary"
-                >
-                  <Show when={renameLoading()}>
-                    <LoadingSpinner class="size-3.5 text-b-paper" />
-                  </Show>
-                  {renameLoading() ? "Saving…" : "Save"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      </Show>
-
-      <Show when={deleteApp()}>
-        <div
-          class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-4 py-8"
-          role="presentation"
-          onClick={closeDeleteModal}
-        >
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="delete-application-title"
-            class="w-full max-w-md border-4 border-red-500/50 bg-b-field p-8 shadow-[12px_12px_0_0_rgba(239,68,68,0.15)]"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <p class="mb-2 text-xs font-bold uppercase tracking-[0.35em] text-red-400">
-              Delete
-            </p>
-            <h3
-              id="delete-application-title"
-              class="mb-4 font-['Anton',sans-serif] text-4xl uppercase leading-none tracking-wide text-b-ink"
-            >
-              Application
-            </h3>
-            <p class="mb-8 text-sm font-semibold text-b-ink/80">
-              Permanently delete{" "}
-              <span class="font-bold text-red-400">{deleteApp()!.name}</span>? This
-              cannot be undone.
-            </p>
-
-            <Show when={deleteError()}>
-              <p class="mb-6 border-4 border-red-500/50 bg-red-500/10 px-3 py-3 text-xs font-bold uppercase leading-snug text-red-400">
-                {deleteError()}
-              </p>
-            </Show>
-
-            <div class="flex flex-col gap-3 sm:flex-row sm:justify-end">
-              <button
-                type="button"
-                onClick={closeDeleteModal}
-                disabled={deleteLoading()}
-                class="btn btn-md btn-interactive btn-disabled btn-secondary"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleDelete}
-                disabled={deleteLoading()}
-                class="btn btn-md btn-interactive btn-disabled btn-danger"
-              >
-                <Show when={deleteLoading()}>
-                  <LoadingSpinner class="size-3.5" />
-                </Show>
-                {deleteLoading() ? "Deleting…" : "Delete"}
-              </button>
-            </div>
           </div>
         </div>
       </Show>

@@ -4,9 +4,9 @@ using Farsight.Rpc.Api.Persistence.Entities;
 using Farsight.Rpc.Types;
 using Microsoft.EntityFrameworkCore;
 
-namespace Farsight.Rpc.Api.Endpoints.Admin;
+namespace Farsight.Rpc.Api.Endpoints.Admin.Rpcs;
 
-internal static class AdminEndpointDbHelpers
+internal static class RpcDbHelpers
 {
     public static async Task<ProviderEditModel?> GetEditModelAsync(RpcProvidersDbContext dbContext, RpcEndpointType type, Guid id, CancellationToken cancellationToken)
         => type switch
@@ -23,7 +23,7 @@ internal static class AdminEndpointDbHelpers
             _ => throw new ArgumentOutOfRangeException(nameof(type), type, null)
         };
 
-    public static async Task SaveEndpointAsync(RpcProvidersDbContext dbContext, ProviderEditModel model, CancellationToken cancellationToken)
+    public static async Task SaveRpcAsync(RpcProvidersDbContext dbContext, ProviderEditModel model, CancellationToken cancellationToken)
     {
         var now = DateTimeOffset.UtcNow;
         switch(model.Type)

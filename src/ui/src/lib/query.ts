@@ -21,7 +21,7 @@ export const queryKeys = {
   tracingModes: ["lookups", "tracing-modes"] as const,
   apiKeys: ["api-keys"] as const,
   dashboardLookups: ["dashboard", "lookups"] as const,
-  endpointEditorLookups: ["endpoint-editor", "lookups"] as const,
-  endpoints: (applicationId: string | undefined, chainId: string | undefined, environment: string) => ["endpoints", applicationId ?? "", chainId ?? "", environment] as const,
-  endpoint: (type: string | undefined, id: string | undefined) => ["endpoint", type ?? "", id ?? ""] as const,
+  rpcEditorLookups: ["rpc-editor", "lookups"] as const,
+  rpcs: (applicationId: string | undefined, chainId: string | undefined, environment: string) => ["rpcs", applicationId ?? "", chainId ?? "", environment] as const,
+  rpc: (type: string | undefined, id: string | undefined) => ["rpc", type ?? "", id ?? ""] as const,
 };

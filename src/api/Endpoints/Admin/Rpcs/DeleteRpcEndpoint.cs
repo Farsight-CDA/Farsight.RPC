@@ -1,12 +1,11 @@
 using Farsight.Rpc.Types;
 using Farsight.Rpc.Api.Persistence;
-using Farsight.Rpc.Api.Services;
 using FastEndpoints;
 using Microsoft.EntityFrameworkCore;
 
-namespace Farsight.Rpc.Api.Endpoints.Admin.Endpoints;
+namespace Farsight.Rpc.Api.Endpoints.Admin.Rpcs;
 
-public sealed class DeleteSavedEndpointEndpoint(RpcProvidersDbContext dbContext) : Endpoint<DeleteSavedEndpointEndpoint.Request>
+public sealed class DeleteRpcEndpoint(RpcProvidersDbContext dbContext) : Endpoint<DeleteRpcEndpoint.Request>
 {
     public sealed class Request
     {
@@ -16,7 +15,7 @@ public sealed class DeleteSavedEndpointEndpoint(RpcProvidersDbContext dbContext)
 
     public override void Configure()
     {
-        Delete("/api/admin/endpoints/{Type}/{Id}");
+        Delete("/api/admin/rpcs/{Type}/{Id}");
         Policies(AuthorizationPolicies.ADMIN_ONLY);
     }
 

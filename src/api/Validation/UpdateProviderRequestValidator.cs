@@ -3,9 +3,9 @@ using FluentValidation;
 
 namespace Farsight.Rpc.Api.Validation;
 
-public sealed class SaveProviderRateLimitRequestValidator : AbstractValidator<SaveProviderRateLimitEndpoint.Request>
+public sealed class UpdateProviderRequestValidator : AbstractValidator<UpdateProviderEndpoint.Request>
 {
-    public SaveProviderRateLimitRequestValidator()
+    public UpdateProviderRequestValidator()
     {
         RuleFor(x => x.RateLimit)
             .GreaterThan(0)

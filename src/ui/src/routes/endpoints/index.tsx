@@ -2,7 +2,7 @@ import { createQuery } from "@tanstack/solid-query";
 import { A } from "@solidjs/router";
 import { For, createSignal } from "solid-js";
 import { MessageBanner } from "../../components/MessageBanner";
-import { getApplications, getChains, getEndpoints, getEnvironmentLookups } from "../../lib/api";
+import { getApplications, getChains, getRpcs, getEnvironmentLookups } from "../../lib/api";
 import { queryKeys } from "../../lib/query";
 import type { HostEnvironment } from "../../lib/types";
 
@@ -23,8 +23,8 @@ export default function EndpointsPage() {
     queryFn: getEnvironmentLookups,
   }));
   const rowsQuery = createQuery(() => ({
-    queryKey: queryKeys.endpoints(applicationId() || undefined, chainId() || undefined, environment()),
-    queryFn: () => getEndpoints({ applicationId: applicationId() || undefined, chainId: chainId() || undefined, environment: environment() }),
+    queryKey: queryKeys.rpcs(applicationId() || undefined, chainId() || undefined, environment()),
+    queryFn: () => getRpcs({ applicationId: applicationId() || undefined, chainId: chainId() || undefined, environment: environment() }),
   }));
   const currentError = () => (applicationsQuery.error instanceof Error ? applicationsQuery.error.message : null)
     ?? (chainsQuery.error instanceof Error ? chainsQuery.error.message : null)

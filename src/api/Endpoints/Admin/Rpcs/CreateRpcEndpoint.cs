@@ -1,22 +1,21 @@
 using Farsight.Rpc.Api.Models;
 using Farsight.Rpc.Api.Persistence;
-using Farsight.Rpc.Api.Services;
 using FastEndpoints;
 
-namespace Farsight.Rpc.Api.Endpoints.Admin.Endpoints;
+namespace Farsight.Rpc.Api.Endpoints.Admin.Rpcs;
 
-public sealed class CreateSavedEndpointEndpoint(RpcProvidersDbContext dbContext) : Endpoint<ProviderEditModel>
+public sealed class CreateRpcEndpoint(RpcProvidersDbContext dbContext) : Endpoint<ProviderEditModel>
 {
     public override void Configure()
     {
-        Post("/api/admin/endpoints");
+        Post("/api/admin/rpcs");
         Policies(AuthorizationPolicies.ADMIN_ONLY);
     }
 
     public override async Task HandleAsync(ProviderEditModel req, CancellationToken ct)
     {
         req.Id = null;
-        await AdminEndpointDbHelpers.SaveEndpointAsync(dbContext, req, ct);
+        await RpcDbHelpers.SaveRpcAsync(dbContext, req, ct);
         await Send.NoContentAsync(ct);
     }
 }

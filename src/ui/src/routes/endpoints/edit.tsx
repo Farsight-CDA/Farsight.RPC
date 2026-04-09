@@ -3,7 +3,7 @@ import { A, useNavigate, useSearchParams } from "@solidjs/router";
 import { Show, createEffect, createMemo, createSignal } from "solid-js";
 import { EndpointForm } from "../../components/EndpointForm";
 import { MessageBanner } from "../../components/MessageBanner";
-import { deleteEndpoint, getApplications, getChains, getEndpoint, getEndpointTypeLookups, getEnvironmentLookups, getProviders, getTracingModeLookups, updateEndpoint } from "../../lib/api";
+import { deleteRpc, getApplications, getChains, getRpc, getEndpointTypeLookups, getEnvironmentLookups, getProviders, getTracingModeLookups, updateRpc } from "../../lib/api";
 import { queryKeys } from "../../lib/query";
 import type { LookupItem, ProviderEditModel, ProviderRateLimitRow } from "../../lib/types";
 
@@ -23,13 +23,13 @@ export default function EditEndpointPage() {
   const endpointTypesQuery = createQuery(() => ({ queryKey: queryKeys.endpointTypes, queryFn: getEndpointTypeLookups }));
   const tracingModesQuery = createQuery(() => ({ queryKey: queryKeys.tracingModes, queryFn: getTracingModeLookups }));
   const endpointQuery = createQuery(() => ({
-    queryKey: queryKeys.endpoint(endpointType(), endpointId()),
+    queryKey: queryKeys.rpc(endpointType(), endpointId()),
     queryFn: () => {
       if(!endpointId() || !endpointType()) {
         throw new Error("Endpoint id and type are required.");
       }
 
-      return getEndpoint(endpointType()!, endpointId()!);
+      return getRpc(endpointType()!, endpointId()!);
     },
   }));
   const providers = createMemo<LookupItem[]>(() => (providersQuery.data ?? []).map((item: ProviderRateLimitRow) => ({ id: item.providerId, name: item.provider })));
@@ -59,11 +59,11 @@ export default function EditEndpointPage() {
     }
 
     try {
-      await updateEndpoint(model()!);
+      await updateRpc(model()!.type, model()!.id!, model()!);
       setMessage("Endpoint saved.");
       setError(null);
-      await queryClient.invalidateQueries({ queryKey: queryKeys.endpoint(endpointType(), endpointId()) });
-      await queryClient.invalidateQueries({ queryKey: ["endpoints"] });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.rpc(endpointType(), endpointId()) });
+      await queryClient.invalidateQueries({ queryKey: ["rpcs"] });
     }
     catch(err) {
       setError(err instanceof Error ? err.message : "Failed to save endpoint.");
@@ -80,7 +80,7 @@ export default function EditEndpointPage() {
     }
 
     try {
-      await deleteEndpoint(model()!.type, model()!.id!);
+      await deleteRpc(model()!.type, model()!.id!);
       navigate("/endpoints", { replace: true });
     }
     catch(err) {

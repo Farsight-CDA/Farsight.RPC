@@ -1,7 +1,7 @@
 import { createQuery, useQueryClient } from "@tanstack/solid-query";
 import { For, Show, createSignal } from "solid-js";
 import { MessageBanner } from "../components/MessageBanner";
-import { createApiKey, getApiKeys, getApplications, getEnvironmentLookups, toggleApiKey } from "../lib/api";
+import { createApiKey, getApiKeys, getApplications, getEnvironmentLookups, updateApiKey } from "../lib/api";
 import { queryKeys } from "../lib/query";
 import type { ApiClientCreateResult, ApiClientListItem } from "../lib/types";
 
@@ -46,13 +46,13 @@ export default function AdminPage() {
 
   const toggle = async (row: ApiClientListItem) => {
     try {
-      await toggleApiKey(row.id);
+      await updateApiKey(row.id, !row.isEnabled);
       setMessage(`${row.apiKey} updated.`);
       setError(null);
       await queryClient.invalidateQueries({ queryKey: queryKeys.apiKeys });
     }
     catch(err) {
-      setError(err instanceof Error ? err.message : "Failed to toggle API key.");
+      setError(err instanceof Error ? err.message : "Failed to update API key.");
     }
   };
 

@@ -4,7 +4,7 @@ using Farsight.Rpc.Api.Persistence;
 using FastEndpoints;
 using Microsoft.EntityFrameworkCore;
 
-namespace Farsight.Rpc.Api.Endpoints;
+namespace Farsight.Rpc.Api.Endpoints.Providers;
 
 public sealed class GetProvidersEndpoint(RpcProvidersDbContext dbContext) : Endpoint<GetProvidersRequest, RpcProviderSetDto>
 {

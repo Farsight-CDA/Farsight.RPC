@@ -2,27 +2,27 @@ using Farsight.Rpc.Api.Persistence;
 using FastEndpoints;
 using Microsoft.EntityFrameworkCore;
 
-namespace Farsight.Rpc.Api.Endpoints.Admin.Providers;
+namespace Farsight.Rpc.Api.Endpoints.Admin.ApiKeys;
 
-public sealed class SaveProviderRateLimitEndpoint(RpcProvidersDbContext dbContext) : Endpoint<SaveProviderRateLimitEndpoint.Request>
+public sealed class UpdateApiKeyEndpoint(RpcProvidersDbContext dbContext) : Endpoint<UpdateApiKeyEndpoint.Request>
 {
     public sealed class Request
     {
         public Guid Id { get; set; }
-        public int RateLimit { get; set; }
+        public bool IsEnabled { get; set; }
     }
 
     public override void Configure()
     {
-        Put("/api/admin/providers/{Id}/rate-limit");
+        Patch("/api/admin/api-keys/{Id}");
         Policies(AuthorizationPolicies.ADMIN_ONLY);
     }
 
     public override async Task HandleAsync(Request req, CancellationToken ct)
     {
-        var entity = await dbContext.Providers.SingleAsync(x => x.Id == req.Id, ct);
-        entity.RateLimit = req.RateLimit;
-
+        var client = await dbContext.ApiClients.SingleAsync(x => x.Id == req.Id, ct);
+        client.IsEnabled = req.IsEnabled;
+        client.UpdatedUtc = DateTimeOffset.UtcNow;
         await dbContext.SaveChangesAsync(ct);
         await Send.NoContentAsync(ct);
     }

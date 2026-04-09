@@ -3,7 +3,7 @@ import { A, useNavigate, useSearchParams } from "@solidjs/router";
 import { createMemo, createSignal } from "solid-js";
 import { EndpointForm } from "../../components/EndpointForm";
 import { MessageBanner } from "../../components/MessageBanner";
-import { createEndpoint, getApplications, getChains, getEndpointTypeLookups, getEnvironmentLookups, getProviders, getTracingModeLookups } from "../../lib/api";
+import { createRpc, getApplications, getChains, getEndpointTypeLookups, getEnvironmentLookups, getProviders, getTracingModeLookups } from "../../lib/api";
 import { queryKeys } from "../../lib/query";
 import type { LookupItem, ProviderEditModel, ProviderRateLimitRow } from "../../lib/types";
 
@@ -49,7 +49,7 @@ export default function NewEndpointPage() {
   const save = async (event: SubmitEvent) => {
     event.preventDefault();
     try {
-      await createEndpoint(model());
+      await createRpc(model());
       navigate("/endpoints", { replace: true });
     }
     catch(err) {

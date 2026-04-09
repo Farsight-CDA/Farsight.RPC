@@ -1,12 +1,11 @@
 using Farsight.Rpc.Api.Models;
 using Farsight.Rpc.Api.Persistence;
-using Farsight.Rpc.Api.Services;
 using FastEndpoints;
 using Microsoft.EntityFrameworkCore;
 
 namespace Farsight.Rpc.Api.Endpoints.Admin.Providers;
 
-public sealed class GetProviderRateLimitsEndpoint(RpcProvidersDbContext dbContext) : EndpointWithoutRequest<IReadOnlyList<ProviderRateLimitRow>>
+public sealed class GetProvidersEndpoint(RpcProvidersDbContext dbContext) : EndpointWithoutRequest<IReadOnlyList<ProviderRateLimitRow>>
 {
     public override void Configure()
     {

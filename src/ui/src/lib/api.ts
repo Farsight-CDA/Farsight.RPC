@@ -73,12 +73,12 @@ export const createProvider = (name: string, rateLimit: number) => apiFetch<void
   body: JSON.stringify({ name, rateLimit }),
 });
 export const deleteProvider = (id: string) => apiFetch<void>(`/api/admin/providers/${id}`, { method: "DELETE" });
-export const saveProviderRateLimit = (id: string, rateLimit: number) => apiFetch<void>(`/api/admin/providers/${id}/rate-limit`, {
-  method: "PUT",
-  body: JSON.stringify({ id, rateLimit }),
+export const updateProvider = (id: string, rateLimit: number) => apiFetch<void>(`/api/admin/providers/${id}`, {
+  method: "PATCH",
+  body: JSON.stringify({ rateLimit }),
 });
 
-export const getEndpoints = (query: { applicationId?: string; chainId?: string; environment: HostEnvironment }) => {
+export const getRpcs = (query: { applicationId?: string; chainId?: string; environment: HostEnvironment }) => {
   const params = new URLSearchParams({ environment: query.environment });
   if(query.applicationId) {
     params.set("applicationId", query.applicationId);
@@ -86,19 +86,22 @@ export const getEndpoints = (query: { applicationId?: string; chainId?: string; 
   if(query.chainId) {
     params.set("chainId", query.chainId);
   }
-  return apiFetch<ProviderListItem[]>(`/api/admin/endpoints?${params.toString()}`);
+  return apiFetch<ProviderListItem[]>(`/api/admin/rpcs?${params.toString()}`);
 };
-export const getEndpoint = (type: RpcEndpointType, id: string) => apiFetch<ProviderEditModel>(`/api/admin/endpoints/${type}/${id}`);
-export const createEndpoint = (model: ProviderEditModel) => apiFetch<void>("/api/admin/endpoints", { method: "POST", body: JSON.stringify(model) });
-export const updateEndpoint = (model: ProviderEditModel) => apiFetch<void>("/api/admin/endpoints", { method: "PUT", body: JSON.stringify(model) });
-export const deleteEndpoint = (type: RpcEndpointType, id: string) => apiFetch<void>(`/api/admin/endpoints/${type}/${id}`, { method: "DELETE" });
+export const getRpc = (type: RpcEndpointType, id: string) => apiFetch<ProviderEditModel>(`/api/admin/rpcs/${type}/${id}`);
+export const createRpc = (model: ProviderEditModel) => apiFetch<void>("/api/admin/rpcs", { method: "POST", body: JSON.stringify(model) });
+export const updateRpc = (type: RpcEndpointType, id: string, model: ProviderEditModel) => apiFetch<void>(`/api/admin/rpcs/${type}/${id}`, { method: "PUT", body: JSON.stringify(model) });
+export const deleteRpc = (type: RpcEndpointType, id: string) => apiFetch<void>(`/api/admin/rpcs/${type}/${id}`, { method: "DELETE" });
 
 export const getApiKeys = () => apiFetch<ApiClientListItem[]>("/api/admin/api-keys");
 export const createApiKey = (applicationId: string, environment: HostEnvironment) => apiFetch<ApiClientCreateResult>("/api/admin/api-keys", {
   method: "POST",
   body: JSON.stringify({ applicationId, environment }),
 });
-export const toggleApiKey = (id: string) => apiFetch<void>(`/api/admin/api-keys/${id}/toggle`, { method: "POST" });
+export const updateApiKey = (id: string, isEnabled: boolean) => apiFetch<void>(`/api/admin/api-keys/${id}`, {
+  method: "PATCH",
+  body: JSON.stringify({ isEnabled }),
+});
 
 export const getEnvironmentLookups = () => apiFetch<string[]>("/api/admin/lookups/environments");
 export const getEndpointTypeLookups = () => apiFetch<string[]>("/api/admin/lookups/endpoint-types");

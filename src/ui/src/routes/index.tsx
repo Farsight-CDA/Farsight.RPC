@@ -2,7 +2,7 @@ import { createQuery, useQueryClient } from "@tanstack/solid-query";
 import { A } from "@solidjs/router";
 import { For, Show, createMemo, createSignal } from "solid-js";
 import { MessageBanner } from "../components/MessageBanner";
-import { createEndpoint, deleteEndpoint, getApplications, getChains, getEndpoints, getEndpointTypeLookups, getEnvironmentLookups, getProviders } from "../lib/api";
+import { createRpc, deleteRpc, getApplications, getChains, getRpcs, getEndpointTypeLookups, getEnvironmentLookups, getProviders } from "../lib/api";
 import { queryKeys } from "../lib/query";
 import type { HostEnvironment, ProviderListItem, RpcEndpointType } from "../lib/types";
 
@@ -39,8 +39,8 @@ export default function DashboardPage() {
     queryFn: getEndpointTypeLookups,
   }));
   const rowsQuery = createQuery(() => ({
-    queryKey: queryKeys.endpoints(applicationId() || undefined, chainId() || undefined, environment()),
-    queryFn: () => getEndpoints({ applicationId: applicationId(), chainId: chainId(), environment: environment() }),
+    queryKey: queryKeys.rpcs(applicationId() || undefined, chainId() || undefined, environment()),
+    queryFn: () => getRpcs({ applicationId: applicationId(), chainId: chainId(), environment: environment() }),
     enabled: canQuery(),
   }));
   const rows = () => rowsQuery.data ?? [];
@@ -58,7 +58,7 @@ export default function DashboardPage() {
     setError(null);
 
     try {
-      await createEndpoint({
+      await createRpc({
         type: type(),
         environment: environment(),
         applicationId: applicationId(),
@@ -72,7 +72,7 @@ export default function DashboardPage() {
       });
       setAddress("");
       setMessage("RPC endpoint added.");
-      await queryClient.invalidateQueries({ queryKey: queryKeys.endpoints(applicationId(), chainId(), environment()) });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.rpcs(applicationId(), chainId(), environment()) });
     }
     catch(err) {
       setError(err instanceof Error ? err.message : "Failed to add endpoint.");
@@ -85,10 +85,10 @@ export default function DashboardPage() {
     }
 
     try {
-      await deleteEndpoint(row.type, row.id);
+      await deleteRpc(row.type, row.id);
       setMessage("RPC endpoint removed.");
       setError(null);
-      await queryClient.invalidateQueries({ queryKey: queryKeys.endpoints(applicationId(), chainId(), environment()) });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.rpcs(applicationId(), chainId(), environment()) });
     }
     catch(err) {
       setError(err instanceof Error ? err.message : "Delete failed.");

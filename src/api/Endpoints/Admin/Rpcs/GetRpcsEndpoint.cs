@@ -1,13 +1,12 @@
 using Farsight.Rpc.Api.Models;
 using Farsight.Rpc.Api.Persistence;
-using Farsight.Rpc.Api.Services;
 using Farsight.Rpc.Types;
 using FastEndpoints;
 using Microsoft.EntityFrameworkCore;
 
-namespace Farsight.Rpc.Api.Endpoints.Admin.Endpoints;
+namespace Farsight.Rpc.Api.Endpoints.Admin.Rpcs;
 
-public sealed class GetSavedEndpointsEndpoint(RpcProvidersDbContext dbContext) : Endpoint<GetSavedEndpointsEndpoint.Request, IReadOnlyList<ProviderListItem>>
+public sealed class GetRpcsEndpoint(RpcProvidersDbContext dbContext) : Endpoint<GetRpcsEndpoint.Request, IReadOnlyList<ProviderListItem>>
 {
     public sealed class Request
     {
@@ -18,7 +17,7 @@ public sealed class GetSavedEndpointsEndpoint(RpcProvidersDbContext dbContext) :
 
     public override void Configure()
     {
-        Get("/api/admin/endpoints");
+        Get("/api/admin/rpcs");
         Policies(AuthorizationPolicies.ADMIN_ONLY);
     }
 

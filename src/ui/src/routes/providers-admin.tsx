@@ -1,7 +1,7 @@
 import { createQuery, useQueryClient } from "@tanstack/solid-query";
 import { For, createSignal } from "solid-js";
 import { MessageBanner } from "../components/MessageBanner";
-import { createProvider, deleteProvider, getProviders, saveProviderRateLimit } from "../lib/api";
+import { createProvider, deleteProvider, getProviders, updateProvider } from "../lib/api";
 import { queryKeys } from "../lib/query";
 import type { ProviderRateLimitRow } from "../lib/types";
 
@@ -45,7 +45,7 @@ export default function ProvidersAdminPage() {
         throw new Error("Rate limit must be greater than 0.");
       }
 
-      await saveProviderRateLimit(row.providerId, parsedRateLimit);
+      await updateProvider(row.providerId, parsedRateLimit);
       setMessage(`Updated rate limit for ${row.provider}.`);
       setError(null);
       await queryClient.invalidateQueries({ queryKey: queryKeys.providers });

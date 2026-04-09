@@ -18,7 +18,7 @@ export default function Navbar() {
       <button
         type="button"
         onClick={handleLogout}
-        class="border-4 border-[var(--color-b-ink)] bg-b-paper px-4 py-2 text-xs font-bold uppercase tracking-widest text-b-ink shadow-[4px_4px_0_0_var(--color-b-ink)] transition-transform hover:-translate-x-px hover:-translate-y-px hover:shadow-[6px_6px_0_0_var(--color-b-ink)] focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-b-accent active:translate-x-0 active:translate-y-0 active:shadow-[2px_2px_0_0_var(--color-b-ink)]"
+        class="btn btn-interactive btn-sm btn-secondary"
       >
         Log out
       </button>

@@ -1,5 +1,6 @@
 using Farsight.Rpc.Api.Configuration;
 using Farsight.Rpc.Api.Persistence;
+using Farsight.Rpc.Types;
 using FastEndpoints;
 using FastEndpoints.Security;
 using Microsoft.AspNetCore.HttpOverrides;
@@ -90,6 +91,9 @@ public static class App
         app.UseRouting();
         app.UseAuthentication();
         app.UseAuthorization();
-        app.UseFastEndpoints();
+        app.UseFastEndpoints(x =>
+        {
+            FarsightRpcJson.ConfigureJsonConverters(x.Serializer.Options);
+        });
     }
 }

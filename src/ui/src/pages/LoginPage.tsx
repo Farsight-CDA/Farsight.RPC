@@ -1,5 +1,6 @@
-import { createSignal } from "solid-js";
+import { createSignal, Show } from "solid-js";
 import { useNavigate } from "@solidjs/router";
+import LoadingSpinner from "../components/LoadingSpinner";
 import { useAuth } from "../lib/auth";
 
 export default function LoginPage() {
@@ -82,8 +83,11 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading()}
-            class="mt-2 border-4 border-[var(--color-b-ink)] bg-b-ink px-4 py-4 text-sm font-bold uppercase tracking-[0.2em] text-b-paper shadow-[6px_6px_0_0_var(--color-b-accent)] transition-transform hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[8px_8px_0_0_var(--color-b-accent)] focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-b-accent disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none disabled:hover:translate-x-0 disabled:hover:translate-y-0"
+            class="btn btn-interactive btn-disabled btn-primary mt-2 px-4 py-4 text-sm tracking-[0.2em]"
           >
+            <Show when={loading()}>
+              <LoadingSpinner class="size-4 text-b-paper" />
+            </Show>
             {loading() ? "Signing in…" : "Sign in"}
           </button>
         </form>

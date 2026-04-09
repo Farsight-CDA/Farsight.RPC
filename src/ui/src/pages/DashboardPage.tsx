@@ -1,10 +1,14 @@
 import { A } from "@solidjs/router";
 import { createResource, createSignal, For, Show } from "solid-js";
+import LoadingSpinner from "../components/LoadingSpinner";
+import KeyIcon from "../components/icons/KeyIcon";
+import RpcIcon from "../components/icons/RpcIcon";
 import { useAuth } from "../lib/auth";
 
 type ApplicationSummary = {
   id: string;
   name: string;
+  apiKeyCount: number;
   tracingCount: number;
   realtimeCount: number;
   archiveCount: number;
@@ -202,12 +206,19 @@ export default function DashboardPage() {
           <button
             type="button"
             onClick={openModal}
-            class="shrink-0 border-4 border-[var(--color-b-ink)] bg-b-ink px-4 py-3 text-xs font-bold uppercase tracking-widest text-b-paper shadow-[4px_4px_0_0_var(--color-b-accent)] transition-transform hover:-translate-x-px hover:-translate-y-px hover:shadow-[6px_6px_0_0_var(--color-b-accent)] focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-b-accent"
+            class="btn btn-md btn-interactive btn-disabled btn-primary shrink-0"
           >
             New application
           </button>
         </div>
         <div class="mt-6 h-1 w-full bg-b-ink" />
+
+        <Show when={applications.state === "refreshing"}>
+          <div class="mt-6 flex items-center gap-3 text-xs font-bold uppercase tracking-widest text-b-ink/80">
+            <LoadingSpinner class="size-4" />
+            Updating…
+          </div>
+        </Show>
 
         <Show when={applications.error}>
           <p class="mt-8 border-4 border-[var(--color-b-accent)] bg-b-paper px-3 py-3 text-xs font-bold uppercase leading-snug text-b-accent">
@@ -215,16 +226,18 @@ export default function DashboardPage() {
           </p>
         </Show>
 
-        <Show when={applications.loading}>
-          <p class="mt-8 text-sm font-semibold uppercase tracking-wider text-b-ink/80">
+        <Show when={applications.state === "pending"}>
+          <div class="mt-8 flex items-center gap-3 text-sm font-semibold uppercase tracking-wider text-b-ink/80">
+            <LoadingSpinner class="size-5" />
             Loading…
-          </p>
+          </div>
         </Show>
 
         <Show
           when={
-            !applications.loading &&
             !applications.error &&
+            (applications.state === "ready" ||
+              applications.state === "refreshing") &&
             (applications() ?? []).length > 0
           }
         >
@@ -233,30 +246,38 @@ export default function DashboardPage() {
               {(app) => (
                 <li>
                   <div class="flex flex-col gap-3 border-4 border-[var(--color-b-ink)] bg-b-paper p-4 shadow-[4px_4px_0_0_var(--color-b-ink)] sm:flex-row sm:items-stretch sm:gap-4">
-                    <A
-                      href={`/applications/${app.id}`}
-                      class="min-w-0 flex-1 text-left outline-none transition-transform hover:-translate-x-px hover:-translate-y-px focus-visible:ring-4 focus-visible:ring-b-accent"
-                    >
-                      <span class="font-['Anton',sans-serif] text-2xl uppercase tracking-wide text-b-ink">
-                        {app.name}
-                      </span>
-                      <p class="mt-2 text-xs font-bold uppercase tracking-widest text-b-ink/70">
-                        Tracing {app.tracingCount} · Realtime{" "}
-                        {app.realtimeCount} · Archive {app.archiveCount}
-                      </p>
-                    </A>
+                    <div class="flex min-w-0 flex-1 flex-col justify-between">
+                      <A
+                        href={`/applications/${app.id}`}
+                        class="block text-left outline-none transition hover:translate-x-px hover:translate-y-px focus-visible:ring-4 focus-visible:ring-b-accent"
+                      >
+                        <span class="font-['Anton',sans-serif] text-2xl uppercase tracking-wide text-b-ink">
+                          {app.name}
+                        </span>
+                      </A>
+                      <div class="mt-3 flex items-center gap-4 text-xs font-bold uppercase tracking-widest text-b-ink/70">
+                        <div class="flex items-center gap-1">
+                          <KeyIcon class="size-4" />
+                          {app.apiKeyCount}
+                        </div>
+                        <div class="flex items-center gap-1">
+                          <RpcIcon class="size-4" />
+                          {app.tracingCount + app.realtimeCount + app.archiveCount}
+                        </div>
+                      </div>
+                    </div>
                     <div class="flex shrink-0 flex-row gap-2 sm:flex-col sm:justify-center">
                       <button
                         type="button"
                         onClick={() => openRename(app)}
-                        class="flex-1 border-4 border-[var(--color-b-ink)] bg-b-paper px-3 py-2 text-[0.65rem] font-bold uppercase tracking-widest text-b-ink shadow-[3px_3px_0_0_var(--color-b-ink)] transition-transform hover:-translate-x-px hover:-translate-y-px hover:shadow-[4px_4px_0_0_var(--color-b-ink)] focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-b-accent sm:flex-none"
+                        class="btn btn-sm btn-interactive btn-disabled btn-secondary flex-1 sm:flex-none"
                       >
                         Rename
                       </button>
                       <button
                         type="button"
                         onClick={() => openDelete(app)}
-                        class="flex-1 border-4 border-[var(--color-b-accent)] bg-b-paper px-3 py-2 text-[0.65rem] font-bold uppercase tracking-widest text-b-accent shadow-[3px_3px_0_0_var(--color-b-accent)] transition-transform hover:-translate-x-px hover:-translate-y-px hover:shadow-[4px_4px_0_0_var(--color-b-accent)] focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-b-accent sm:flex-none"
+                        class="btn btn-sm btn-interactive btn-disabled btn-danger flex-1 sm:flex-none"
                       >
                         Delete
                       </button>
@@ -270,8 +291,8 @@ export default function DashboardPage() {
 
         <Show
           when={
-            !applications.loading &&
             !applications.error &&
+            applications.state === "ready" &&
             (applications() ?? []).length === 0
           }
         >
@@ -335,15 +356,18 @@ export default function DashboardPage() {
                   type="button"
                   onClick={closeModal}
                   disabled={createLoading()}
-                  class="border-4 border-[var(--color-b-ink)] bg-b-paper px-4 py-3 text-xs font-bold uppercase tracking-widest text-b-ink shadow-[4px_4px_0_0_var(--color-b-ink)] transition-transform hover:-translate-x-px hover:-translate-y-px hover:shadow-[6px_6px_0_0_var(--color-b-ink)] focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-b-accent disabled:cursor-not-allowed disabled:opacity-40"
+                  class="btn btn-md btn-interactive btn-disabled btn-secondary"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={createLoading()}
-                  class="border-4 border-[var(--color-b-ink)] bg-b-ink px-4 py-3 text-xs font-bold uppercase tracking-widest text-b-paper shadow-[4px_4px_0_0_var(--color-b-accent)] transition-transform hover:-translate-x-px hover:-translate-y-px hover:shadow-[6px_6px_0_0_var(--color-b-accent)] focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-b-accent disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none"
+                  class="btn btn-md btn-interactive btn-disabled btn-primary"
                 >
+                  <Show when={createLoading()}>
+                    <LoadingSpinner class="size-3.5 text-b-paper" />
+                  </Show>
                   {createLoading() ? "Creating…" : "Create"}
                 </button>
               </div>
@@ -406,15 +430,18 @@ export default function DashboardPage() {
                   type="button"
                   onClick={closeRenameModal}
                   disabled={renameLoading()}
-                  class="border-4 border-[var(--color-b-ink)] bg-b-paper px-4 py-3 text-xs font-bold uppercase tracking-widest text-b-ink shadow-[4px_4px_0_0_var(--color-b-ink)] transition-transform hover:-translate-x-px hover:-translate-y-px hover:shadow-[6px_6px_0_0_var(--color-b-ink)] focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-b-accent disabled:cursor-not-allowed disabled:opacity-40"
+                  class="btn btn-md btn-interactive btn-disabled btn-secondary"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={renameLoading()}
-                  class="border-4 border-[var(--color-b-ink)] bg-b-ink px-4 py-3 text-xs font-bold uppercase tracking-widest text-b-paper shadow-[4px_4px_0_0_var(--color-b-accent)] transition-transform hover:-translate-x-px hover:-translate-y-px hover:shadow-[6px_6px_0_0_var(--color-b-accent)] focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-b-accent disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none"
+                  class="btn btn-md btn-interactive btn-disabled btn-primary"
                 >
+                  <Show when={renameLoading()}>
+                    <LoadingSpinner class="size-3.5 text-b-paper" />
+                  </Show>
                   {renameLoading() ? "Saving…" : "Save"}
                 </button>
               </div>
@@ -462,7 +489,7 @@ export default function DashboardPage() {
                 type="button"
                 onClick={closeDeleteModal}
                 disabled={deleteLoading()}
-                class="border-4 border-[var(--color-b-ink)] bg-b-paper px-4 py-3 text-xs font-bold uppercase tracking-widest text-b-ink shadow-[4px_4px_0_0_var(--color-b-ink)] transition-transform hover:-translate-x-px hover:-translate-y-px hover:shadow-[6px_6px_0_0_var(--color-b-ink)] focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-b-accent disabled:cursor-not-allowed disabled:opacity-40"
+                class="btn btn-md btn-interactive btn-disabled btn-secondary"
               >
                 Cancel
               </button>
@@ -470,8 +497,11 @@ export default function DashboardPage() {
                 type="button"
                 onClick={handleDelete}
                 disabled={deleteLoading()}
-                class="border-4 border-[var(--color-b-accent)] bg-b-paper px-4 py-3 text-xs font-bold uppercase tracking-widest text-b-accent shadow-[4px_4px_0_0_var(--color-b-accent)] transition-transform hover:-translate-x-px hover:-translate-y-px hover:shadow-[6px_6px_0_0_var(--color-b-accent)] focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-b-accent disabled:cursor-not-allowed disabled:opacity-40"
+                class="btn btn-md btn-interactive btn-disabled btn-danger"
               >
+                <Show when={deleteLoading()}>
+                  <LoadingSpinner class="size-3.5" />
+                </Show>
                 {deleteLoading() ? "Deleting…" : "Delete"}
               </button>
             </div>

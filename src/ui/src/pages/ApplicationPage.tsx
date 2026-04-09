@@ -1,3 +1,232 @@
+import { useParams } from "@solidjs/router";
+import { createEffect, createResource, createSignal, For, Show } from "solid-js";
+import LoadingSpinner from "../components/LoadingSpinner";
+import { useAuth } from "../lib/auth";
+
+type Application = {
+  id: string;
+  name: string;
+  apiKeyCount: number;
+  tracingCount: number;
+  realtimeCount: number;
+  archiveCount: number;
+};
+
+type HostEnvironment = "Production" | "Development" | "Staging";
+
 export default function ApplicationPage() {
-  return <main class="flex flex-1 flex-col" />;
+  const auth = useAuth();
+  const params = useParams();
+  const applicationId = () => params.applicationId;
+
+  const [selectedEnvironment, setSelectedEnvironment] = createSignal<HostEnvironment | undefined>(undefined);
+
+  // Set initial environment once data is loaded
+  createEffect(() => {
+    const envs = environments();
+    if (envs && envs.length > 0 && !selectedEnvironment()) {
+      setSelectedEnvironment(envs[0]);
+    }
+  });
+
+  const [application] = createResource(
+    () => ({ token: auth.token, id: applicationId() }),
+    async ({ token, id }) => {
+      if (!token || !id) return null;
+      const response = await fetch("/api/applications", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!response.ok) {
+        throw new Error("Failed to load application");
+      }
+      const apps = (await response.json()) as Application[];
+      return apps.find((a) => a.id === id) || null;
+    },
+  );
+
+  const [chains] = createResource(
+    () => auth.token,
+    async (token) => {
+      if (!token) return [] as string[];
+      const response = await fetch("/api/chains", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!response.ok) {
+        throw new Error("Failed to load chains");
+      }
+      return response.json() as Promise<string[]>;
+    },
+  );
+
+  const [environments] = createResource(
+    () => auth.token,
+    async (token) => {
+      if (!token) return [] as HostEnvironment[];
+      const response = await fetch("/api/host-environments", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!response.ok) {
+        throw new Error("Failed to load environments");
+      }
+      return response.json() as Promise<HostEnvironment[]>;
+    },
+  );
+
+  return (
+    <main class="flex flex-1 flex-col">
+      {/* Header Section */}
+      <div class="border-b-4 border-[var(--color-b-ink)] bg-b-field px-6 py-8">
+        <div class="mx-auto max-w-7xl">
+          <Show when={application.state === "pending"}>
+            <div class="flex items-center gap-3 text-sm font-semibold uppercase tracking-wider text-b-ink/80">
+              <LoadingSpinner class="size-5" />
+              Loading application…
+            </div>
+          </Show>
+
+          <Show when={application.error}>
+            <p class="border-4 border-[var(--color-b-accent)] bg-b-paper px-3 py-3 text-xs font-bold uppercase leading-snug text-b-accent">
+              {application.error.message}
+            </p>
+          </Show>
+
+          <Show when={application() && application.state === "ready"}>
+            <div class="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <p class="mb-2 text-xs font-bold uppercase tracking-[0.4em] text-b-ink">
+                  Application
+                </p>
+                <h1 class="font-['Anton',sans-serif] text-4xl uppercase leading-none tracking-wide text-b-ink sm:text-5xl">
+                  {application()?.name}
+                </h1>
+              </div>
+
+              {/* Host Environment Selector */}
+              <div class="flex flex-col gap-2">
+                <label
+                  for="environment-select"
+                  class="text-xs font-bold uppercase tracking-widest text-b-ink"
+                >
+                  Environment
+                </label>
+                <Show when={environments.state === "pending" || !selectedEnvironment()}>
+                  <div class="flex h-12 items-center gap-2 border-4 border-[var(--color-b-ink)] bg-b-paper px-3 sm:w-48">
+                    <LoadingSpinner class="size-4" />
+                    <span class="text-xs font-bold uppercase tracking-widest text-b-ink/60">
+                      Loading…
+                    </span>
+                  </div>
+                </Show>
+                <Show when={environments() && environments.state === "ready" && selectedEnvironment()}>
+                  <div class="relative">
+                    <select
+                      id="environment-select"
+                      value={selectedEnvironment()}
+                      onChange={(e) =>
+                        setSelectedEnvironment(e.currentTarget.value as HostEnvironment)
+                      }
+                      class="h-12 w-full appearance-none border-4 border-[var(--color-b-ink)] bg-b-paper px-3 pr-10 text-sm font-bold uppercase tracking-widest text-b-ink outline-none focus-visible:ring-4 focus-visible:ring-b-accent sm:w-48"
+                    >
+                      <For each={environments()}>
+                        {(env) => <option value={env}>{env}</option>}
+                      </For>
+                    </select>
+                    <div class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2">
+                      <svg
+                        class="size-5 text-b-ink"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="3"
+                          d="M19 9l-7 7-7-7"
+                        />
+                      </svg>
+                    </div>
+                  </div>
+                </Show>
+              </div>
+            </div>
+          </Show>
+        </div>
+      </div>
+
+      {/* Chains Grid Section */}
+      <div class="flex-1 px-6 py-8">
+        <div class="mx-auto max-w-7xl">
+          <Show when={chains.state === "pending"}>
+            <div class="flex flex-col items-center justify-center gap-4 py-16">
+              <LoadingSpinner class="size-8" />
+              <p class="text-sm font-bold uppercase tracking-widest text-b-ink/80">
+                Loading chains…
+              </p>
+            </div>
+          </Show>
+
+          <Show when={chains.error}>
+            <div class="mx-auto max-w-md">
+              <p class="border-4 border-[var(--color-b-accent)] bg-b-paper px-4 py-4 text-center text-xs font-bold uppercase leading-snug text-b-accent">
+                {chains.error.message}
+              </p>
+            </div>
+          </Show>
+
+          <Show when={chains() && chains.state === "ready"}>
+            <div class="mb-6 flex items-center justify-between">
+              <p class="text-xs font-bold uppercase tracking-[0.4em] text-b-ink">
+                Select a Chain
+              </p>
+              <span class="text-xs font-bold uppercase tracking-widest text-b-ink/60">
+                {chains()?.length} available
+              </span>
+            </div>
+
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              <For each={chains()}>
+                {(chain) => (
+                  <button
+                    type="button"
+                    class="group relative flex flex-col items-start gap-3 border-4 border-[var(--color-b-ink)] bg-b-paper p-5 shadow-[6px_6px_0_0_var(--color-b-ink)] transition-all hover:translate-x-1 hover:translate-y-1 hover:shadow-[2px_2px_0_0_var(--color-b-ink)] hover:bg-b-field focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-b-accent active:translate-x-1.5 active:translate-y-1.5 active:shadow-none"
+                  >
+                    <div class="flex w-full items-center justify-between">
+                      <span class="font-['Anton',sans-serif] text-xl uppercase tracking-wide text-b-ink">
+                        {chain}
+                      </span>
+                      <div class="flex size-8 items-center justify-center border-2 border-[var(--color-b-ink)] bg-b-field transition-colors group-hover:bg-b-accent group-hover:border-b-accent">
+                        <svg
+                          class="size-4 text-b-ink transition-colors group-hover:text-b-paper"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="3"
+                            d="M9 5l7 7-7 7"
+                          />
+                        </svg>
+                      </div>
+                    </div>
+                    <div class="h-1 w-12 bg-b-ink transition-all group-hover:w-full" />
+                  </button>
+                )}
+              </For>
+            </div>
+          </Show>
+
+          <Show when={chains() && chains.state === "ready" && chains()!.length === 0}>
+            <div class="flex flex-col items-center justify-center gap-4 py-16">
+              <p class="text-center text-sm font-semibold uppercase tracking-wider text-b-ink/80">
+                No chains available.
+              </p>
+            </div>
+          </Show>
+        </div>
+      </div>
+    </main>
+  );
 }

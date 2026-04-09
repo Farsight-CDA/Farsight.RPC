@@ -8,6 +8,39 @@
   --color-b-stripe: #d4cfc3;
 }
 
+/* Button component utilities */
+@utility btn {
+  @apply inline-flex items-center justify-center gap-2 border-4 font-bold uppercase transition;
+}
+
+@utility btn-md {
+  @apply px-4 py-3 text-xs tracking-widest;
+}
+
+@utility btn-sm {
+  @apply px-3 py-2 text-[0.65rem] tracking-widest;
+}
+
+@utility btn-interactive {
+  @apply hover:translate-x-px hover:translate-y-px hover:shadow-none focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-b-accent active:translate-x-0.5 active:translate-y-0.5;
+}
+
+@utility btn-disabled {
+  @apply disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-x-0 disabled:hover:translate-y-0;
+}
+
+@utility btn-primary {
+  @apply border-[var(--color-b-ink)] bg-b-ink text-b-paper shadow-[4px_4px_0_0_var(--color-b-accent)] disabled:shadow-none disabled:hover:shadow-none;
+}
+
+@utility btn-secondary {
+  @apply border-[var(--color-b-ink)] bg-b-paper text-b-ink shadow-[4px_4px_0_0_var(--color-b-ink)] disabled:hover:shadow-[4px_4px_0_0_var(--color-b-ink)];
+}
+
+@utility btn-danger {
+  @apply border-[var(--color-b-accent)] bg-b-paper text-b-accent shadow-[4px_4px_0_0_var(--color-b-accent)] disabled:hover:shadow-[4px_4px_0_0_var(--color-b-accent)];
+}
+
 @layer base {
   html {
     @apply antialiased;

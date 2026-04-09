@@ -1,10 +1,15 @@
+using Farsight.Rpc.Api.Auth;
 using Farsight.Rpc.Api.Configuration;
-using Farsight.Rpc.Api.Services;
 using FastEndpoints;
+using FastEndpoints.Security;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace Farsight.Rpc.Api.Endpoints.Auth.Login;
 
-public sealed class POST(AdminAuthenticationService adminAuthenticationService, JwtConfiguration jwtConfiguration) : Endpoint<POST.Request, POST.Response>
+public sealed class POST(AdminLoginConfiguration adminLoginConfiguration, JwtConfiguration jwtConfiguration) : Endpoint<POST.Request, POST.Response>
 {
     public sealed record Request(
         string Username,
@@ -24,13 +29,31 @@ public sealed class POST(AdminAuthenticationService adminAuthenticationService, 
 
     public override async Task HandleAsync(Request req, CancellationToken ct)
     {
-        if(!adminAuthenticationService.IsValidCredentials(req.Username, req.Password))
+        if(req.Username != adminLoginConfiguration.User || !IsValidPassword(req.Password))
         {
             await Send.UnauthorizedAsync(ct);
             return;
         }
 
         var expiresUtc = DateTimeOffset.UtcNow.AddMinutes(jwtConfiguration.ExpiryMinutes);
-        await Send.OkAsync(new Response(adminAuthenticationService.CreateToken(req.Username), req.Username, expiresUtc), ct);
+        var token = JwtBearer.CreateToken(options =>
+        {
+            options.ExpireAt = expiresUtc.UtcDateTime;
+            options.User.Roles.Add(AuthRoles.ADMIN);
+            options.User.Claims.Add(new Claim(JwtRegisteredClaimNames.Sub, req.Username));
+            options.User.Claims.Add(new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()));
+            options.User.Claims.Add(new Claim(ClaimTypes.NameIdentifier, AuthRoles.ADMIN));
+            options.User.Claims.Add(new Claim(ClaimTypes.Name, req.Username));
+        });
+
+        await Send.OkAsync(new Response(token, req.Username, expiresUtc), ct);
+    }
+
+    private bool IsValidPassword(string password)
+    {
+        byte[] providedPassword = Encoding.UTF8.GetBytes(password);
+        byte[] configuredPassword = Encoding.UTF8.GetBytes(adminLoginConfiguration.Password);
+        return providedPassword.Length == configuredPassword.Length
+            && CryptographicOperations.FixedTimeEquals(providedPassword, configuredPassword);
     }
 }

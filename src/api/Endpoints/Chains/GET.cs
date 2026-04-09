@@ -11,7 +11,7 @@ public sealed class GET(ChainService chainService) : EndpointWithoutRequest<Read
     public override void Configure()
     {
         Get("/api/chains");
-        Policies(AuthPolicies.ADMIN_ONLY);
+        Roles(AuthRoles.ADMIN);
     }
 
     public override async Task HandleAsync(CancellationToken ct)

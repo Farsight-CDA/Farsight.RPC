@@ -12,7 +12,7 @@ public sealed class GET(AppDbContext dbContext) : EndpointWithoutRequest<GET.Rpc
     public override void Configure()
     {
         Get("/api/rpc-providers");
-        Policies(AuthPolicies.ADMIN_ONLY);
+        Roles(AuthRoles.ADMIN);
     }
 
     public override async Task HandleAsync(CancellationToken ct)

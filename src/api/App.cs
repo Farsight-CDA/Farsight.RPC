@@ -1,13 +1,11 @@
-using Farsight.Rpc.Api.Auth;
 using Farsight.Rpc.Api.Configuration;
 using Farsight.Rpc.Api.Persistence;
 using FastEndpoints;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
+using FastEndpoints.Security;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Net;
-using System.Text;
 
 namespace Farsight.Rpc.Api;
 
@@ -50,36 +48,33 @@ public static class App
 
     public static void ConfigureAuth(WebApplicationBuilder builder)
     {
-        builder.Services.AddTransient<SymmetricSecurityKey>(provider =>
-            new(Encoding.UTF8.GetBytes(provider.GetRequiredService<JwtConfiguration>().Secret)));
+        var jwtConfiguration = builder.Configuration
+            .GetRequiredSection(JwtConfiguration.SECTION_NAME)
+            .Get<JwtConfiguration>() ?? throw new InvalidOperationException("The Jwt configuration section is required.");
 
-        builder.Services.AddAuthentication(options =>
+        builder.Services.AddOptions<JwtCreationOptions>()
+            .Configure(options =>
             {
-                options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
-                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-            })
-            .AddJwtBearer();
-
-        builder.Services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme)
-            .Configure<JwtConfiguration, SymmetricSecurityKey>((options, jwtConfiguration, signingKey) => options.TokenValidationParameters = new TokenValidationParameters
-            {
-                ValidateIssuer = true,
-                ValidIssuer = jwtConfiguration.Issuer,
-                ValidateAudience = true,
-                ValidAudience = jwtConfiguration.Audience,
-                ValidateIssuerSigningKey = true,
-                IssuerSigningKey = signingKey,
-                ValidateLifetime = true,
-                ClockSkew = TimeSpan.FromMinutes(1)
+                options.SigningKey = jwtConfiguration.Secret;
+                options.Issuer = jwtConfiguration.Issuer;
+                options.Audience = jwtConfiguration.Audience;
             });
 
-        builder.Services.AddAuthorizationBuilder()
-            .AddPolicy(AuthPolicies.ADMIN_ONLY, policy =>
-            {
-                policy.AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme);
-                policy.RequireAuthenticatedUser();
-                policy.RequireRole(AuthRoles.ADMIN);
-            });
+        builder.Services
+            .AddAuthenticationJwtBearer(
+                signingOptions => signingOptions.SigningKey = jwtConfiguration.Secret,
+                bearerOptions =>
+                {
+                    var tokenValidationParameters = bearerOptions.TokenValidationParameters ??= new TokenValidationParameters();
+                    tokenValidationParameters.ValidateIssuer = true;
+                    tokenValidationParameters.ValidIssuer = jwtConfiguration.Issuer;
+                    tokenValidationParameters.ValidateAudience = true;
+                    tokenValidationParameters.ValidAudience = jwtConfiguration.Audience;
+                    tokenValidationParameters.ValidateIssuerSigningKey = true;
+                    tokenValidationParameters.ValidateLifetime = true;
+                    tokenValidationParameters.ClockSkew = TimeSpan.FromMinutes(1);
+                })
+            .AddAuthorization();
     }
 
     public static void Configure(WebApplication app)

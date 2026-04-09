@@ -12,7 +12,7 @@ public sealed class GET(AppDbContext dbContext) : EndpointWithoutRequest<GET.App
     public override void Configure()
     {
         Get("/api/applications");
-        Policies(AuthPolicies.ADMIN_ONLY);
+        Roles(AuthRoles.ADMIN);
     }
 
     public override async Task HandleAsync(CancellationToken ct)

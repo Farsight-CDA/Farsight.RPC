@@ -18,7 +18,7 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request, POST.R
         public Validator()
         {
             RuleFor(x => x.Name)
-                .Must(static name => !string.IsNullOrWhiteSpace(name))
+                .Must(static name => !String.IsNullOrWhiteSpace(name))
                 .WithMessage("Name is required.");
 
             RuleFor(x => x.Name)
@@ -30,13 +30,15 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request, POST.R
     public override void Configure()
     {
         Post("/api/applications");
-        Policies(AuthPolicies.ADMIN_ONLY);
+        Roles(AuthRoles.ADMIN);
     }
 
     public override async Task HandleAsync(Request req, CancellationToken ct)
     {
         if(await dbContext.ConsumerApplications.AnyAsync(a => a.Name == req.Name, ct))
+        {
             ThrowError("An application with this name already exists.", 409);
+        }
 
         var application = new ConsumerApplication
         {

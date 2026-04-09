@@ -148,19 +148,17 @@ export default function DashboardPage() {
             (applications() ?? []).length > 0
           }
         >
-          <ul class="mt-8 flex flex-col gap-4">
+              <ul class="mt-8 flex flex-col gap-4">
             <For each={applications()}>
               {(app) => (
                 <li>
-                  <div class="group border-4 border-[var(--color-b-ink)] bg-b-paper p-4 shadow-[4px_4px_0_0_rgba(232,228,220,0.1)] hover:shadow-[6px_6px_0_0_rgba(255,87,34,0.2)] transition-all duration-200 hover:border-b-accent/50">
-                    <A
-                      href={`/applications/${app.id}`}
-                      class="block text-left outline-none transition-all duration-200 hover:translate-x-1 hover:text-b-accent focus-visible:ring-4 focus-visible:ring-b-accent/50"
-                    >
-                      <span class="font-['Anton',sans-serif] text-2xl uppercase tracking-wide text-b-ink group-hover:text-b-accent transition-colors duration-200">
-                        {app.name}
-                      </span>
-                    </A>
+                  <A
+                    href={`/applications/${app.id}`}
+                    class="group block border-4 border-[var(--color-b-ink)] bg-b-paper p-4 shadow-[4px_4px_0_0_rgba(232,228,220,0.1)] hover:shadow-[6px_6px_0_0_rgba(255,87,34,0.2)] transition-all duration-200 hover:border-b-accent/50 outline-none focus-visible:ring-4 focus-visible:ring-b-accent/50"
+                  >
+                    <span class="font-['Anton',sans-serif] text-2xl uppercase tracking-wide text-b-ink group-hover:text-b-accent transition-colors duration-200">
+                      {app.name}
+                    </span>
                     <div class="mt-3 flex items-center gap-4 text-xs font-bold uppercase tracking-widest text-b-ink/60">
                       <div class="flex items-center gap-1 group-hover:text-b-accent/80 transition-colors duration-200">
                         <KeyIcon class="size-4" />
@@ -171,7 +169,7 @@ export default function DashboardPage() {
                         {app.tracingCount + app.realtimeCount + app.archiveCount}
                       </div>
                     </div>
-                  </div>
+                  </A>
                 </li>
               )}
             </For>

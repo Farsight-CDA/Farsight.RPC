@@ -4,9 +4,9 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Farsight.Rpc.Api.Persistence.Configurations.Rpc;
 
-internal sealed class ArchiveRpcEFConfiguration : IEntityTypeConfiguration<ArchiveRpc>
+internal sealed class ArchiveRpcEFConfiguration : IEntityTypeConfiguration<RpcEndpoint.Archive>
 {
-    public void Configure(EntityTypeBuilder<ArchiveRpc> entity)
+    public void Configure(EntityTypeBuilder<RpcEndpoint.Archive> entity)
     {
         entity.Property(x => x.IndexerStepSize);
         entity.Property(x => x.DexIndexerStepSize);

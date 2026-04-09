@@ -4,8 +4,8 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Farsight.Rpc.Api.Persistence.Configurations.Rpc;
 
-internal sealed class TracingRpcEFConfiguration : IEntityTypeConfiguration<TracingRpc>
+internal sealed class TracingRpcEFConfiguration : IEntityTypeConfiguration<RpcEndpoint.Tracing>
 {
-    public void Configure(EntityTypeBuilder<TracingRpc> entity)
+    public void Configure(EntityTypeBuilder<RpcEndpoint.Tracing> entity)
     => entity.Property(x => x.TracingMode);
 }

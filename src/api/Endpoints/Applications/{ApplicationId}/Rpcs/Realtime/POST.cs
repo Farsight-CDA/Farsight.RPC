@@ -64,7 +64,7 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request>
             ThrowError("RPC provider not found.", 404);
         }
 
-        dbContext.RealtimeRpcs.Add(new RealtimeRpc
+        dbContext.RealtimeRpcs.Add(new RpcEndpoint.Realtime
         {
             Id = Guid.NewGuid(),
             ApplicationId = req.ApplicationId,

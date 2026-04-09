@@ -79,7 +79,7 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request>
             ThrowError("RPC provider not found.", 404);
         }
 
-        dbContext.ArchiveRpcs.Add(new ArchiveRpc
+        dbContext.ArchiveRpcs.Add(new RpcEndpoint.Archive
         {
             Id = Guid.NewGuid(),
             ApplicationId = req.ApplicationId,

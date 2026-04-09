@@ -129,7 +129,7 @@ namespace Farsight.Rpc.Api.Persistence.Migrations
                     b.ToTable("RpcProviders", (string)null);
                 });
 
-            modelBuilder.Entity("Farsight.Rpc.Api.Persistence.Entities.Rpc.ArchiveRpc", b =>
+            modelBuilder.Entity("Farsight.Rpc.Api.Persistence.Entities.Rpc.RpcEndpoint+Archive", b =>
                 {
                     b.HasBaseType("Farsight.Rpc.Api.Persistence.Entities.Rpc.RpcEndpoint");
 
@@ -145,14 +145,14 @@ namespace Farsight.Rpc.Api.Persistence.Migrations
                     b.HasDiscriminator().HasValue("Archive");
                 });
 
-            modelBuilder.Entity("Farsight.Rpc.Api.Persistence.Entities.Rpc.RealtimeRpc", b =>
+            modelBuilder.Entity("Farsight.Rpc.Api.Persistence.Entities.Rpc.RpcEndpoint+Realtime", b =>
                 {
                     b.HasBaseType("Farsight.Rpc.Api.Persistence.Entities.Rpc.RpcEndpoint");
 
                     b.HasDiscriminator().HasValue("Realtime");
                 });
 
-            modelBuilder.Entity("Farsight.Rpc.Api.Persistence.Entities.Rpc.TracingRpc", b =>
+            modelBuilder.Entity("Farsight.Rpc.Api.Persistence.Entities.Rpc.RpcEndpoint+Tracing", b =>
                 {
                     b.HasBaseType("Farsight.Rpc.Api.Persistence.Entities.Rpc.RpcEndpoint");
 

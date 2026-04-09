@@ -13,9 +13,9 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     public DbSet<RpcProvider> RpcProviders => Set<RpcProvider>();
 
     public DbSet<RpcEndpoint> Rpcs => Set<RpcEndpoint>();
-    public DbSet<RealtimeRpc> RealtimeRpcs => Set<RealtimeRpc>();
-    public DbSet<ArchiveRpc> ArchiveRpcs => Set<ArchiveRpc>();
-    public DbSet<TracingRpc> TracingRpcs => Set<TracingRpc>();
+    public DbSet<RpcEndpoint.Realtime> RealtimeRpcs => Set<RpcEndpoint.Realtime>();
+    public DbSet<RpcEndpoint.Archive> ArchiveRpcs => Set<RpcEndpoint.Archive>();
+    public DbSet<RpcEndpoint.Tracing> TracingRpcs => Set<RpcEndpoint.Tracing>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

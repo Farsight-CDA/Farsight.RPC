@@ -71,7 +71,7 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request>
             ThrowError("RPC provider not found.", 404);
         }
 
-        dbContext.TracingRpcs.Add(new TracingRpc
+        dbContext.TracingRpcs.Add(new RpcEndpoint.Tracing
         {
             Id = Guid.NewGuid(),
             ApplicationId = req.ApplicationId,

@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Farsight.Rpc.Api.Endpoints.Rpcs;
 
-public sealed class GET(AppDbContext dbContext) : Endpoint<GET.Request, RpcEndpoint[]>
+public sealed class GET(AppDbContext dbContext) : Endpoint<GET.Request, Dictionary<string, RpcEndpointDto[]>>
 {
     public sealed record Request(
         [property: FromHeader(ApiKeyHeaders.API_KEY)] string ApiKey
@@ -54,6 +54,36 @@ public sealed class GET(AppDbContext dbContext) : Endpoint<GET.Request, RpcEndpo
             .ThenBy(rpc => rpc.Id)
             .ToArrayAsync(ct);
 
-        await Send.OkAsync(rpcs, ct);
+        await Send.OkAsync(rpcs
+            .GroupBy(rpc => rpc.Chain)
+            .ToDictionary(group => group.Key, group => group.Select(MapRpc).ToArray()), ct);
     }
+
+    private static RpcEndpointDto MapRpc(RpcEndpoint rpc)
+        => rpc switch
+        {
+            RpcEndpoint.Realtime realtime => new RpcEndpointDto.Realtime
+            {
+                Id = realtime.Id,
+                Address = realtime.Address,
+                ProviderId = realtime.ProviderId,
+            },
+            RpcEndpoint.Archive archive => new RpcEndpointDto.Archive
+            {
+                Id = archive.Id,
+                Address = archive.Address,
+                ProviderId = archive.ProviderId,
+                IndexerStepSize = archive.IndexerStepSize,
+                DexIndexerStepSize = archive.DexIndexerStepSize,
+                IndexerBlockOffset = archive.IndexerBlockOffset,
+            },
+            RpcEndpoint.Tracing tracing => new RpcEndpointDto.Tracing
+            {
+                Id = tracing.Id,
+                Address = tracing.Address,
+                ProviderId = tracing.ProviderId,
+                TracingMode = tracing.TracingMode,
+            },
+            _ => throw new NotSupportedException($"Unsupported RPC type '{rpc.GetType().Name}'.")
+        };
 }

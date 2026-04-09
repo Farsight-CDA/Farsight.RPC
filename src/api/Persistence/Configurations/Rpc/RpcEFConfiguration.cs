@@ -24,9 +24,9 @@ internal sealed class RpcEFConfiguration : IEntityTypeConfiguration<RpcEndpoint>
         entity.Property(x => x.ProviderId);
 
         entity.HasDiscriminator<string>("RpcType")
-            .HasValue<RealtimeRpc>("Realtime")
-            .HasValue<ArchiveRpc>("Archive")
-            .HasValue<TracingRpc>("Tracing");
+            .HasValue<RpcEndpoint.Realtime>("Realtime")
+            .HasValue<RpcEndpoint.Archive>("Archive")
+            .HasValue<RpcEndpoint.Tracing>("Tracing");
 
         entity.ToTable("Rpcs");
     }

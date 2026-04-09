@@ -6,9 +6,11 @@ import {
   createSignal,
   untrack,
   useContext,
+  Show,
   type Accessor,
   type ParentProps,
 } from "solid-js";
+import LoadingSpinner from "../components/LoadingSpinner";
 import { useAuth } from "./auth";
 import { useReferenceData } from "./reference-data";
 
@@ -288,6 +290,19 @@ export function ApplicationDataProvider(props: ParentProps) {
     return grouped;
   });
 
+  const isApplicationDataInitializing = createMemo(() => {
+    const token = auth.token;
+    const id = applicationId();
+    if (!token || !id) {
+      return false;
+    }
+    const keysPending =
+      apiKeysState() === "pending" && apiKeys().length === 0;
+    const rpcsPending =
+      rpcsState() === "pending" && rpcs().length === 0;
+    return keysPending || rpcsPending;
+  });
+
   const value: ApplicationDataContextValue = {
     applicationId,
     apiKeys: {
@@ -308,7 +323,18 @@ export function ApplicationDataProvider(props: ParentProps) {
 
   return (
     <ApplicationDataContext.Provider value={value}>
-      {props.children}
+      <div class="flex min-h-0 flex-1 flex-col">
+        <Show
+          when={!isApplicationDataInitializing()}
+          fallback={
+            <div class="flex flex-1 flex-col items-center justify-center gap-3 py-24">
+              <LoadingSpinner class="size-8 text-b-accent" />
+            </div>
+          }
+        >
+          {props.children}
+        </Show>
+      </div>
     </ApplicationDataContext.Provider>
   );
 }

@@ -1,6 +1,7 @@
 import {
   createContext,
   createEffect,
+  createMemo,
   createSignal,
   useContext,
   type Accessor,
@@ -42,8 +43,10 @@ type ReferenceDataContextValue = {
   rpcProviders: ListController<RpcProviderSummary>;
   chains: ListController<string>;
   hostEnvironments: ListController<string>;
+  isReferenceDataReady: Accessor<boolean>;
   load: (token?: string | null) => Promise<void>;
   refreshApplications: () => Promise<void>;
+  refreshRpcProviders: () => Promise<void>;
   removeApplication: (applicationId: string) => void;
 };
 
@@ -305,6 +308,35 @@ export function ReferenceDataProvider(props: ReferenceDataProviderProps) {
     }
   };
 
+  const refreshRpcProviders = async () => {
+    const token = auth.token;
+    if (!token) {
+      clear();
+      return;
+    }
+
+    setRpcProvidersState(rpcProviders().length > 0 ? "refreshing" : "pending");
+    setRpcProvidersError(null);
+
+    try {
+      const next = await fetchReferenceList<RpcProviderSummary>(
+        "/api/rpc-providers",
+        token,
+        "Failed to load RPC providers",
+      );
+      setRpcProviders(next);
+      setRpcProvidersState("ready");
+      setLoadedToken(token);
+    } catch (error) {
+      setRpcProvidersError(
+        error instanceof Error
+          ? error
+          : new Error("Failed to load RPC providers"),
+      );
+      setRpcProvidersState("errored");
+    }
+  };
+
   const removeApplication = (applicationId: string) => {
     setApplications((current) =>
       current.filter((app) => app.id !== applicationId),
@@ -323,6 +355,14 @@ export function ReferenceDataProvider(props: ReferenceDataProviderProps) {
     if (loadedToken() !== token) {
       void load(token);
     }
+  });
+
+  const isReferenceDataReady = createMemo(() => {
+    const token = auth.token;
+    if (!token) {
+      return true;
+    }
+    return loadedToken() === token;
   });
 
   const value: ReferenceDataContextValue = {
@@ -346,8 +386,10 @@ export function ReferenceDataProvider(props: ReferenceDataProviderProps) {
       state: hostEnvironmentsState,
       error: hostEnvironmentsError,
     },
+    isReferenceDataReady,
     load,
     refreshApplications,
+    refreshRpcProviders,
     removeApplication,
   };
 

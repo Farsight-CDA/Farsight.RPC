@@ -448,7 +448,7 @@ export default function ApplicationPage() {
                 <button
                   type="button"
                   onClick={() => setActiveTab("providers")}
-                  class={`ml-auto flex items-center gap-1.5 px-4 py-3 text-[0.65rem] font-bold uppercase tracking-widest transition-all duration-200 ${
+                  class={`flex items-center gap-1.5 px-4 py-3 text-[0.65rem] font-bold uppercase tracking-widest transition-all duration-200 ${
                     activeTab() === "providers"
                       ? "border-b-2 border-b-accent bg-b-accent/5 text-b-accent"
                       : "text-b-ink/50 hover:text-b-ink hover:bg-b-ink/5"

@@ -4,7 +4,8 @@
 	<PropertyGroup>
 		<InvariantGlobalization>true</InvariantGlobalization>
 		<BaseIntermediateOutputPath>obj/$(OS)/</BaseIntermediateOutputPath>
-		<DefaultItemExcludes>$(DefaultItemExcludes);obj/**</DefaultItemExcludes>
+		<BaseOutputPath>bin/$(OS)/</BaseOutputPath>
+		<DefaultItemExcludes>$(DefaultItemExcludes);bin/**;obj/**</DefaultItemExcludes>
 		<AssemblyVersion>$([System.Text.RegularExpressions.Regex]::Replace('$(Version)', '[-+].*$', ''))</AssemblyVersion>
 		<FileVersion>$(AssemblyVersion)</FileVersion>
 	</PropertyGroup>

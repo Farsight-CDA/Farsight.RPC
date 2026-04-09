@@ -13,7 +13,8 @@ internal sealed class RpcProviderEFConfiguration : IEntityTypeConfiguration<RpcP
 
         entity.Property(x => x.Id);
 
-        entity.Property(x => x.Name);
+        entity.Property(x => x.Name)
+            .UseCollation(AppDbContext.NAME_CASE_INSENSITIVE_COLLATION);
         entity.Property(x => x.RateLimit);
 
         entity.ToTable("RpcProviders");

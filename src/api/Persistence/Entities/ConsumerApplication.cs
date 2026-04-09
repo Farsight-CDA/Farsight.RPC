@@ -7,6 +7,8 @@ public sealed record ConsumerApplication
     public required Guid Id { get; init; }
     public required string Name { get; set; }
 
+    public List<ConsumerApiKey>? ApiKeys { get; private set; }
+
     public List<RealtimeRpc>? RealtimeRpcs { get; private set; }
     public List<ArchiveRpc>? ArchiveRpcs { get; private set; }
     public List<TracingRpc>? TracingRpcs { get; private set; }

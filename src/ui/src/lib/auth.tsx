@@ -1,4 +1,9 @@
-import { createContext, useContext, createSignal, type ParentComponent } from "solid-js";
+import {
+  createContext,
+  useContext,
+  createSignal,
+  type ParentComponent,
+} from "solid-js";
 
 interface AuthState {
   token: string | null;
@@ -54,10 +59,16 @@ export const AuthProvider: ParentComponent = (props) => {
     });
 
     if (!response.ok) {
-      throw new Error(response.status === 401 ? "Invalid credentials" : "Login failed");
+      throw new Error(
+        response.status === 401 ? "Invalid credentials" : "Login failed",
+      );
     }
 
-    const data = await response.json() as { token: string; username: string; expiresUtc: string };
+    const data = (await response.json()) as {
+      token: string;
+      username: string;
+      expiresUtc: string;
+    };
     const state: AuthState = {
       token: data.token,
       username: data.username,
@@ -78,15 +89,23 @@ export const AuthProvider: ParentComponent = (props) => {
   };
 
   const value: AuthContextValue = {
-    get token() { return token(); },
-    get username() { return username(); },
-    get expiresUtc() { return expiresUtc(); },
+    get token() {
+      return token();
+    },
+    get username() {
+      return username();
+    },
+    get expiresUtc() {
+      return expiresUtc();
+    },
     login,
     logout,
     isAuthenticated,
   };
 
-  return <AuthContext.Provider value={value}>{props.children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>{props.children}</AuthContext.Provider>
+  );
 };
 
 export function useAuth(): AuthContextValue {

@@ -27,14 +27,19 @@ export default function LoginPage() {
   return (
     <div class="flex min-h-screen items-center justify-center px-4 py-12">
       <div class="w-full max-w-md border-4 border-[var(--color-b-ink)] bg-b-field p-8 shadow-[12px_12px_0_0_var(--color-b-ink)]">
-        <p class="mb-2 text-xs font-bold uppercase tracking-[0.35em] text-b-ink">Access</p>
+        <p class="mb-2 text-xs font-bold uppercase tracking-[0.35em] text-b-ink">
+          Access
+        </p>
         <h1 class="mb-10 font-['Anton',sans-serif] text-5xl uppercase leading-none tracking-wide text-b-ink">
           Farsight RPC
         </h1>
 
         <form onSubmit={handleSubmit} class="flex flex-col gap-6">
           <div class="flex flex-col gap-2">
-            <label for="username" class="text-xs font-bold uppercase tracking-widest text-b-ink">
+            <label
+              for="username"
+              class="text-xs font-bold uppercase tracking-widest text-b-ink"
+            >
               Username
             </label>
             <input
@@ -50,7 +55,10 @@ export default function LoginPage() {
           </div>
 
           <div class="flex flex-col gap-2">
-            <label for="password" class="text-xs font-bold uppercase tracking-widest text-b-ink">
+            <label
+              for="password"
+              class="text-xs font-bold uppercase tracking-widest text-b-ink"
+            >
               Password
             </label>
             <input

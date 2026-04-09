@@ -10,8 +10,22 @@ export default function App() {
     <AuthProvider>
       <Router root={(props) => <>{props.children}</>}>
         <Route path="/login" component={LoginPage} />
-        <Route path="/" component={() => <RequireAuth><DashboardPage /></RequireAuth>} />
-        <Route path="/applications/:applicationId" component={() => <RequireAuth><ApplicationPage /></RequireAuth>} />
+        <Route
+          path="/"
+          component={() => (
+            <RequireAuth>
+              <DashboardPage />
+            </RequireAuth>
+          )}
+        />
+        <Route
+          path="/applications/:applicationId"
+          component={() => (
+            <RequireAuth>
+              <ApplicationPage />
+            </RequireAuth>
+          )}
+        />
       </Router>
     </AuthProvider>
   );

@@ -4,6 +4,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.AddApplication<Startup>();
 App.ConfigureServices(builder);
+App.ConfigureAuth(builder);
 
 var app = builder.Build();
 App.Configure(app);

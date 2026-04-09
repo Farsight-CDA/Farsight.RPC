@@ -13,13 +13,13 @@ public partial class AdminAuthenticationService : Singleton
 {
     [Inject] private readonly AdminLoginConfiguration _adminLoginOptions;
     [Inject] private readonly JwtConfiguration _jwtConfiguration;
+    [Inject] private readonly SymmetricSecurityKey _signingKey;
 
     private SigningCredentials _jwtCredentials = null!;
 
     protected override Task SetupAsync(CancellationToken cancellationToken)
     {
-        byte[] key = Encoding.UTF8.GetBytes(_jwtConfiguration.Secret);
-        _jwtCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256);
+        _jwtCredentials = new SigningCredentials(_signingKey, SecurityAlgorithms.HmacSha256);
         return Task.CompletedTask;
     }
 

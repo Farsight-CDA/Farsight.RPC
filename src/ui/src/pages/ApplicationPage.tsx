@@ -2,6 +2,8 @@ import { useNavigate, useParams } from "@solidjs/router";
 import { createEffect, createMemo, createResource, createSignal, For, Show } from "solid-js";
 import LoadingSpinner from "../components/LoadingSpinner";
 import { useAuth } from "../lib/auth";
+import KeyIcon from "../components/icons/KeyIcon";
+import RpcIcon from "../components/icons/RpcIcon";
 
 type Application = {
   id: string;
@@ -43,21 +45,20 @@ export default function ApplicationPage() {
   const params = useParams();
   const applicationId = () => params.applicationId;
 
+  const [activeTab, setActiveTab] = createSignal<"rpcs" | "api-keys" | "general">("rpcs");
+
   const [selectedEnvironment, setSelectedEnvironment] = createSignal<
     string | undefined
   >(undefined);
   const [filterText, setFilterText] = createSignal("");
 
-  const [renameOpen, setRenameOpen] = createSignal(false);
   const [renameName, setRenameName] = createSignal("");
   const [renameError, setRenameError] = createSignal<string | null>(null);
   const [renameLoading, setRenameLoading] = createSignal(false);
 
-  const [deleteOpen, setDeleteOpen] = createSignal(false);
   const [deleteError, setDeleteError] = createSignal<string | null>(null);
   const [deleteLoading, setDeleteLoading] = createSignal(false);
 
-  const [keysModalOpen, setKeysModalOpen] = createSignal(false);
   const [apiKeyToDelete, setApiKeyToDelete] =
     createSignal<ConsumerApiKeySummary | null>(null);
   const [newKeyEnvironment, setNewKeyEnvironment] = createSignal<
@@ -67,6 +68,7 @@ export default function ApplicationPage() {
   const [createKeyLoading, setCreateKeyLoading] = createSignal(false);
   const [deleteKeyError, setDeleteKeyError] = createSignal<string | null>(null);
   const [deleteKeyLoading, setDeleteKeyLoading] = createSignal(false);
+  const [createdKey, setCreatedKey] = createSignal<string | null>(null);
 
   const [application, { refetch: refetchApplication }] = createResource(
     () => ({ token: auth.token, id: applicationId() }),
@@ -113,7 +115,7 @@ export default function ApplicationPage() {
 
   const [apiKeys, { refetch: refetchApiKeys }] = createResource(
     () => {
-      if (!keysModalOpen()) return undefined;
+      if (activeTab() !== "api-keys") return undefined;
       const id = applicationId();
       const token = auth.token;
       if (!id || !token) return undefined;
@@ -140,7 +142,6 @@ export default function ApplicationPage() {
   });
 
   createEffect(() => {
-    if (!keysModalOpen()) return;
     const envs = environments();
     if (envs && envs.length > 0 && !newKeyEnvironment()) {
       setNewKeyEnvironment(envs[0]);
@@ -153,51 +154,6 @@ export default function ApplicationPage() {
     if (!filter) return allChains;
     return allChains.filter((chain) => chain.toLowerCase().includes(filter));
   });
-
-  const openRenameModal = () => {
-    const app = application();
-    if (!app) return;
-    setRenameError(null);
-    setRenameName(app.name);
-    setRenameOpen(true);
-  };
-
-  const closeRenameModal = () => {
-    if (renameLoading()) return;
-    setRenameOpen(false);
-  };
-
-  const openDeleteModal = () => {
-    setDeleteError(null);
-    setDeleteOpen(true);
-  };
-
-  const closeDeleteModal = () => {
-    if (deleteLoading()) return;
-    setDeleteOpen(false);
-  };
-
-  const openKeysModal = () => {
-    setCreateKeyError(null);
-    setDeleteKeyError(null);
-    setApiKeyToDelete(null);
-    setNewKeyEnvironment(undefined);
-    setKeysModalOpen(true);
-  };
-
-  const closeKeysModal = () => {
-    if (createKeyLoading() || deleteKeyLoading()) return;
-    setKeysModalOpen(false);
-    setApiKeyToDelete(null);
-    setCreateKeyError(null);
-    setDeleteKeyError(null);
-  };
-
-  const closeDeleteKeyModal = () => {
-    if (deleteKeyLoading()) return;
-    setApiKeyToDelete(null);
-    setDeleteKeyError(null);
-  };
 
   const handleRename = async (e: SubmitEvent) => {
     e.preventDefault();
@@ -220,7 +176,6 @@ export default function ApplicationPage() {
           await readErrorMessage(response, "Failed to rename application"),
         );
       }
-      setRenameOpen(false);
       await refetchApplication();
     } catch (err) {
       setRenameError(
@@ -247,7 +202,6 @@ export default function ApplicationPage() {
           await readErrorMessage(response, "Failed to delete application"),
         );
       }
-      setDeleteOpen(false);
       navigate("/", { replace: true });
     } catch (err) {
       setDeleteError(
@@ -266,6 +220,7 @@ export default function ApplicationPage() {
     if (!token || !app || !env) return;
     setCreateKeyError(null);
     setCreateKeyLoading(true);
+    setCreatedKey(null);
     try {
       const response = await fetch(`/api/applications/${app.id}/api-keys`, {
         method: "POST",
@@ -280,6 +235,8 @@ export default function ApplicationPage() {
           await readErrorMessage(response, "Failed to create API key"),
         );
       }
+      const data = await response.json();
+      setCreatedKey(data.key);
       await refetchApiKeys();
       await refetchApplication();
     } catch (err) {
@@ -323,8 +280,13 @@ export default function ApplicationPage() {
     }
   };
 
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+  };
+
   return (
     <main class="flex flex-1 flex-col">
+      {/* Header Section */}
       <div class="border-b-4 border-[var(--color-b-ink)] bg-b-field px-6 py-8">
         <div class="mx-auto max-w-7xl">
           <Show when={application.state === "pending"}>
@@ -341,48 +303,96 @@ export default function ApplicationPage() {
           </Show>
 
           <Show when={application() && application.state === "ready"}>
-            <div class="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-              <div class="flex min-w-0 flex-1 flex-col gap-4">
-                <div>
-                  <p class="mb-2 text-xs font-bold uppercase tracking-[0.4em] text-b-accent">
-                    Application
-                  </p>
-                  <h1 class="font-['Anton',sans-serif] text-4xl uppercase leading-none tracking-wide text-b-ink sm:text-5xl">
-                    {application()?.name}
-                  </h1>
-                </div>
-                <div class="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={openKeysModal}
-                    class="btn btn-sm btn-interactive btn-disabled btn-primary"
-                  >
-                    Keys
-                  </button>
-                  <button
-                    type="button"
-                    onClick={openRenameModal}
-                    class="btn btn-sm btn-interactive btn-disabled btn-secondary"
-                  >
-                    Rename
-                  </button>
-                  <button
-                    type="button"
-                    onClick={openDeleteModal}
-                    class="btn btn-sm btn-interactive btn-disabled btn-danger"
-                  >
-                    Delete
-                  </button>
-                </div>
+            <div class="flex flex-col gap-6">
+              {/* Breadcrumb */}
+              <button
+                onClick={() => navigate("/")}
+                class="group flex items-center gap-2 self-start text-xs font-bold uppercase tracking-widest text-b-ink/50 transition-colors hover:text-b-accent"
+              >
+                <svg
+                  class="size-4 transition-transform group-hover:-translate-x-1"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M10 19l-7-7m0 0l7-7m-7 7h18"
+                  />
+                </svg>
+                Applications
+              </button>
+
+              {/* Title */}
+              <div>
+                <p class="mb-2 text-xs font-bold uppercase tracking-[0.4em] text-b-accent">
+                  Application
+                </p>
+                <h1 class="font-['Anton',sans-serif] text-4xl uppercase leading-none tracking-wide text-b-ink sm:text-6xl">
+                  {application()?.name}
+                </h1>
               </div>
 
-              <div class="flex flex-col gap-2">
-                <label
-                  for="environment-select"
-                  class="text-xs font-bold uppercase tracking-widest text-b-ink/80"
+              {/* Tab Navigation */}
+              <div class="mt-4 flex border-b-4 border-[var(--color-b-ink)]/20">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("rpcs")}
+                  class={`flex items-center gap-2 px-4 py-3 text-xs font-bold uppercase tracking-widest transition-all duration-200 ${
+                    activeTab() === "rpcs"
+                      ? "border-b-4 border-b-accent bg-b-accent/10 text-b-accent"
+                      : "text-b-ink/60 hover:bg-b-ink/5 hover:text-b-ink"
+                  }`}
                 >
-                  Environment
-                </label>
+                  <RpcIcon class="size-4" />
+                  RPCs
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("api-keys")}
+                  class={`flex items-center gap-2 px-4 py-3 text-xs font-bold uppercase tracking-widest transition-all duration-200 ${
+                    activeTab() === "api-keys"
+                      ? "border-b-4 border-b-accent bg-b-accent/10 text-b-accent"
+                      : "text-b-ink/60 hover:bg-b-ink/5 hover:text-b-ink"
+                  }`}
+                >
+                  <KeyIcon class="size-4" />
+                  API Keys
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("general")}
+                  class={`flex items-center gap-2 px-4 py-3 text-xs font-bold uppercase tracking-widest transition-all duration-200 ${
+                    activeTab() === "general"
+                      ? "border-b-4 border-b-accent bg-b-accent/10 text-b-accent"
+                      : "text-b-ink/60 hover:bg-b-ink/5 hover:text-b-ink"
+                  }`}
+                >
+                  <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  General
+                </button>
+              </div>
+            </div>
+          </Show>
+        </div>
+      </div>
+
+      {/* Tab Content */}
+      <div class="flex-1 px-6 py-8">
+        <div class="mx-auto max-w-7xl">
+          {/* RPCs Tab */}
+          <Show when={activeTab() === "rpcs"}>
+            <div class="flex flex-col gap-6">
+              {/* Environment Selector */}
+              <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <p class="text-xs font-bold uppercase tracking-[0.4em] text-b-accent">
+                  Select Environment
+                </p>
                 <Show when={environments.state === "pending" || !selectedEnvironment()}>
                   <div class="flex h-12 items-center gap-2 border-4 border-[var(--color-b-ink)] bg-b-paper px-3 sm:w-48">
                     <LoadingSpinner class="size-4" />
@@ -423,52 +433,106 @@ export default function ApplicationPage() {
                   </div>
                 </Show>
               </div>
-            </div>
-          </Show>
-        </div>
-      </div>
 
-      <div class="flex-1 px-6 py-8">
-        <div class="mx-auto max-w-7xl">
-          <Show when={chains.state === "pending"}>
-            <div class="flex flex-col items-center justify-center gap-4 py-16">
-              <LoadingSpinner class="size-8" />
-              <p class="text-sm font-bold uppercase tracking-widest text-b-ink/80">
-                Loading chains…
-              </p>
-            </div>
-          </Show>
+              {/* Divider */}
+              <div class="h-px bg-b-ink/10" />
 
-          <Show when={chains.error}>
-            <div class="mx-auto max-w-md">
-              <p class="border-4 border-red-500/50 bg-red-500/10 px-4 py-4 text-center text-xs font-bold uppercase leading-snug text-red-400">
-                {chains.error.message}
-              </p>
-            </div>
-          </Show>
+              {/* Loading State */}
+              <Show when={chains.state === "pending"}>
+                <div class="flex flex-col items-center justify-center gap-4 py-16">
+                  <LoadingSpinner class="size-8" />
+                  <p class="text-sm font-bold uppercase tracking-widest text-b-ink/80">
+                    Loading chains…
+                  </p>
+                </div>
+              </Show>
 
-          <Show when={chains() && chains.state === "ready"}>
-            <div class="mb-6 flex items-center justify-between">
-              <p class="text-xs font-bold uppercase tracking-[0.4em] text-b-accent">
-                Select a Chain
-              </p>
-              <span class="text-xs font-bold uppercase tracking-widest text-b-ink/50">
-                {filteredChains().length} / {chains()?.length} chains
-              </span>
-            </div>
+              {/* Error State */}
+              <Show when={chains.error}>
+                <div class="mx-auto max-w-md">
+                  <p class="border-4 border-red-500/50 bg-red-500/10 px-4 py-4 text-center text-xs font-bold uppercase leading-snug text-red-400">
+                    {chains.error.message}
+                  </p>
+                </div>
+              </Show>
 
-            <div class="mb-6">
-              <div class="relative">
-                <input
-                  type="text"
-                  value={filterText()}
-                  onInput={(e) => setFilterText(e.currentTarget.value)}
-                  placeholder="Filter chains..."
-                  class="h-12 w-full border-4 border-[var(--color-b-ink)] bg-b-paper px-4 pr-12 text-sm font-semibold text-b-ink placeholder:text-b-ink/30 outline-none focus-visible:ring-4 focus-visible:ring-b-accent/50 hover:border-b-accent/50 transition-colors duration-200"
-                />
-                <div class="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2">
+              {/* Chains Content */}
+              <Show when={chains() && chains.state === "ready"}>
+                <div class="flex items-center justify-between">
+                  <p class="text-xs font-bold uppercase tracking-[0.4em] text-b-accent">
+                    Available Chains
+                  </p>
+                  <span class="text-xs font-bold uppercase tracking-widest text-b-ink/50">
+                    {filteredChains().length} / {chains()?.length} chains
+                  </span>
+                </div>
+
+                {/* Search Filter */}
+                <div class="relative">
+                  <input
+                    type="text"
+                    value={filterText()}
+                    onInput={(e) => setFilterText(e.currentTarget.value)}
+                    placeholder="Filter chains..."
+                    class="h-12 w-full border-4 border-[var(--color-b-ink)] bg-b-paper px-4 pr-12 text-sm font-semibold text-b-ink placeholder:text-b-ink/30 outline-none focus-visible:ring-4 focus-visible:ring-b-accent/50 hover:border-b-accent/50 transition-colors duration-200"
+                  />
+                  <div class="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2">
+                    <svg
+                      class="size-5 text-b-ink/30"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                      />
+                    </svg>
+                  </div>
+                </div>
+
+                {/* Chains Grid */}
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                  <For each={filteredChains()}>
+                    {(chain) => (
+                      <button
+                        type="button"
+                        class="group relative flex flex-col items-start gap-3 border-4 border-[var(--color-b-ink)] bg-b-paper p-5 shadow-[6px_6px_0_0_rgba(232,228,220,0.08)] transition-all duration-200 hover:translate-x-1 hover:translate-y-1 hover:shadow-[3px_3px_0_0_rgba(255,87,34,0.2)] hover:border-b-accent/60 hover:bg-b-field focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-b-accent/50 active:translate-x-1.5 active:translate-y-1.5 active:shadow-none"
+                      >
+                        <div class="flex w-full items-center justify-between">
+                          <span class="font-['Anton',sans-serif] text-xl uppercase tracking-wide text-b-ink group-hover:text-b-accent transition-colors duration-200">
+                            {chain}
+                          </span>
+                          <div class="flex size-8 items-center justify-center border-2 border-[var(--color-b-ink)] bg-b-field transition-all duration-200 group-hover:bg-b-accent group-hover:border-b-accent group-hover:shadow-[0_0_12px_rgba(255,87,34,0.4)]">
+                            <svg
+                              class="size-4 text-b-ink transition-colors duration-200 group-hover:text-b-paper"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                stroke-width="3"
+                                d="M9 5l7 7-7 7"
+                              />
+                            </svg>
+                          </div>
+                        </div>
+                        <div class="h-1 w-12 bg-b-ink/60 transition-all duration-200 group-hover:w-full group-hover:bg-b-accent" />
+                      </button>
+                    )}
+                  </For>
+                </div>
+              </Show>
+
+              {/* Empty States */}
+              <Show when={chains() && chains.state === "ready" && chains()!.length === 0}>
+                <div class="flex flex-col items-center justify-center gap-4 py-16 border-4 border-dashed border-b-ink/20">
                   <svg
-                    class="size-5 text-b-ink/30"
+                    class="size-12 text-b-ink/30"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -476,364 +540,350 @@ export default function ApplicationPage() {
                     <path
                       stroke-linecap="round"
                       stroke-linejoin="round"
-                      stroke-width="2"
+                      stroke-width="1.5"
+                      d="M13 10V3L4 14h7v7l9-11h-7z"
+                    />
+                  </svg>
+                  <p class="text-center text-sm font-semibold uppercase tracking-wider text-b-ink/60">
+                    No chains available.
+                  </p>
+                </div>
+              </Show>
+
+              <Show when={chains() && chains.state === "ready" && chains()!.length > 0 && filteredChains().length === 0}>
+                <div class="flex flex-col items-center justify-center gap-4 py-16 border-4 border-dashed border-b-ink/20">
+                  <svg
+                    class="size-12 text-b-ink/30"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="1.5"
                       d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
                     />
                   </svg>
+                  <p class="text-center text-sm font-semibold uppercase tracking-wider text-b-ink/60">
+                    No chains match your filter.
+                  </p>
                 </div>
-              </div>
+              </Show>
             </div>
+          </Show>
 
-            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              <For each={filteredChains()}>
-                {(chain) => (
+          {/* API Keys Tab */}
+          <Show when={activeTab() === "api-keys"}>
+            <div class="flex flex-col gap-6">
+              {/* API Keys Section */}
+              <section class="border-4 border-[var(--color-b-ink)] bg-b-field">
+                <div class="border-b-4 border-[var(--color-b-ink)] bg-b-paper px-6 py-4">
+                  <div class="flex items-center gap-3">
+                    <div class="flex size-10 items-center justify-center border-2 border-[var(--color-b-accent)] bg-b-accent/10">
+                      <KeyIcon class="size-5 text-b-accent" />
+                    </div>
+                    <div>
+                      <h2 class="font-['Anton',sans-serif] text-xl uppercase tracking-wide text-b-ink">
+                        API Keys
+                      </h2>
+                      <p class="text-xs font-bold uppercase tracking-widest text-b-ink/50">
+                        Manage access keys per environment
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="p-6">
+                  {/* Loading State */}
+                  <Show when={apiKeys.state === "pending"}>
+                    <div class="flex items-center justify-center gap-3 py-8 text-xs font-bold uppercase tracking-widest text-b-ink/80">
+                      <LoadingSpinner class="size-4" />
+                      Loading keys…
+                    </div>
+                  </Show>
+
+                  {/* Error State */}
+                  <Show when={apiKeys.error}>
+                    <p class="border-4 border-red-500/50 bg-red-500/10 px-3 py-3 text-xs font-bold uppercase leading-snug text-red-400">
+                      {apiKeys.error.message}
+                    </p>
+                  </Show>
+
+                  {/* Keys List */}
+                  <Show when={apiKeys() && apiKeys.state === "ready" && (apiKeys() ?? []).length > 0}>
+                    <div class="mb-6">
+                      <p class="mb-3 text-xs font-bold uppercase tracking-widest text-b-ink/50">
+                        Active Keys
+                      </p>
+                      <ul class="flex flex-col gap-3">
+                        <For each={apiKeys()}>
+                          {(k) => (
+                            <li class="flex flex-col gap-3 border-4 border-[var(--color-b-ink)] bg-b-paper p-4 sm:flex-row sm:items-center sm:justify-between">
+                              <div class="min-w-0 flex-1">
+                                <div class="flex items-center gap-2">
+                                  <span class="inline-flex items-center rounded bg-b-accent/10 px-2 py-0.5 text-xs font-bold uppercase tracking-wider text-b-accent">
+                                    {k.environment}
+                                  </span>
+                                </div>
+                                <div class="mt-2 flex items-center gap-2">
+                                  <code class="break-all font-mono text-xs font-semibold text-b-ink">
+                                    {k.key}
+                                  </code>
+                                  <button
+                                    type="button"
+                                    onClick={() => copyToClipboard(k.key)}
+                                    class="shrink-0 text-b-ink/40 hover:text-b-accent transition-colors"
+                                    title="Copy to clipboard"
+                                  >
+                                    <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                    </svg>
+                                  </button>
+                                </div>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setDeleteKeyError(null);
+                                  setApiKeyToDelete(k);
+                                }}
+                                disabled={createKeyLoading() || deleteKeyLoading()}
+                                class="btn btn-sm btn-interactive btn-disabled btn-danger shrink-0"
+                              >
+                                Revoke
+                              </button>
+                            </li>
+                          )}
+                        </For>
+                      </ul>
+                    </div>
+                  </Show>
+
+                  {/* No Keys State */}
+                  <Show when={apiKeys() && apiKeys.state === "ready" && (apiKeys() ?? []).length === 0}>
+                    <div class="mb-6 flex flex-col items-center justify-center gap-3 py-8 border-4 border-dashed border-b-ink/20">
+                      <svg class="size-10 text-b-ink/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                      </svg>
+                      <p class="text-sm font-semibold uppercase tracking-wider text-b-ink/60">
+                        No API keys yet.
+                      </p>
+                    </div>
+                  </Show>
+
+                  {/* Create New Key */}
+                  <div class="border-t-4 border-[var(--color-b-ink)]/20 pt-6">
+                    <p class="mb-4 text-xs font-bold uppercase tracking-widest text-b-ink/50">
+                      Create New Key
+                    </p>
+                    <form onSubmit={handleCreateKey} class="flex flex-col gap-4">
+                      <div class="flex flex-col gap-2 sm:flex-row sm:items-end">
+                        <div class="flex-1">
+                          <label
+                            for="new-key-environment"
+                            class="mb-2 block text-xs font-bold uppercase tracking-widest text-b-ink/80"
+                          >
+                            Environment
+                          </label>
+                          <Show when={environments.state === "pending" || !newKeyEnvironment()}>
+                            <div class="flex h-12 items-center gap-2 border-4 border-[var(--color-b-ink)] bg-b-paper px-3">
+                              <LoadingSpinner class="size-4" />
+                              <span class="text-xs font-bold uppercase tracking-widest text-b-ink/50">
+                                Loading…
+                              </span>
+                            </div>
+                          </Show>
+                          <Show when={environments() && environments.state === "ready" && newKeyEnvironment()}>
+                            <select
+                              id="new-key-environment"
+                              value={newKeyEnvironment()}
+                              onChange={(e) =>
+                                setNewKeyEnvironment(e.currentTarget.value || undefined)
+                              }
+                              class="h-12 w-full appearance-none border-4 border-[var(--color-b-ink)] bg-b-paper px-3 pr-10 text-sm font-bold uppercase tracking-widest text-b-ink outline-none focus-visible:ring-4 focus-visible:ring-b-accent/50 hover:border-b-accent/50 transition-colors duration-200 cursor-pointer"
+                            >
+                              <For each={environments()}>
+                                {(env) => (
+                                  <option value={env} class="bg-b-paper">
+                                    {env}
+                                  </option>
+                                )}
+                              </For>
+                            </select>
+                          </Show>
+                        </div>
+                        <button
+                          type="submit"
+                          disabled={createKeyLoading() || !newKeyEnvironment()}
+                          class="btn btn-md btn-interactive btn-disabled btn-primary h-12"
+                        >
+                          <Show when={createKeyLoading()}>
+                            <LoadingSpinner class="size-3.5 text-b-paper" />
+                          </Show>
+                          {createKeyLoading() ? "Creating…" : "Create Key"}
+                        </button>
+                      </div>
+
+                      {/* Created Key Display */}
+                      <Show when={createdKey()}>
+                        <div class="border-4 border-b-accent/50 bg-b-accent/10 p-4">
+                          <p class="mb-2 text-xs font-bold uppercase tracking-widest text-b-accent">
+                            New API Key Created
+                          </p>
+                          <div class="flex items-center gap-2">
+                            <code class="flex-1 break-all font-mono text-sm font-semibold text-b-ink">
+                              {createdKey()}
+                            </code>
+                            <button
+                              type="button"
+                              onClick={() => copyToClipboard(createdKey()!)}
+                              class="shrink-0 text-b-ink/60 hover:text-b-accent transition-colors"
+                              title="Copy to clipboard"
+                            >
+                              <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                              </svg>
+                            </button>
+                          </div>
+                          <p class="mt-2 text-xs text-b-ink/50">
+                            Copy this key now. You won't be able to see it again.
+                          </p>
+                        </div>
+                      </Show>
+
+                      <Show when={createKeyError()}>
+                        <p class="border-4 border-red-500/50 bg-red-500/10 px-3 py-3 text-xs font-bold uppercase leading-snug text-red-400">
+                          {createKeyError()}
+                        </p>
+                      </Show>
+                    </form>
+                  </div>
+                </div>
+              </section>
+            </div>
+          </Show>
+
+          {/* General Settings Tab */}
+          <Show when={activeTab() === "general"}>
+            <div class="flex flex-col gap-8">
+              {/* Rename Section */}
+              <section class="border-4 border-[var(--color-b-ink)] bg-b-field">
+                <div class="border-b-4 border-[var(--color-b-ink)] bg-b-paper px-6 py-4">
+                  <div class="flex items-center gap-3">
+                    <div class="flex size-10 items-center justify-center border-2 border-b-ink/50 bg-b-ink/10">
+                      <svg class="size-5 text-b-ink" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h2 class="font-['Anton',sans-serif] text-xl uppercase tracking-wide text-b-ink">
+                        Rename Application
+                      </h2>
+                      <p class="text-xs font-bold uppercase tracking-widest text-b-ink/50">
+                        Change the display name
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="p-6">
+                  <form onSubmit={handleRename} class="flex flex-col gap-4">
+                    <div class="flex flex-col gap-2 sm:flex-row sm:items-end">
+                      <div class="flex-1">
+                        <label
+                          for="rename-app-name"
+                          class="mb-2 block text-xs font-bold uppercase tracking-widest text-b-ink/80"
+                        >
+                          Application Name
+                        </label>
+                        <input
+                          id="rename-app-name"
+                          type="text"
+                          required
+                          value={renameName() || application()?.name || ""}
+                          onInput={(e) => setRenameName(e.currentTarget.value)}
+                          class="h-12 w-full border-4 border-[var(--color-b-ink)] bg-b-paper px-3 text-sm font-semibold text-b-ink placeholder:text-b-ink/30 outline-none focus-visible:ring-4 focus-visible:ring-b-accent/50 hover:border-b-accent/50 transition-colors duration-200"
+                          placeholder="MY APPLICATION"
+                          autocomplete="off"
+                        />
+                      </div>
+                      <button
+                        type="submit"
+                        disabled={renameLoading()}
+                        class="btn btn-md btn-interactive btn-disabled btn-primary h-12"
+                      >
+                        <Show when={renameLoading()}>
+                          <LoadingSpinner class="size-3.5 text-b-paper" />
+                        </Show>
+                        {renameLoading() ? "Saving…" : "Rename"}
+                      </button>
+                    </div>
+
+                    <Show when={renameError()}>
+                      <p class="border-4 border-red-500/50 bg-red-500/10 px-3 py-3 text-xs font-bold uppercase leading-snug text-red-400">
+                        {renameError()}
+                      </p>
+                    </Show>
+                  </form>
+                </div>
+              </section>
+
+              {/* Delete Section */}
+              <section class="border-4 border-red-500/50 bg-b-field">
+                <div class="border-b-4 border-red-500/50 bg-red-500/10 px-6 py-4">
+                  <div class="flex items-center gap-3">
+                    <div class="flex size-10 items-center justify-center border-2 border-red-500 bg-red-500/20">
+                      <svg class="size-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h2 class="font-['Anton',sans-serif] text-xl uppercase tracking-wide text-red-400">
+                        Delete Application
+                      </h2>
+                      <p class="text-xs font-bold uppercase tracking-widest text-red-400/60">
+                        Permanently remove this application
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="p-6">
+                  <p class="mb-4 text-sm text-b-ink/80">
+                    Once deleted, this application and all its associated data will be permanently removed. This action cannot be undone.
+                  </p>
+
+                  <Show when={deleteError()}>
+                    <p class="mb-4 border-4 border-red-500/50 bg-red-500/10 px-3 py-3 text-xs font-bold uppercase leading-snug text-red-400">
+                      {deleteError()}
+                    </p>
+                  </Show>
+
                   <button
                     type="button"
-                    class="group relative flex flex-col items-start gap-3 border-4 border-[var(--color-b-ink)] bg-b-paper p-5 shadow-[6px_6px_0_0_rgba(232,228,220,0.08)] transition-all duration-200 hover:translate-x-1 hover:translate-y-1 hover:shadow-[3px_3px_0_0_rgba(255,87,34,0.2)] hover:border-b-accent/60 hover:bg-b-field focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-b-accent/50 active:translate-x-1.5 active:translate-y-1.5 active:shadow-none"
+                    onClick={() => setDeleteLoading(true)}
+                    disabled={deleteLoading()}
+                    class="btn btn-md btn-interactive btn-disabled btn-danger"
                   >
-                    <div class="flex w-full items-center justify-between">
-                      <span class="font-['Anton',sans-serif] text-xl uppercase tracking-wide text-b-ink group-hover:text-b-accent transition-colors duration-200">
-                        {chain}
-                      </span>
-                      <div class="flex size-8 items-center justify-center border-2 border-[var(--color-b-ink)] bg-b-field transition-all duration-200 group-hover:bg-b-accent group-hover:border-b-accent group-hover:shadow-[0_0_12px_rgba(255,87,34,0.4)]">
-                        <svg
-                          class="size-4 text-b-ink transition-colors duration-200 group-hover:text-b-paper"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            stroke-width="3"
-                            d="M9 5l7 7-7 7"
-                          />
-                        </svg>
-                      </div>
-                    </div>
-                    <div class="h-1 w-12 bg-b-ink/60 transition-all duration-200 group-hover:w-full group-hover:bg-b-accent" />
+                    <Show when={deleteLoading()}>
+                      <LoadingSpinner class="size-3.5" />
+                    </Show>
+                    {deleteLoading() ? "Deleting…" : "Delete Application"}
                   </button>
-                )}
-              </For>
-            </div>
-          </Show>
-
-          <Show when={chains() && chains.state === "ready" && chains()!.length === 0}>
-            <div class="flex flex-col items-center justify-center gap-4 py-16">
-              <p class="text-center text-sm font-semibold uppercase tracking-wider text-b-ink/60">
-                No chains available.
-              </p>
-            </div>
-          </Show>
-
-          <Show when={chains() && chains.state === "ready" && chains()!.length > 0 && filteredChains().length === 0}>
-            <div class="flex flex-col items-center justify-center gap-4 py-16">
-              <p class="text-center text-sm font-semibold uppercase tracking-wider text-b-ink/60">
-                No chains match your filter.
-              </p>
+                </div>
+              </section>
             </div>
           </Show>
         </div>
       </div>
 
-      <Show when={renameOpen()}>
+      {/* Delete Application Confirmation Modal */}
+      <Show when={deleteLoading() && activeTab() === "general"}>
         <div
           class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-4 py-8"
           role="presentation"
-          onClick={closeRenameModal}
-        >
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="rename-application-title"
-            class="w-full max-w-md border-4 border-[var(--color-b-ink)] bg-b-field p-8 shadow-[12px_12px_0_0_rgba(255,87,34,0.15)]"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <p class="mb-2 text-xs font-bold uppercase tracking-[0.35em] text-b-accent">
-              Rename
-            </p>
-            <h3
-              id="rename-application-title"
-              class="mb-8 font-['Anton',sans-serif] text-4xl uppercase leading-none tracking-wide text-b-ink"
-            >
-              Application
-            </h3>
-
-            <form onSubmit={handleRename} class="flex flex-col gap-6">
-              <div class="flex flex-col gap-2">
-                <label
-                  for="rename-app-name"
-                  class="text-xs font-bold uppercase tracking-widest text-b-ink/80"
-                >
-                  Name
-                </label>
-                <input
-                  id="rename-app-name"
-                  type="text"
-                  required
-                  value={renameName()}
-                  onInput={(e) => setRenameName(e.currentTarget.value)}
-                  class="border-4 border-[var(--color-b-ink)] bg-b-paper px-3 py-3 text-sm font-semibold text-b-ink placeholder:text-b-ink/30 outline-none focus-visible:ring-4 focus-visible:ring-b-accent/50 hover:border-b-accent/50 transition-colors duration-200"
-                  placeholder="MY APPLICATION"
-                  autocomplete="off"
-                />
-              </div>
-
-              <Show when={renameError()}>
-                <p class="border-4 border-red-500/50 bg-red-500/10 px-3 py-3 text-xs font-bold uppercase leading-snug text-red-400">
-                  {renameError()}
-                </p>
-              </Show>
-
-              <div class="flex flex-col gap-3 sm:flex-row sm:justify-end">
-                <button
-                  type="button"
-                  onClick={closeRenameModal}
-                  disabled={renameLoading()}
-                  class="btn btn-md btn-interactive btn-disabled btn-secondary"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={renameLoading()}
-                  class="btn btn-md btn-interactive btn-disabled btn-primary"
-                >
-                  <Show when={renameLoading()}>
-                    <LoadingSpinner class="size-3.5 text-b-paper" />
-                  </Show>
-                  {renameLoading() ? "Saving…" : "Save"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      </Show>
-
-      <Show when={keysModalOpen()}>
-        <div
-          class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-4 py-8"
-          role="presentation"
-          onClick={closeKeysModal}
-        >
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="api-keys-title"
-            class="max-h-[90vh] w-full max-w-lg overflow-y-auto border-4 border-[var(--color-b-ink)] bg-b-field p-8 shadow-[12px_12px_0_0_rgba(255,87,34,0.15)]"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <p class="mb-2 text-xs font-bold uppercase tracking-[0.35em] text-b-accent">
-              API keys
-            </p>
-            <h3
-              id="api-keys-title"
-              class="mb-2 font-['Anton',sans-serif] text-4xl uppercase leading-none tracking-wide text-b-ink"
-            >
-              {application()?.name}
-            </h3>
-            <p class="mb-8 text-xs font-bold uppercase tracking-widest text-b-ink/60">
-              Create and revoke keys per host environment.
-            </p>
-
-            <Show when={apiKeys.state === "pending"}>
-              <div class="mb-6 flex items-center gap-3 text-xs font-bold uppercase tracking-widest text-b-ink/80">
-                <LoadingSpinner class="size-4" />
-                Loading keys…
-              </div>
-            </Show>
-
-            <Show when={apiKeys.error}>
-              <p class="mb-6 border-4 border-red-500/50 bg-red-500/10 px-3 py-3 text-xs font-bold uppercase leading-snug text-red-400">
-                {apiKeys.error.message}
-              </p>
-            </Show>
-
-            <Show
-              when={
-                apiKeys() &&
-                apiKeys.state === "ready" &&
-                (apiKeys() ?? []).length > 0
-              }
-            >
-              <ul class="mb-8 flex flex-col gap-3">
-                <For each={apiKeys()}>
-                  {(k) => (
-                    <li class="flex flex-col gap-2 border-4 border-[var(--color-b-ink)] bg-b-paper p-3 sm:flex-row sm:items-center sm:justify-between">
-                      <div class="min-w-0 flex-1">
-                        <p class="text-xs font-bold uppercase tracking-widest text-b-accent">
-                          {k.environment}
-                        </p>
-                        <p class="mt-1 break-all font-mono text-xs font-semibold text-b-ink">
-                          {k.key}
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setDeleteKeyError(null);
-                          setApiKeyToDelete(k);
-                        }}
-                        disabled={createKeyLoading() || deleteKeyLoading()}
-                        class="btn btn-sm btn-interactive btn-disabled btn-danger shrink-0"
-                      >
-                        Revoke
-                      </button>
-                    </li>
-                  )}
-                </For>
-              </ul>
-            </Show>
-
-            <Show
-              when={
-                apiKeys() &&
-                apiKeys.state === "ready" &&
-                (apiKeys() ?? []).length === 0
-              }
-            >
-              <p class="mb-8 text-sm font-semibold uppercase tracking-wider text-b-ink/60">
-                No API keys yet.
-              </p>
-            </Show>
-
-            <form onSubmit={handleCreateKey} class="flex flex-col gap-6 border-t-4 border-[var(--color-b-ink)]/20 pt-8">
-              <div class="flex flex-col gap-2">
-                <label
-                  for="new-key-environment"
-                  class="text-xs font-bold uppercase tracking-widest text-b-ink/80"
-                >
-                  Environment
-                </label>
-                <Show when={environments.state === "pending" || !newKeyEnvironment()}>
-                  <div class="flex h-12 items-center gap-2 border-4 border-[var(--color-b-ink)] bg-b-paper px-3">
-                    <LoadingSpinner class="size-4" />
-                    <span class="text-xs font-bold uppercase tracking-widest text-b-ink/50">
-                      Loading…
-                    </span>
-                  </div>
-                </Show>
-                <Show when={environments() && environments.state === "ready" && newKeyEnvironment()}>
-                  <select
-                    id="new-key-environment"
-                    value={newKeyEnvironment()}
-                    onChange={(e) =>
-                      setNewKeyEnvironment(e.currentTarget.value || undefined)
-                    }
-                    class="h-12 w-full appearance-none border-4 border-[var(--color-b-ink)] bg-b-paper px-3 pr-10 text-sm font-bold uppercase tracking-widest text-b-ink outline-none focus-visible:ring-4 focus-visible:ring-b-accent/50 hover:border-b-accent/50 transition-colors duration-200 cursor-pointer"
-                  >
-                    <For each={environments()}>
-                      {(env) => (
-                        <option value={env} class="bg-b-paper">
-                          {env}
-                        </option>
-                      )}
-                    </For>
-                  </select>
-                </Show>
-              </div>
-
-              <Show when={createKeyError()}>
-                <p class="border-4 border-red-500/50 bg-red-500/10 px-3 py-3 text-xs font-bold uppercase leading-snug text-red-400">
-                  {createKeyError()}
-                </p>
-              </Show>
-
-              <div class="flex flex-col gap-3 sm:flex-row sm:justify-end">
-                <button
-                  type="button"
-                  onClick={closeKeysModal}
-                  disabled={createKeyLoading() || deleteKeyLoading()}
-                  class="btn btn-md btn-interactive btn-disabled btn-secondary"
-                >
-                  Close
-                </button>
-                <button
-                  type="submit"
-                  disabled={
-                    createKeyLoading() ||
-                    deleteKeyLoading() ||
-                    !newKeyEnvironment()
-                  }
-                  class="btn btn-md btn-interactive btn-disabled btn-primary"
-                >
-                  <Show when={createKeyLoading()}>
-                    <LoadingSpinner class="size-3.5 text-b-paper" />
-                  </Show>
-                  {createKeyLoading() ? "Creating…" : "Create key"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      </Show>
-
-      <Show when={apiKeyToDelete()}>
-        <div
-          class="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 backdrop-blur-sm px-4 py-8"
-          role="presentation"
-          onClick={closeDeleteKeyModal}
-        >
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="delete-api-key-title"
-            class="w-full max-w-md border-4 border-red-500/50 bg-b-field p-8 shadow-[12px_12px_0_0_rgba(239,68,68,0.15)]"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <p class="mb-2 text-xs font-bold uppercase tracking-[0.35em] text-red-400">
-              Revoke
-            </p>
-            <h3
-              id="delete-api-key-title"
-              class="mb-4 font-['Anton',sans-serif] text-4xl uppercase leading-none tracking-wide text-b-ink"
-            >
-              API key
-            </h3>
-            <p class="mb-8 text-sm font-semibold text-b-ink/80">
-              Permanently revoke this key for{" "}
-              <span class="font-bold text-red-400">
-                {apiKeyToDelete()!.environment}
-              </span>
-              ? Clients using it will stop working.
-            </p>
-
-            <Show when={deleteKeyError()}>
-              <p class="mb-6 border-4 border-red-500/50 bg-red-500/10 px-3 py-3 text-xs font-bold uppercase leading-snug text-red-400">
-                {deleteKeyError()}
-              </p>
-            </Show>
-
-            <div class="flex flex-col gap-3 sm:flex-row sm:justify-end">
-              <button
-                type="button"
-                onClick={closeDeleteKeyModal}
-                disabled={deleteKeyLoading()}
-                class="btn btn-md btn-interactive btn-disabled btn-secondary"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleDeleteKey}
-                disabled={deleteKeyLoading()}
-                class="btn btn-md btn-interactive btn-disabled btn-danger"
-              >
-                <Show when={deleteKeyLoading()}>
-                  <LoadingSpinner class="size-3.5" />
-                </Show>
-                {deleteKeyLoading() ? "Revoking…" : "Revoke key"}
-              </button>
-            </div>
-          </div>
-        </div>
-      </Show>
-
-      <Show when={deleteOpen()}>
-        <div
-          class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-4 py-8"
-          role="presentation"
-          onClick={closeDeleteModal}
+          onClick={() => setDeleteLoading(false)}
         >
           <div
             role="dialog"
@@ -843,13 +893,13 @@ export default function ApplicationPage() {
             onClick={(e) => e.stopPropagation()}
           >
             <p class="mb-2 text-xs font-bold uppercase tracking-[0.35em] text-red-400">
-              Delete
+              Confirm Deletion
             </p>
             <h3
               id="delete-application-title"
               class="mb-4 font-['Anton',sans-serif] text-4xl uppercase leading-none tracking-wide text-b-ink"
             >
-              Application
+              Delete Application
             </h3>
             <p class="mb-8 text-sm font-semibold text-b-ink/80">
               Permanently delete{" "}
@@ -866,22 +916,82 @@ export default function ApplicationPage() {
             <div class="flex flex-col gap-3 sm:flex-row sm:justify-end">
               <button
                 type="button"
-                onClick={closeDeleteModal}
-                disabled={deleteLoading()}
-                class="btn btn-md btn-interactive btn-disabled btn-secondary"
+                onClick={() => setDeleteLoading(false)}
+                class="btn btn-md btn-interactive btn-secondary"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={handleDeleteApplication}
-                disabled={deleteLoading()}
+                class="btn btn-md btn-interactive btn-danger"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      </Show>
+
+      {/* Revoke Key Confirmation Modal */}
+      <Show when={apiKeyToDelete()}>
+        <div
+          class="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 backdrop-blur-sm px-4 py-8"
+          role="presentation"
+          onClick={() => setApiKeyToDelete(null)}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-api-key-title"
+            class="w-full max-w-md border-4 border-red-500/50 bg-b-field p-8 shadow-[12px_12px_0_0_rgba(239,68,68,0.15)]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p class="mb-2 text-xs font-bold uppercase tracking-[0.35em] text-red-400">
+              Revoke Key
+            </p>
+            <h3
+              id="delete-api-key-title"
+              class="mb-4 font-['Anton',sans-serif] text-4xl uppercase leading-none tracking-wide text-b-ink"
+            >
+              API key
+            </h3>
+            <p class="mb-4 text-sm font-semibold text-b-ink/80">
+              Permanently revoke this key for{" "}
+              <span class="font-bold text-red-400">
+                {apiKeyToDelete()!.environment}
+              </span>
+              ?
+            </p>
+            <p class="mb-8 text-xs text-b-ink/50">
+              Clients using this key will stop working immediately.
+            </p>
+
+            <Show when={deleteKeyError()}>
+              <p class="mb-6 border-4 border-red-500/50 bg-red-500/10 px-3 py-3 text-xs font-bold uppercase leading-snug text-red-400">
+                {deleteKeyError()}
+              </p>
+            </Show>
+
+            <div class="flex flex-col gap-3 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={() => setApiKeyToDelete(null)}
+                disabled={deleteKeyLoading()}
+                class="btn btn-md btn-interactive btn-disabled btn-secondary"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteKey}
+                disabled={deleteKeyLoading()}
                 class="btn btn-md btn-interactive btn-disabled btn-danger"
               >
-                <Show when={deleteLoading()}>
+                <Show when={deleteKeyLoading()}>
                   <LoadingSpinner class="size-3.5" />
                 </Show>
-                {deleteLoading() ? "Deleting…" : "Delete"}
+                {deleteKeyLoading() ? "Revoking…" : "Revoke key"}
               </button>
             </div>
           </div>

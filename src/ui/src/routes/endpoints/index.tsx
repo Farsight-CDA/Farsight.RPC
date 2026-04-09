@@ -1,40 +1,35 @@
+import { createQuery } from "@tanstack/solid-query";
 import { A } from "@solidjs/router";
-import { For, createSignal, onMount } from "solid-js";
+import { For, createSignal } from "solid-js";
 import { MessageBanner } from "../../components/MessageBanner";
 import { getApplications, getChains, getEndpoints, getEnvironmentLookups } from "../../lib/api";
+import { queryKeys } from "../../lib/query";
 import type { HostEnvironment, LookupItem, ProviderListItem } from "../../lib/types";
 
 export default function EndpointsPage() {
-  const [applications, setApplications] = createSignal<LookupItem[]>([]);
-  const [chains, setChains] = createSignal<LookupItem[]>([]);
-  const [environments, setEnvironments] = createSignal<string[]>([]);
-  const [rows, setRows] = createSignal<ProviderListItem[]>([]);
   const [applicationId, setApplicationId] = createSignal("");
   const [chainId, setChainId] = createSignal("");
   const [environment, setEnvironment] = createSignal<HostEnvironment>("Development");
-  const [error, setError] = createSignal<string | null>(null);
-
-  const loadLookups = async () => {
-    const [apps, chainItems, environmentItems] = await Promise.all([getApplications(), getChains(), getEnvironmentLookups()]);
-    setApplications(apps);
-    setChains(chainItems);
-    setEnvironments(environmentItems);
-  };
-
-  const loadRows = async () => {
-    try {
-      setRows(await getEndpoints({ applicationId: applicationId() || undefined, chainId: chainId() || undefined, environment: environment() }));
-      setError(null);
-    }
-    catch(err) {
-      setError(err instanceof Error ? err.message : "Failed to load endpoints.");
-    }
-  };
-
-  onMount(async () => {
-    await loadLookups();
-    await loadRows();
-  });
+  const applicationsQuery = createQuery(() => ({
+    queryKey: queryKeys.applications,
+    queryFn: getApplications,
+  }));
+  const chainsQuery = createQuery(() => ({
+    queryKey: queryKeys.chains,
+    queryFn: getChains,
+  }));
+  const environmentsQuery = createQuery(() => ({
+    queryKey: queryKeys.environments,
+    queryFn: getEnvironmentLookups,
+  }));
+  const rowsQuery = createQuery(() => ({
+    queryKey: queryKeys.endpoints(applicationId() || undefined, chainId() || undefined, environment()),
+    queryFn: () => getEndpoints({ applicationId: applicationId() || undefined, chainId: chainId() || undefined, environment: environment() }),
+  }));
+  const currentError = () => (applicationsQuery.error instanceof Error ? applicationsQuery.error.message : null)
+    ?? (chainsQuery.error instanceof Error ? chainsQuery.error.message : null)
+    ?? (environmentsQuery.error instanceof Error ? environmentsQuery.error.message : null)
+    ?? (rowsQuery.error instanceof Error ? rowsQuery.error.message : null);
 
   return (
     <div class="stack">
@@ -46,7 +41,7 @@ export default function EndpointsPage() {
         <A class="button" href="/endpoints/new">New Endpoint</A>
       </div>
 
-      <MessageBanner message={error()} tone="error" />
+      <MessageBanner message={currentError()} tone="error" />
 
       <section class="panel stack">
         <h2>Filters</h2>
@@ -55,25 +50,22 @@ export default function EndpointsPage() {
             <label>Application</label>
             <select class="select" value={applicationId()} onInput={(event) => setApplicationId(event.currentTarget.value)}>
               <option value="">All available</option>
-              <For each={applications()}>{(item) => <option value={item.id}>{item.name}</option>}</For>
+              <For each={applicationsQuery.data ?? []}>{(item) => <option value={item.id}>{item.name}</option>}</For>
             </select>
           </div>
           <div class="form-field">
             <label>Chain</label>
             <select class="select" value={chainId()} onInput={(event) => setChainId(event.currentTarget.value)}>
               <option value="">All available</option>
-              <For each={chains()}>{(item) => <option value={item.id}>{item.name}</option>}</For>
+              <For each={chainsQuery.data ?? []}>{(item) => <option value={item.id}>{item.name}</option>}</For>
             </select>
           </div>
           <div class="form-field">
             <label>Environment</label>
             <select class="select" value={environment()} onInput={(event) => setEnvironment(event.currentTarget.value)}>
-              <For each={environments()}>{(item) => <option value={item}>{item}</option>}</For>
+              <For each={environmentsQuery.data ?? []}>{(item) => <option value={item}>{item}</option>}</For>
             </select>
           </div>
-        </div>
-        <div class="actions">
-          <button class="button" type="button" onClick={loadRows}>Apply Filters</button>
         </div>
       </section>
 
@@ -81,7 +73,7 @@ export default function EndpointsPage() {
         <table>
           <thead><tr><th>Application</th><th>Chain</th><th>Type</th><th>Provider</th><th>Address</th><th>Updated</th><th>Actions</th></tr></thead>
           <tbody>
-            <For each={rows()}>{(row) => (
+            <For each={rowsQuery.data ?? []}>{(row) => (
               <tr>
                 <td>{row.application}</td>
                 <td>{row.chain}</td>

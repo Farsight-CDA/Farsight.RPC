@@ -1,25 +1,22 @@
-import { For, createSignal, onMount } from "solid-js";
+import { createQuery, useQueryClient } from "@tanstack/solid-query";
+import { For, createSignal } from "solid-js";
 import { MessageBanner } from "../components/MessageBanner";
 import { createProvider, deleteProvider, getProviders, saveProviderRateLimit } from "../lib/api";
+import { queryKeys } from "../lib/query";
 import type { ProviderRateLimitRow } from "../lib/types";
 
 export default function ProvidersAdminPage() {
-  const [rows, setRows] = createSignal<ProviderRateLimitRow[]>([]);
+  const queryClient = useQueryClient();
   const [name, setName] = createSignal("");
   const [rateLimit, setRateLimit] = createSignal("");
   const [message, setMessage] = createSignal<string | null>(null);
   const [error, setError] = createSignal<string | null>(null);
+  const rowsQuery = createQuery(() => ({
+    queryKey: queryKeys.providers,
+    queryFn: getProviders,
+  }));
 
-  const load = async () => setRows(await getProviders());
-
-  onMount(async () => {
-    try {
-      await load();
-    }
-    catch(err) {
-      setError(err instanceof Error ? err.message : "Failed to load providers.");
-    }
-  });
+  const currentError = () => error() ?? (rowsQuery.error instanceof Error ? rowsQuery.error.message : null);
 
   const submit = async (event: SubmitEvent) => {
     event.preventDefault();
@@ -34,7 +31,7 @@ export default function ProvidersAdminPage() {
       setRateLimit("");
       setMessage("Provider created.");
       setError(null);
-      await load();
+      await queryClient.invalidateQueries({ queryKey: queryKeys.providers });
     }
     catch(err) {
       setError(err instanceof Error ? err.message : "Failed to create provider.");
@@ -51,7 +48,7 @@ export default function ProvidersAdminPage() {
       await saveProviderRateLimit(row.providerId, parsedRateLimit);
       setMessage(`Updated rate limit for ${row.provider}.`);
       setError(null);
-      await load();
+      await queryClient.invalidateQueries({ queryKey: queryKeys.providers });
     }
     catch(err) {
       setError(err instanceof Error ? err.message : "Failed to save rate limit.");
@@ -67,7 +64,7 @@ export default function ProvidersAdminPage() {
       await deleteProvider(row.providerId);
       setMessage("Provider deleted.");
       setError(null);
-      await load();
+      await queryClient.invalidateQueries({ queryKey: queryKeys.providers });
     }
     catch(err) {
       setError(err instanceof Error ? err.message : "Failed to delete provider.");
@@ -78,7 +75,7 @@ export default function ProvidersAdminPage() {
     <div class="stack">
       <div class="page-header"><div><h1>Providers</h1><p class="muted">Manage provider definitions and shared request budgets.</p></div></div>
       <MessageBanner message={message()} tone="success" />
-      <MessageBanner message={error()} tone="error" />
+      <MessageBanner message={currentError()} tone="error" />
       <section class="panel stack">
         <h2>New Provider</h2>
         <form class="row" onSubmit={submit}>
@@ -91,7 +88,7 @@ export default function ProvidersAdminPage() {
         <table>
           <thead><tr><th>Name</th><th>Rate Limit</th><th>Actions</th></tr></thead>
           <tbody>
-            <For each={rows()}>{(row) => {
+            <For each={rowsQuery.data ?? []}>{(row) => {
               const [currentRateLimit, setCurrentRateLimit] = createSignal(row.rateLimit.toString());
               return (
                 <tr>

@@ -1,3 +1,4 @@
+import { createMutation } from "@tanstack/solid-query";
 import { useNavigate } from "@solidjs/router";
 import { createSignal } from "solid-js";
 import { setToken } from "../lib/auth";
@@ -9,23 +10,21 @@ export default function LoginPage() {
   const [userName, setUserName] = createSignal("admin");
   const [password, setPassword] = createSignal("");
   const [message, setMessage] = createSignal<string | null>(null);
-  const [submitting, setSubmitting] = createSignal(false);
+  const loginMutation = createMutation(() => ({
+    mutationFn: ({ userName, password }: { userName: string; password: string }) => login(userName, password),
+  }));
 
   const submit = async (event: SubmitEvent) => {
     event.preventDefault();
-    setSubmitting(true);
     setMessage(null);
 
     try {
-      const response = await login(userName(), password());
+      const response = await loginMutation.mutateAsync({ userName: userName(), password: password() });
       setToken(response.token);
       navigate("/", { replace: true });
     }
     catch(error) {
       setMessage(error instanceof Error ? error.message : "Login failed.");
-    }
-    finally {
-      setSubmitting(false);
     }
   };
 
@@ -46,7 +45,7 @@ export default function LoginPage() {
             <label for="password">Password</label>
             <input id="password" class="input" type="password" value={password()} onInput={(event) => setPassword(event.currentTarget.value)} />
           </div>
-          <button class="button" type="submit" disabled={submitting()}>{submitting() ? "Signing in..." : "Sign in"}</button>
+          <button class="button" type="submit" disabled={loginMutation.isPending}>{loginMutation.isPending ? "Signing in..." : "Sign in"}</button>
         </form>
       </div>
     </div>

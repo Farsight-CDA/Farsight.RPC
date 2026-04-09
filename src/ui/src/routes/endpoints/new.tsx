@@ -1,8 +1,10 @@
+import { createQuery } from "@tanstack/solid-query";
 import { useNavigate, useSearchParams } from "@solidjs/router";
-import { createSignal, onMount } from "solid-js";
+import { createMemo, createSignal } from "solid-js";
 import { EndpointForm } from "../../components/EndpointForm";
 import { MessageBanner } from "../../components/MessageBanner";
 import { createEndpoint, getApplications, getChains, getEndpointTypeLookups, getEnvironmentLookups, getProviders, getTracingModeLookups, probeEndpointAddress } from "../../lib/api";
+import { queryKeys } from "../../lib/query";
 import type { LookupItem, ProviderEditModel, ProviderRateLimitRow } from "../../lib/types";
 
 const defaultModel = (type = "RealTime"): ProviderEditModel => ({
@@ -23,31 +25,22 @@ export default function NewEndpointPage() {
   const [searchParams] = useSearchParams();
   const initialType = Array.isArray(searchParams.type) ? searchParams.type[0] : searchParams.type;
   const [model, setModel] = createSignal<ProviderEditModel>(defaultModel(initialType || "RealTime"));
-  const [applications, setApplications] = createSignal<LookupItem[]>([]);
-  const [chains, setChains] = createSignal<LookupItem[]>([]);
-  const [providers, setProviders] = createSignal<LookupItem[]>([]);
-  const [environments, setEnvironments] = createSignal<string[]>([]);
-  const [endpointTypes, setEndpointTypes] = createSignal<string[]>([]);
-  const [tracingModes, setTracingModes] = createSignal<string[]>([]);
   const [message, setMessage] = createSignal<string | null>(null);
   const [error, setError] = createSignal<string | null>(null);
-
-  onMount(async () => {
-    const [apps, chainItems, providerItems, environmentItems, endpointTypeItems, tracingModeItems] = await Promise.all([
-      getApplications(),
-      getChains(),
-      getProviders(),
-      getEnvironmentLookups(),
-      getEndpointTypeLookups(),
-      getTracingModeLookups(),
-    ]);
-    setApplications(apps);
-    setChains(chainItems);
-    setProviders(providerItems.map((item: ProviderRateLimitRow) => ({ id: item.providerId, name: item.provider })));
-    setEnvironments(environmentItems);
-    setEndpointTypes(endpointTypeItems);
-    setTracingModes(tracingModeItems);
-  });
+  const applicationsQuery = createQuery(() => ({ queryKey: queryKeys.applications, queryFn: getApplications }));
+  const chainsQuery = createQuery(() => ({ queryKey: queryKeys.chains, queryFn: getChains }));
+  const providersQuery = createQuery(() => ({ queryKey: queryKeys.providers, queryFn: getProviders }));
+  const environmentsQuery = createQuery(() => ({ queryKey: queryKeys.environments, queryFn: getEnvironmentLookups }));
+  const endpointTypesQuery = createQuery(() => ({ queryKey: queryKeys.endpointTypes, queryFn: getEndpointTypeLookups }));
+  const tracingModesQuery = createQuery(() => ({ queryKey: queryKeys.tracingModes, queryFn: getTracingModeLookups }));
+  const providers = createMemo<LookupItem[]>(() => (providersQuery.data ?? []).map((item: ProviderRateLimitRow) => ({ id: item.providerId, name: item.provider })));
+  const currentError = () => error()
+    ?? (applicationsQuery.error instanceof Error ? applicationsQuery.error.message : null)
+    ?? (chainsQuery.error instanceof Error ? chainsQuery.error.message : null)
+    ?? (providersQuery.error instanceof Error ? providersQuery.error.message : null)
+    ?? (environmentsQuery.error instanceof Error ? environmentsQuery.error.message : null)
+    ?? (endpointTypesQuery.error instanceof Error ? endpointTypesQuery.error.message : null)
+    ?? (tracingModesQuery.error instanceof Error ? tracingModesQuery.error.message : null);
 
   const updateField = <K extends keyof ProviderEditModel>(key: K, value: ProviderEditModel[K]) => {
     setModel((current) => ({ ...current, [key]: value }));
@@ -79,16 +72,16 @@ export default function NewEndpointPage() {
     <div class="stack">
       <div class="page-header"><div><h1>New Endpoint</h1><p class="muted">Create a new RPC endpoint with the full schema editor.</p></div></div>
       <MessageBanner message={message()} tone="success" />
-      <MessageBanner message={error()} tone="error" />
+      <MessageBanner message={currentError()} tone="error" />
       <form class="panel stack" onSubmit={save}>
         <EndpointForm
           model={model()}
-          applications={applications()}
-          chains={chains()}
+          applications={applicationsQuery.data ?? []}
+          chains={chainsQuery.data ?? []}
           providers={providers()}
-          environments={environments()}
-          endpointTypes={endpointTypes()}
-          tracingModes={tracingModes()}
+          environments={environmentsQuery.data ?? []}
+          endpointTypes={endpointTypesQuery.data ?? []}
+          tracingModes={tracingModesQuery.data ?? []}
           onChange={updateField}
         />
         <div class="actions">

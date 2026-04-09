@@ -1,33 +1,34 @@
-import { For, Show, createSignal, onMount } from "solid-js";
+import { createQuery, useQueryClient } from "@tanstack/solid-query";
+import { For, Show, createSignal } from "solid-js";
 import { MessageBanner } from "../components/MessageBanner";
 import { createApiKey, getApiKeys, getApplications, getEnvironmentLookups, toggleApiKey } from "../lib/api";
-import type { ApiClientCreateResult, ApiClientListItem, LookupItem } from "../lib/types";
+import { queryKeys } from "../lib/query";
+import type { ApiClientCreateResult, ApiClientListItem } from "../lib/types";
 
 export default function AdminPage() {
-  const [applications, setApplications] = createSignal<LookupItem[]>([]);
-  const [environments, setEnvironments] = createSignal<string[]>([]);
-  const [rows, setRows] = createSignal<ApiClientListItem[]>([]);
+  const queryClient = useQueryClient();
   const [applicationId, setApplicationId] = createSignal("");
   const [environment, setEnvironment] = createSignal("Development");
   const [createdKey, setCreatedKey] = createSignal<ApiClientCreateResult | null>(null);
   const [message, setMessage] = createSignal<string | null>(null);
   const [error, setError] = createSignal<string | null>(null);
+  const applicationsQuery = createQuery(() => ({
+    queryKey: queryKeys.applications,
+    queryFn: getApplications,
+  }));
+  const environmentsQuery = createQuery(() => ({
+    queryKey: queryKeys.environments,
+    queryFn: getEnvironmentLookups,
+  }));
+  const rowsQuery = createQuery(() => ({
+    queryKey: queryKeys.apiKeys,
+    queryFn: getApiKeys,
+  }));
 
-  const load = async () => {
-    const [appItems, environmentItems, keyRows] = await Promise.all([getApplications(), getEnvironmentLookups(), getApiKeys()]);
-    setApplications(appItems);
-    setEnvironments(environmentItems);
-    setRows(keyRows);
-  };
-
-  onMount(async () => {
-    try {
-      await load();
-    }
-    catch(err) {
-      setError(err instanceof Error ? err.message : "Failed to load API keys.");
-    }
-  });
+  const currentError = () => error()
+    ?? (applicationsQuery.error instanceof Error ? applicationsQuery.error.message : null)
+    ?? (environmentsQuery.error instanceof Error ? environmentsQuery.error.message : null)
+    ?? (rowsQuery.error instanceof Error ? rowsQuery.error.message : null);
 
   const generate = async (event: SubmitEvent) => {
     event.preventDefault();
@@ -36,7 +37,7 @@ export default function AdminPage() {
       setCreatedKey(result);
       setMessage("API key generated. Copy it now; the backend will not reveal it again.");
       setError(null);
-      await load();
+      await queryClient.invalidateQueries({ queryKey: queryKeys.apiKeys });
     }
     catch(err) {
       setError(err instanceof Error ? err.message : "Failed to create API key.");
@@ -48,7 +49,7 @@ export default function AdminPage() {
       await toggleApiKey(row.id);
       setMessage(`${row.apiKey} updated.`);
       setError(null);
-      await load();
+      await queryClient.invalidateQueries({ queryKey: queryKeys.apiKeys });
     }
     catch(err) {
       setError(err instanceof Error ? err.message : "Failed to toggle API key.");
@@ -65,7 +66,7 @@ export default function AdminPage() {
     <div class="stack">
       <div class="page-header"><div><h1>API Keys</h1><p class="muted">Generate and toggle SDK API keys scoped by application and environment.</p></div></div>
       <MessageBanner message={message()} tone="success" />
-      <MessageBanner message={error()} tone="error" />
+      <MessageBanner message={currentError()} tone="error" />
       <section class="panel stack">
         <h2>Generate Key</h2>
         <form class="form-grid" onSubmit={generate}>
@@ -73,13 +74,13 @@ export default function AdminPage() {
             <label>Application</label>
             <select class="select" value={applicationId()} onInput={(event) => setApplicationId(event.currentTarget.value)}>
               <option value="">Select application</option>
-              <For each={applications()}>{(item) => <option value={item.id}>{item.name}</option>}</For>
+              <For each={applicationsQuery.data ?? []}>{(item) => <option value={item.id}>{item.name}</option>}</For>
             </select>
           </div>
           <div class="form-field">
             <label>Environment</label>
             <select class="select" value={environment()} onInput={(event) => setEnvironment(event.currentTarget.value)}>
-              <For each={environments()}>{(item) => <option value={item}>{item}</option>}</For>
+              <For each={environmentsQuery.data ?? []}>{(item) => <option value={item}>{item}</option>}</For>
             </select>
           </div>
           <div class="actions">
@@ -99,7 +100,7 @@ export default function AdminPage() {
         <table>
           <thead><tr><th>Key</th><th>Application</th><th>Environment</th><th>Enabled</th><th>Created</th><th>Updated</th><th>Actions</th></tr></thead>
           <tbody>
-            <For each={rows()}>{(row) => (
+            <For each={rowsQuery.data ?? []}>{(row) => (
               <tr>
                 <td class="mono">{row.apiKey}</td>
                 <td>{row.application ?? "Unknown"}</td>

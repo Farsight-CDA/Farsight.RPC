@@ -1,16 +1,13 @@
+import { createQuery, useQueryClient } from "@tanstack/solid-query";
 import { A } from "@solidjs/router";
-import { For, Show, createMemo, createSignal, onMount } from "solid-js";
+import { For, Show, createMemo, createSignal } from "solid-js";
 import { MessageBanner } from "../components/MessageBanner";
 import { createEndpoint, deleteEndpoint, getApplications, getChains, getEndpoints, getEndpointTypeLookups, getEnvironmentLookups, getProviders, probeSavedEndpoint } from "../lib/api";
+import { queryKeys } from "../lib/query";
 import type { HostEnvironment, LookupItem, ProviderListItem, ProviderRateLimitRow, RpcEndpointType } from "../lib/types";
 
 export default function DashboardPage() {
-  const [applications, setApplications] = createSignal<LookupItem[]>([]);
-  const [chains, setChains] = createSignal<LookupItem[]>([]);
-  const [providers, setProviders] = createSignal<ProviderRateLimitRow[]>([]);
-  const [environments, setEnvironments] = createSignal<string[]>([]);
-  const [endpointTypes, setEndpointTypes] = createSignal<string[]>([]);
-  const [rows, setRows] = createSignal<ProviderListItem[]>([]);
+  const queryClient = useQueryClient();
   const [message, setMessage] = createSignal<string | null>(null);
   const [error, setError] = createSignal<string | null>(null);
   const [applicationId, setApplicationId] = createSignal("");
@@ -21,40 +18,39 @@ export default function DashboardPage() {
   const [address, setAddress] = createSignal("");
 
   const canQuery = createMemo(() => Boolean(applicationId() && chainId()));
-
-  const loadLookups = async () => {
-    const [apps, chainItems, providerItems, environmentItems, typeItems] = await Promise.all([
-      getApplications(),
-      getChains(),
-      getProviders(),
-      getEnvironmentLookups(),
-      getEndpointTypeLookups(),
-    ]);
-    setApplications(apps);
-    setChains(chainItems);
-    setProviders(providerItems);
-    setEnvironments(environmentItems);
-    setEndpointTypes(typeItems);
-  };
-
-  const loadRows = async () => {
-    if(!canQuery()) {
-      setRows([]);
-      return;
-    }
-
-    setRows(await getEndpoints({ applicationId: applicationId(), chainId: chainId(), environment: environment() }));
-  };
-
-  onMount(async () => {
-    try {
-      await loadLookups();
-      await loadRows();
-    }
-    catch(err) {
-      setError(err instanceof Error ? err.message : "Failed to load dashboard.");
-    }
-  });
+  const applicationsQuery = createQuery(() => ({
+    queryKey: queryKeys.applications,
+    queryFn: getApplications,
+  }));
+  const chainsQuery = createQuery(() => ({
+    queryKey: queryKeys.chains,
+    queryFn: getChains,
+  }));
+  const providersQuery = createQuery(() => ({
+    queryKey: queryKeys.providers,
+    queryFn: getProviders,
+  }));
+  const environmentsQuery = createQuery(() => ({
+    queryKey: queryKeys.environments,
+    queryFn: getEnvironmentLookups,
+  }));
+  const endpointTypesQuery = createQuery(() => ({
+    queryKey: queryKeys.endpointTypes,
+    queryFn: getEndpointTypeLookups,
+  }));
+  const rowsQuery = createQuery(() => ({
+    queryKey: queryKeys.endpoints(applicationId() || undefined, chainId() || undefined, environment()),
+    queryFn: () => getEndpoints({ applicationId: applicationId(), chainId: chainId(), environment: environment() }),
+    enabled: canQuery(),
+  }));
+  const rows = () => rowsQuery.data ?? [];
+  const currentError = () => error()
+    ?? (applicationsQuery.error instanceof Error ? applicationsQuery.error.message : null)
+    ?? (chainsQuery.error instanceof Error ? chainsQuery.error.message : null)
+    ?? (providersQuery.error instanceof Error ? providersQuery.error.message : null)
+    ?? (environmentsQuery.error instanceof Error ? environmentsQuery.error.message : null)
+    ?? (endpointTypesQuery.error instanceof Error ? endpointTypesQuery.error.message : null)
+    ?? (rowsQuery.error instanceof Error ? rowsQuery.error.message : null);
 
   const addEndpoint = async (event: SubmitEvent) => {
     event.preventDefault();
@@ -76,7 +72,7 @@ export default function DashboardPage() {
       });
       setAddress("");
       setMessage("RPC endpoint added.");
-      await loadRows();
+      await queryClient.invalidateQueries({ queryKey: queryKeys.endpoints(applicationId(), chainId(), environment()) });
     }
     catch(err) {
       setError(err instanceof Error ? err.message : "Failed to add endpoint.");
@@ -88,7 +84,7 @@ export default function DashboardPage() {
       const result = await probeSavedEndpoint(row.type, row.id);
       setMessage(result.message);
       setError(null);
-      await loadRows();
+      await queryClient.invalidateQueries({ queryKey: queryKeys.endpoints(applicationId(), chainId(), environment()) });
     }
     catch(err) {
       setError(err instanceof Error ? err.message : "Probe failed.");
@@ -104,7 +100,7 @@ export default function DashboardPage() {
       await deleteEndpoint(row.type, row.id);
       setMessage("RPC endpoint removed.");
       setError(null);
-      await loadRows();
+      await queryClient.invalidateQueries({ queryKey: queryKeys.endpoints(applicationId(), chainId(), environment()) });
     }
     catch(err) {
       setError(err instanceof Error ? err.message : "Delete failed.");
@@ -121,29 +117,29 @@ export default function DashboardPage() {
       </div>
 
       <MessageBanner message={message()} tone="success" />
-      <MessageBanner message={error()} tone="error" />
+      <MessageBanner message={currentError()} tone="error" />
 
       <section class="panel stack">
         <h2>Selection</h2>
         <div class="form-grid">
           <div class="form-field">
             <label>Application</label>
-            <select class="select" value={applicationId()} onInput={async (event) => { setApplicationId(event.currentTarget.value); await loadRows(); }}>
+            <select class="select" value={applicationId()} onInput={(event) => setApplicationId(event.currentTarget.value)}>
               <option value="">Select application</option>
-              <For each={applications()}>{(item) => <option value={item.id}>{item.name}</option>}</For>
+              <For each={applicationsQuery.data ?? []}>{(item) => <option value={item.id}>{item.name}</option>}</For>
             </select>
           </div>
           <div class="form-field">
             <label>Chain</label>
-            <select class="select" value={chainId()} onInput={async (event) => { setChainId(event.currentTarget.value); await loadRows(); }}>
+            <select class="select" value={chainId()} onInput={(event) => setChainId(event.currentTarget.value)}>
               <option value="">Select chain</option>
-              <For each={chains()}>{(item) => <option value={item.id}>{item.name}</option>}</For>
+              <For each={chainsQuery.data ?? []}>{(item) => <option value={item.id}>{item.name}</option>}</For>
             </select>
           </div>
           <div class="form-field">
             <label>Environment</label>
-            <select class="select" value={environment()} onInput={async (event) => { setEnvironment(event.currentTarget.value); await loadRows(); }}>
-              <For each={environments()}>{(item) => <option value={item}>{item}</option>}</For>
+            <select class="select" value={environment()} onInput={(event) => setEnvironment(event.currentTarget.value)}>
+              <For each={environmentsQuery.data ?? []}>{(item) => <option value={item}>{item}</option>}</For>
             </select>
           </div>
         </div>
@@ -161,14 +157,14 @@ export default function DashboardPage() {
           <div class="form-field">
             <label>Type</label>
             <select class="select" value={type()} onInput={(event) => setType(event.currentTarget.value)}>
-              <For each={endpointTypes()}>{(item) => <option value={item}>{item}</option>}</For>
+              <For each={endpointTypesQuery.data ?? []}>{(item) => <option value={item}>{item}</option>}</For>
             </select>
           </div>
           <div class="form-field">
             <label>Provider</label>
             <select class="select" value={providerId()} onInput={(event) => setProviderId(event.currentTarget.value)}>
               <option value="">Select provider</option>
-              <For each={providers()}>{(item) => <option value={item.providerId}>{item.provider}</option>}</For>
+              <For each={providersQuery.data ?? []}>{(item) => <option value={item.providerId}>{item.provider}</option>}</For>
             </select>
           </div>
           <div class="form-field full">

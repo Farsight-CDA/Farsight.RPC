@@ -1,51 +1,50 @@
+import { createQuery, useQueryClient } from "@tanstack/solid-query";
 import { useNavigate, useSearchParams } from "@solidjs/router";
-import { Show, createSignal, onMount } from "solid-js";
+import { Show, createEffect, createMemo, createSignal } from "solid-js";
 import { EndpointForm } from "../../components/EndpointForm";
 import { MessageBanner } from "../../components/MessageBanner";
 import { deleteEndpoint, getApplications, getChains, getEndpoint, getEndpointTypeLookups, getEnvironmentLookups, getProviders, getTracingModeLookups, probeEndpointAddress, updateEndpoint } from "../../lib/api";
+import { queryKeys } from "../../lib/query";
 import type { LookupItem, ProviderEditModel, ProviderRateLimitRow } from "../../lib/types";
 
 export default function EditEndpointPage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [searchParams] = useSearchParams();
   const [model, setModel] = createSignal<ProviderEditModel | null>(null);
-  const [applications, setApplications] = createSignal<LookupItem[]>([]);
-  const [chains, setChains] = createSignal<LookupItem[]>([]);
-  const [providers, setProviders] = createSignal<LookupItem[]>([]);
-  const [environments, setEnvironments] = createSignal<string[]>([]);
-  const [endpointTypes, setEndpointTypes] = createSignal<string[]>([]);
-  const [tracingModes, setTracingModes] = createSignal<string[]>([]);
   const [message, setMessage] = createSignal<string | null>(null);
   const [error, setError] = createSignal<string | null>(null);
-
-  onMount(async () => {
-    try {
-      const endpointId = Array.isArray(searchParams.id) ? searchParams.id[0] : searchParams.id;
-      const endpointType = Array.isArray(searchParams.type) ? searchParams.type[0] : searchParams.type;
-      if(!endpointId || !endpointType) {
+  const endpointId = createMemo(() => Array.isArray(searchParams.id) ? searchParams.id[0] : searchParams.id);
+  const endpointType = createMemo(() => Array.isArray(searchParams.type) ? searchParams.type[0] : searchParams.type);
+  const applicationsQuery = createQuery(() => ({ queryKey: queryKeys.applications, queryFn: getApplications }));
+  const chainsQuery = createQuery(() => ({ queryKey: queryKeys.chains, queryFn: getChains }));
+  const providersQuery = createQuery(() => ({ queryKey: queryKeys.providers, queryFn: getProviders }));
+  const environmentsQuery = createQuery(() => ({ queryKey: queryKeys.environments, queryFn: getEnvironmentLookups }));
+  const endpointTypesQuery = createQuery(() => ({ queryKey: queryKeys.endpointTypes, queryFn: getEndpointTypeLookups }));
+  const tracingModesQuery = createQuery(() => ({ queryKey: queryKeys.tracingModes, queryFn: getTracingModeLookups }));
+  const endpointQuery = createQuery(() => ({
+    queryKey: queryKeys.endpoint(endpointType(), endpointId()),
+    queryFn: () => {
+      if(!endpointId() || !endpointType()) {
         throw new Error("Endpoint id and type are required.");
       }
 
-      const [apps, chainItems, providerItems, environmentItems, endpointTypeItems, tracingModeItems, endpoint] = await Promise.all([
-        getApplications(),
-        getChains(),
-        getProviders(),
-        getEnvironmentLookups(),
-        getEndpointTypeLookups(),
-        getTracingModeLookups(),
-        getEndpoint(endpointType, endpointId),
-      ]);
+      return getEndpoint(endpointType()!, endpointId()!);
+    },
+  }));
+  const providers = createMemo<LookupItem[]>(() => (providersQuery.data ?? []).map((item: ProviderRateLimitRow) => ({ id: item.providerId, name: item.provider })));
+  const currentError = () => error()
+    ?? (applicationsQuery.error instanceof Error ? applicationsQuery.error.message : null)
+    ?? (chainsQuery.error instanceof Error ? chainsQuery.error.message : null)
+    ?? (providersQuery.error instanceof Error ? providersQuery.error.message : null)
+    ?? (environmentsQuery.error instanceof Error ? environmentsQuery.error.message : null)
+    ?? (endpointTypesQuery.error instanceof Error ? endpointTypesQuery.error.message : null)
+    ?? (tracingModesQuery.error instanceof Error ? tracingModesQuery.error.message : null)
+    ?? (endpointQuery.error instanceof Error ? endpointQuery.error.message : null);
 
-      setApplications(apps);
-      setChains(chainItems);
-      setProviders(providerItems.map((item: ProviderRateLimitRow) => ({ id: item.providerId, name: item.provider })));
-      setEnvironments(environmentItems);
-      setEndpointTypes(endpointTypeItems);
-      setTracingModes(tracingModeItems);
-      setModel(endpoint);
-    }
-    catch(err) {
-      setError(err instanceof Error ? err.message : "Failed to load endpoint.");
+  createEffect(() => {
+    if(endpointQuery.data) {
+      setModel(endpointQuery.data);
     }
   });
 
@@ -63,6 +62,8 @@ export default function EditEndpointPage() {
       await updateEndpoint(model()!);
       setMessage("Endpoint saved.");
       setError(null);
+      await queryClient.invalidateQueries({ queryKey: queryKeys.endpoint(endpointType(), endpointId()) });
+      await queryClient.invalidateQueries({ queryKey: ["endpoints"] });
     }
     catch(err) {
       setError(err instanceof Error ? err.message : "Failed to save endpoint.");
@@ -106,18 +107,18 @@ export default function EditEndpointPage() {
     <div class="stack">
       <div class="page-header"><div><h1>Edit Endpoint</h1><p class="muted">Update the endpoint shape, provider assignment, and probe target.</p></div></div>
       <MessageBanner message={message()} tone="success" />
-      <MessageBanner message={error()} tone="error" />
+      <MessageBanner message={currentError()} tone="error" />
       <Show when={model()} fallback={<div class="panel">Loading endpoint...</div>}>
         {(current) => (
           <form class="panel stack" onSubmit={save}>
             <EndpointForm
               model={current()}
-              applications={applications()}
-              chains={chains()}
+              applications={applicationsQuery.data ?? []}
+              chains={chainsQuery.data ?? []}
               providers={providers()}
-              environments={environments()}
-              endpointTypes={endpointTypes()}
-              tracingModes={tracingModes()}
+              environments={environmentsQuery.data ?? []}
+              endpointTypes={endpointTypesQuery.data ?? []}
+              tracingModes={tracingModesQuery.data ?? []}
               onChange={updateField}
             />
             <div class="actions">

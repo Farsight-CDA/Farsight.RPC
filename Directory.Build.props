@@ -1,5 +1,11 @@
 <Project>
-  <PropertyGroup>
-    <InvariantGlobalization>true</InvariantGlobalization>
-  </PropertyGroup>
+	<Import Project="version.props" />
+
+	<PropertyGroup>
+		<InvariantGlobalization>true</InvariantGlobalization>
+		<BaseIntermediateOutputPath>obj/$(OS)/</BaseIntermediateOutputPath>
+		<DefaultItemExcludes>$(DefaultItemExcludes);obj/**</DefaultItemExcludes>
+		<AssemblyVersion>$([System.Text.RegularExpressions.Regex]::Replace('$(Version)', '[-+].*$', ''))</AssemblyVersion>
+		<FileVersion>$(AssemblyVersion)</FileVersion>
+	</PropertyGroup>
 </Project>

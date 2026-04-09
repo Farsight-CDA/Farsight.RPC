@@ -10,7 +10,10 @@ type ApplicationSummary = {
   archiveCount: number;
 };
 
-async function readErrorMessage(response: Response): Promise<string> {
+async function readErrorMessage(
+  response: Response,
+  fallback: string,
+): Promise<string> {
   try {
     const data = (await response.json()) as {
       message?: string;
@@ -23,7 +26,7 @@ async function readErrorMessage(response: Response): Promise<string> {
   } catch {}
   if (response.status === 409)
     return "An application with this name already exists.";
-  return "Failed to create application";
+  return fallback;
 }
 
 export default function DashboardPage() {
@@ -48,6 +51,19 @@ export default function DashboardPage() {
   const [createError, setCreateError] = createSignal<string | null>(null);
   const [createLoading, setCreateLoading] = createSignal(false);
 
+  const [renameApp, setRenameApp] = createSignal<ApplicationSummary | null>(
+    null,
+  );
+  const [renameName, setRenameName] = createSignal("");
+  const [renameError, setRenameError] = createSignal<string | null>(null);
+  const [renameLoading, setRenameLoading] = createSignal(false);
+
+  const [deleteApp, setDeleteApp] = createSignal<ApplicationSummary | null>(
+    null,
+  );
+  const [deleteError, setDeleteError] = createSignal<string | null>(null);
+  const [deleteLoading, setDeleteLoading] = createSignal(false);
+
   const openModal = () => {
     setCreateError(null);
     setNewName("");
@@ -57,6 +73,27 @@ export default function DashboardPage() {
   const closeModal = () => {
     if (createLoading()) return;
     setModalOpen(false);
+  };
+
+  const openRename = (app: ApplicationSummary) => {
+    setRenameError(null);
+    setRenameName(app.name);
+    setRenameApp(app);
+  };
+
+  const closeRenameModal = () => {
+    if (renameLoading()) return;
+    setRenameApp(null);
+  };
+
+  const openDelete = (app: ApplicationSummary) => {
+    setDeleteError(null);
+    setDeleteApp(app);
+  };
+
+  const closeDeleteModal = () => {
+    if (deleteLoading()) return;
+    setDeleteApp(null);
   };
 
   const handleCreate = async (e: SubmitEvent) => {
@@ -75,7 +112,9 @@ export default function DashboardPage() {
         body: JSON.stringify({ name: newName() }),
       });
       if (!response.ok) {
-        throw new Error(await readErrorMessage(response));
+        throw new Error(
+          await readErrorMessage(response, "Failed to create application"),
+        );
       }
       setModalOpen(false);
       setNewName("");
@@ -86,6 +125,65 @@ export default function DashboardPage() {
       );
     } finally {
       setCreateLoading(false);
+    }
+  };
+
+  const handleRename = async (e: SubmitEvent) => {
+    e.preventDefault();
+    const token = auth.token;
+    const app = renameApp();
+    if (!token || !app) return;
+    setRenameError(null);
+    setRenameLoading(true);
+    try {
+      const response = await fetch(`/api/applications/${app.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ name: renameName() }),
+      });
+      if (!response.ok) {
+        throw new Error(
+          await readErrorMessage(response, "Failed to rename application"),
+        );
+      }
+      setRenameApp(null);
+      await refetch();
+    } catch (err) {
+      setRenameError(
+        err instanceof Error ? err.message : "Failed to rename application",
+      );
+    } finally {
+      setRenameLoading(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    const token = auth.token;
+    const app = deleteApp();
+    if (!token || !app) return;
+    setDeleteError(null);
+    setDeleteLoading(true);
+    try {
+      const response = await fetch(`/api/applications/${app.id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!response.ok) {
+        throw new Error(
+          await readErrorMessage(response, "Failed to delete application"),
+        );
+      }
+      setDeleteApp(null);
+      await refetch();
+    } catch (err) {
+      setDeleteError(
+        err instanceof Error ? err.message : "Failed to delete application",
+      );
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -134,18 +232,36 @@ export default function DashboardPage() {
             <For each={applications()}>
               {(app) => (
                 <li>
-                  <A
-                    href={`/applications/${app.id}`}
-                    class="block w-full border-4 border-[var(--color-b-ink)] bg-b-paper px-4 py-4 text-left shadow-[4px_4px_0_0_var(--color-b-ink)] outline-none transition-transform hover:-translate-x-px hover:-translate-y-px hover:shadow-[6px_6px_0_0_var(--color-b-ink)] focus-visible:ring-4 focus-visible:ring-b-accent active:translate-x-0 active:translate-y-0 active:shadow-[2px_2px_0_0_var(--color-b-ink)]"
-                  >
-                    <span class="font-['Anton',sans-serif] text-2xl uppercase tracking-wide text-b-ink">
-                      {app.name}
-                    </span>
-                    <p class="mt-2 text-xs font-bold uppercase tracking-widest text-b-ink/70">
-                      Tracing {app.tracingCount} · Realtime {app.realtimeCount}{" "}
-                      · Archive {app.archiveCount}
-                    </p>
-                  </A>
+                  <div class="flex flex-col gap-3 border-4 border-[var(--color-b-ink)] bg-b-paper p-4 shadow-[4px_4px_0_0_var(--color-b-ink)] sm:flex-row sm:items-stretch sm:gap-4">
+                    <A
+                      href={`/applications/${app.id}`}
+                      class="min-w-0 flex-1 text-left outline-none transition-transform hover:-translate-x-px hover:-translate-y-px focus-visible:ring-4 focus-visible:ring-b-accent"
+                    >
+                      <span class="font-['Anton',sans-serif] text-2xl uppercase tracking-wide text-b-ink">
+                        {app.name}
+                      </span>
+                      <p class="mt-2 text-xs font-bold uppercase tracking-widest text-b-ink/70">
+                        Tracing {app.tracingCount} · Realtime{" "}
+                        {app.realtimeCount} · Archive {app.archiveCount}
+                      </p>
+                    </A>
+                    <div class="flex shrink-0 flex-row gap-2 sm:flex-col sm:justify-center">
+                      <button
+                        type="button"
+                        onClick={() => openRename(app)}
+                        class="flex-1 border-4 border-[var(--color-b-ink)] bg-b-paper px-3 py-2 text-[0.65rem] font-bold uppercase tracking-widest text-b-ink shadow-[3px_3px_0_0_var(--color-b-ink)] transition-transform hover:-translate-x-px hover:-translate-y-px hover:shadow-[4px_4px_0_0_var(--color-b-ink)] focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-b-accent sm:flex-none"
+                      >
+                        Rename
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => openDelete(app)}
+                        class="flex-1 border-4 border-[var(--color-b-accent)] bg-b-paper px-3 py-2 text-[0.65rem] font-bold uppercase tracking-widest text-b-accent shadow-[3px_3px_0_0_var(--color-b-accent)] transition-transform hover:-translate-x-px hover:-translate-y-px hover:shadow-[4px_4px_0_0_var(--color-b-accent)] focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-b-accent sm:flex-none"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
                 </li>
               )}
             </For>
@@ -232,6 +348,133 @@ export default function DashboardPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      </Show>
+
+      <Show when={renameApp()}>
+        <div
+          class="fixed inset-0 z-50 flex items-center justify-center bg-b-ink/60 px-4 py-8"
+          role="presentation"
+          onClick={closeRenameModal}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="rename-application-title"
+            class="w-full max-w-md border-4 border-[var(--color-b-ink)] bg-b-field p-8 shadow-[12px_12px_0_0_var(--color-b-ink)]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p class="mb-2 text-xs font-bold uppercase tracking-[0.35em] text-b-ink">
+              Rename
+            </p>
+            <h3
+              id="rename-application-title"
+              class="mb-8 font-['Anton',sans-serif] text-4xl uppercase leading-none tracking-wide text-b-ink"
+            >
+              Application
+            </h3>
+
+            <form onSubmit={handleRename} class="flex flex-col gap-6">
+              <div class="flex flex-col gap-2">
+                <label
+                  for="rename-app-name"
+                  class="text-xs font-bold uppercase tracking-widest text-b-ink"
+                >
+                  Name
+                </label>
+                <input
+                  id="rename-app-name"
+                  type="text"
+                  required
+                  value={renameName()}
+                  onInput={(e) => setRenameName(e.currentTarget.value)}
+                  class="border-4 border-[var(--color-b-ink)] bg-b-paper px-3 py-3 text-sm font-semibold text-b-ink placeholder:text-b-ink/40 outline-none focus-visible:ring-4 focus-visible:ring-b-accent"
+                  placeholder="MY APPLICATION"
+                  autocomplete="off"
+                />
+              </div>
+
+              <Show when={renameError()}>
+                <p class="border-4 border-[var(--color-b-accent)] bg-b-paper px-3 py-3 text-xs font-bold uppercase leading-snug text-b-accent">
+                  {renameError()}
+                </p>
+              </Show>
+
+              <div class="flex flex-col gap-3 sm:flex-row sm:justify-end">
+                <button
+                  type="button"
+                  onClick={closeRenameModal}
+                  disabled={renameLoading()}
+                  class="border-4 border-[var(--color-b-ink)] bg-b-paper px-4 py-3 text-xs font-bold uppercase tracking-widest text-b-ink shadow-[4px_4px_0_0_var(--color-b-ink)] transition-transform hover:-translate-x-px hover:-translate-y-px hover:shadow-[6px_6px_0_0_var(--color-b-ink)] focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-b-accent disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={renameLoading()}
+                  class="border-4 border-[var(--color-b-ink)] bg-b-ink px-4 py-3 text-xs font-bold uppercase tracking-widest text-b-paper shadow-[4px_4px_0_0_var(--color-b-accent)] transition-transform hover:-translate-x-px hover:-translate-y-px hover:shadow-[6px_6px_0_0_var(--color-b-accent)] focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-b-accent disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none"
+                >
+                  {renameLoading() ? "Saving…" : "Save"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </Show>
+
+      <Show when={deleteApp()}>
+        <div
+          class="fixed inset-0 z-50 flex items-center justify-center bg-b-ink/60 px-4 py-8"
+          role="presentation"
+          onClick={closeDeleteModal}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-application-title"
+            class="w-full max-w-md border-4 border-[var(--color-b-ink)] bg-b-field p-8 shadow-[12px_12px_0_0_var(--color-b-ink)]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p class="mb-2 text-xs font-bold uppercase tracking-[0.35em] text-b-accent">
+              Delete
+            </p>
+            <h3
+              id="delete-application-title"
+              class="mb-4 font-['Anton',sans-serif] text-4xl uppercase leading-none tracking-wide text-b-ink"
+            >
+              Application
+            </h3>
+            <p class="mb-8 text-sm font-semibold text-b-ink/90">
+              Permanently delete{" "}
+              <span class="font-bold text-b-ink">{deleteApp()!.name}</span>? This
+              cannot be undone.
+            </p>
+
+            <Show when={deleteError()}>
+              <p class="mb-6 border-4 border-[var(--color-b-accent)] bg-b-paper px-3 py-3 text-xs font-bold uppercase leading-snug text-b-accent">
+                {deleteError()}
+              </p>
+            </Show>
+
+            <div class="flex flex-col gap-3 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={closeDeleteModal}
+                disabled={deleteLoading()}
+                class="border-4 border-[var(--color-b-ink)] bg-b-paper px-4 py-3 text-xs font-bold uppercase tracking-widest text-b-ink shadow-[4px_4px_0_0_var(--color-b-ink)] transition-transform hover:-translate-x-px hover:-translate-y-px hover:shadow-[6px_6px_0_0_var(--color-b-ink)] focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-b-accent disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={deleteLoading()}
+                class="border-4 border-[var(--color-b-accent)] bg-b-paper px-4 py-3 text-xs font-bold uppercase tracking-widest text-b-accent shadow-[4px_4px_0_0_var(--color-b-accent)] transition-transform hover:-translate-x-px hover:-translate-y-px hover:shadow-[6px_6px_0_0_var(--color-b-accent)] focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-b-accent disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                {deleteLoading() ? "Deleting…" : "Delete"}
+              </button>
+            </div>
           </div>
         </div>
       </Show>

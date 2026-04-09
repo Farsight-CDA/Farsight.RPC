@@ -1,6 +1,5 @@
 using Farsight.Rpc.Api.Auth;
 using Farsight.Rpc.Api.Persistence;
-using Farsight.Rpc.Api.Persistence.Entities;
 using FastEndpoints;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
@@ -8,9 +7,16 @@ using Npgsql;
 
 namespace Farsight.Rpc.Api.Endpoints.Applications;
 
-public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request, POST.Response>
+public sealed class PUT(AppDbContext dbContext) : Endpoint<PUT.Request, PUT.Response>
 {
-    public sealed record Request(string Name);
+    public sealed class Request
+    {
+        [RouteParam]
+        public Guid Id { get; init; }
+
+        public string? Name { get; init; }
+    }
+
     public new sealed record Response(Guid Id, string Name, int TracingCount, int RealtimeCount, int ArchiveCount);
 
     public sealed class Validator : AbstractValidator<Request>
@@ -21,31 +27,36 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request, POST.R
                 .Cascade(CascadeMode.Stop)
                 .Must(static name => !String.IsNullOrWhiteSpace(name))
                 .WithMessage("Name is required.")
-                .Must(static name => name.AsSpan().Trim().Length == name.Length)
+                .Must(static name => name!.AsSpan().Trim().Length == name!.Length)
                 .WithMessage("Name cannot have leading or trailing whitespace.");
         }
     }
 
     public override void Configure()
     {
-        Post("/api/applications");
+        Put("/api/applications/{id}");
         Roles(AuthRoles.ADMIN);
     }
 
     public override async Task HandleAsync(Request req, CancellationToken ct)
     {
-        if(await dbContext.ConsumerApplications.AnyAsync(a => a.Name == req.Name, ct))
+        var name = req.Name!;
+
+        var application = await dbContext.ConsumerApplications
+            .SingleOrDefaultAsync(a => a.Id == req.Id, ct);
+
+        if(application is null)
+        {
+            ThrowError("Application not found.", 404);
+        }
+
+        if(await dbContext.ConsumerApplications.AnyAsync(a => a.Id != req.Id && a.Name == name, ct))
         {
             ThrowError("An application with this name already exists.", 409);
         }
 
-        var application = new ConsumerApplication
-        {
-            Id = Guid.NewGuid(),
-            Name = req.Name,
-        };
+        application.Name = name;
 
-        dbContext.ConsumerApplications.Add(application);
         try
         {
             await dbContext.SaveChangesAsync(ct);
@@ -55,6 +66,18 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request, POST.R
             ThrowError("An application with this name already exists.", 409);
         }
 
-        await Send.OkAsync(new Response(application.Id, application.Name, 0, 0, 0), ct);
+        var response = await dbContext.ConsumerApplications
+            .AsNoTracking()
+            .Where(a => a.Id == req.Id)
+            .Select(a => new Response(
+                a.Id,
+                a.Name,
+                a.TracingRpcs!.Count,
+                a.RealtimeRpcs!.Count,
+                a.ArchiveRpcs!.Count
+            ))
+            .SingleAsync(ct);
+
+        await Send.OkAsync(response, ct);
     }
 }

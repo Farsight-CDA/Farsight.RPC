@@ -98,6 +98,8 @@ export default function ApplicationPage() {
   const [deleteKeyError, setDeleteKeyError] = createSignal<string | null>(null);
   const [deleteKeyLoading, setDeleteKeyLoading] = createSignal(false);
 
+  const [createKeyModalOpen, setCreateKeyModalOpen] = createSignal(false);
+
   const [providerModalOpen, setProviderModalOpen] = createSignal(false);
   const [newProviderName, setNewProviderName] = createSignal("");
   const [newProviderRateLimit, setNewProviderRateLimit] = createSignal("100");
@@ -230,6 +232,7 @@ export default function ApplicationPage() {
         applicationData.refreshApiKeys(),
         referenceData.refreshApplications(),
       ]);
+      setCreateKeyModalOpen(false);
     } catch (err) {
       setCreateKeyError(
         err instanceof Error ? err.message : "Failed to create API key",
@@ -271,6 +274,16 @@ export default function ApplicationPage() {
     } finally {
       setDeleteKeyLoading(false);
     }
+  };
+
+  const openCreateKeyModal = () => {
+    setCreateKeyError(null);
+    setCreateKeyModalOpen(true);
+  };
+
+  const closeCreateKeyModal = () => {
+    if (createKeyLoading()) return;
+    setCreateKeyModalOpen(false);
   };
 
   const openProviderModal = () => {
@@ -363,7 +376,7 @@ export default function ApplicationPage() {
   return (
     <main class="flex flex-1 flex-col">
       {/* Header Section */}
-      <div class="border-b-4 border-[var(--color-b-ink)] bg-b-field px-6 py-4">
+      <div class="border-b border-b-border bg-b-field/50 px-6 py-4">
         <div class="mx-auto max-w-7xl">
           <Show when={applicationsState() === "pending"}>
             <div class="flex items-center gap-3 text-sm font-semibold uppercase tracking-wider text-b-ink/70">
@@ -395,14 +408,14 @@ export default function ApplicationPage() {
               </h1>
 
               {/* Tab Navigation */}
-              <div class="flex border-b-4 border-[var(--color-b-ink)]/20">
+              <div class="flex border-b border-b-border/50">
                 <button
                   type="button"
                   onClick={() => setActiveTab("rpcs")}
-                  class={`flex items-center gap-1.5 px-3 py-2 text-[0.65rem] font-bold uppercase tracking-widest transition-all duration-200 ${
+                  class={`flex items-center gap-1.5 px-4 py-3 text-[0.65rem] font-bold uppercase tracking-widest transition-all duration-200 ${
                     activeTab() === "rpcs"
-                      ? "border-b-4 border-b-accent bg-b-accent/10 text-b-accent"
-                      : "text-b-ink/60 hover:bg-b-ink/5 hover:text-b-ink"
+                      ? "border-b-2 border-b-accent bg-b-accent/5 text-b-accent"
+                      : "text-b-ink/50 hover:text-b-ink hover:bg-b-ink/5"
                   }`}
                 >
                   <RpcIcon class="size-3.5" />
@@ -411,10 +424,10 @@ export default function ApplicationPage() {
                 <button
                   type="button"
                   onClick={() => setActiveTab("api-keys")}
-                  class={`flex items-center gap-1.5 px-3 py-2 text-[0.65rem] font-bold uppercase tracking-widest transition-all duration-200 ${
+                  class={`flex items-center gap-1.5 px-4 py-3 text-[0.65rem] font-bold uppercase tracking-widest transition-all duration-200 ${
                     activeTab() === "api-keys"
-                      ? "border-b-4 border-b-accent bg-b-accent/10 text-b-accent"
-                      : "text-b-ink/60 hover:bg-b-ink/5 hover:text-b-ink"
+                      ? "border-b-2 border-b-accent bg-b-accent/5 text-b-accent"
+                      : "text-b-ink/50 hover:text-b-ink hover:bg-b-ink/5"
                   }`}
                 >
                   <KeyIcon class="size-3.5" />
@@ -423,10 +436,10 @@ export default function ApplicationPage() {
                 <button
                   type="button"
                   onClick={() => setActiveTab("general")}
-                  class={`flex items-center gap-1.5 px-3 py-2 text-[0.65rem] font-bold uppercase tracking-widest transition-all duration-200 ${
+                  class={`flex items-center gap-1.5 px-4 py-3 text-[0.65rem] font-bold uppercase tracking-widest transition-all duration-200 ${
                     activeTab() === "general"
-                      ? "border-b-4 border-b-accent bg-b-accent/10 text-b-accent"
-                      : "text-b-ink/60 hover:bg-b-ink/5 hover:text-b-ink"
+                      ? "border-b-2 border-b-accent bg-b-accent/5 text-b-accent"
+                      : "text-b-ink/50 hover:text-b-ink hover:bg-b-ink/5"
                   }`}
                 >
                   <SettingsIcon class="size-3.5" />
@@ -435,10 +448,10 @@ export default function ApplicationPage() {
                 <button
                   type="button"
                   onClick={() => setActiveTab("providers")}
-                  class={`ml-auto flex items-center gap-1.5 px-3 py-2 text-[0.65rem] font-bold uppercase tracking-widest transition-all duration-200 ${
+                  class={`ml-auto flex items-center gap-1.5 px-4 py-3 text-[0.65rem] font-bold uppercase tracking-widest transition-all duration-200 ${
                     activeTab() === "providers"
-                      ? "border-b-4 border-b-accent bg-b-accent/10 text-b-accent"
-                      : "text-b-ink/60 hover:bg-b-ink/5 hover:text-b-ink"
+                      ? "border-b-2 border-b-accent bg-b-accent/5 text-b-accent"
+                      : "text-b-ink/50 hover:text-b-ink hover:bg-b-ink/5"
                   }`}
                 >
                   <ProviderIcon class="size-3.5" />
@@ -462,7 +475,7 @@ export default function ApplicationPage() {
                   Select Environment
                 </p>
                 <Show when={environmentsState() === "pending"}>
-                  <div class="flex h-12 items-center gap-2 border-4 border-[var(--color-b-ink)] bg-b-paper px-3 sm:w-48">
+                  <div class="flex h-11 items-center gap-2 border border-b-border bg-b-field px-3 sm:w-48">
                     <LoadingSpinner class="size-4" />
                     <span class="text-xs font-bold uppercase tracking-widest text-b-ink/50">
                       Loading…
@@ -470,7 +483,7 @@ export default function ApplicationPage() {
                   </div>
                 </Show>
                 <Show when={environmentsError()}>
-                  <p class="border-4 border-red-500/50 bg-red-500/10 px-3 py-3 text-xs font-bold uppercase leading-snug text-red-400 sm:w-72">
+                  <p class="border border-red-500/40 bg-red-500/10 px-3 py-3 text-xs font-bold uppercase leading-snug text-red-400 sm:w-72">
                     {environmentsError()!.message}
                   </p>
                 </Show>
@@ -488,25 +501,25 @@ export default function ApplicationPage() {
                           e.currentTarget.value || undefined,
                         )
                       }
-                      class="h-12 w-full appearance-none border-4 border-[var(--color-b-ink)] bg-b-paper px-3 pr-10 text-sm font-bold uppercase tracking-widest text-b-ink outline-none focus-visible:ring-4 focus-visible:ring-b-accent/50 hover:border-b-accent/50 transition-colors duration-200 cursor-pointer sm:w-48"
+                      class="h-11 w-full appearance-none border border-b-border bg-b-field px-4 pr-10 text-sm font-bold uppercase tracking-widest text-b-ink outline-none focus-visible:border-b-accent/50 focus-visible:ring-2 focus-visible:ring-b-accent/20 hover:border-b-border-hover transition-all duration-200 cursor-pointer sm:w-48"
                     >
                       <For each={environments()}>
                         {(env) => (
-                          <option value={env} class="bg-b-paper">
+                          <option value={env} class="bg-b-field">
                             {env}
                           </option>
                         )}
                       </For>
                     </select>
                     <div class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2">
-                      <ChevronDownIcon class="size-5 text-b-ink/70" />
+                      <ChevronDownIcon class="size-5 text-b-ink/50" />
                     </div>
                   </div>
                 </Show>
               </div>
 
-              {/* Divider */}
-              <div class="h-px bg-b-ink/10" />
+                {/* Divider */}
+              <div class="h-px bg-gradient-to-r from-transparent via-b-border to-transparent" />
 
               {/* Loading State */}
               <Show when={chainsState() === "pending"}>
@@ -558,7 +571,7 @@ export default function ApplicationPage() {
                     value={filterText()}
                     onInput={(e) => setFilterText(e.currentTarget.value)}
                     placeholder="Filter chains..."
-                    class="h-12 w-full border-4 border-[var(--color-b-ink)] bg-b-paper px-4 pr-12 text-sm font-semibold text-b-ink placeholder:text-b-ink/30 outline-none focus-visible:ring-4 focus-visible:ring-b-accent/50 hover:border-b-accent/50 transition-colors duration-200"
+                    class="h-11 w-full border border-b-border bg-b-paper px-4 pr-12 text-sm font-semibold text-b-ink placeholder:text-b-ink/25 outline-none focus-visible:border-b-accent/50 focus-visible:ring-2 focus-visible:ring-b-accent/20 hover:border-b-border-hover transition-all duration-200"
                   />
                   <div class="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2">
                     <SearchIcon class="size-5 text-b-ink/30" />
@@ -566,22 +579,19 @@ export default function ApplicationPage() {
                 </div>
 
                 {/* Chains Grid */}
-                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                   <For each={filteredChains()}>
                     {(chain) => (
                       <button
                         type="button"
-                        class="group relative flex flex-col items-start gap-3 border-4 border-[var(--color-b-ink)] bg-b-paper p-5 shadow-[6px_6px_0_0_rgba(232,228,220,0.08)] transition-all duration-200 hover:translate-x-1 hover:translate-y-1 hover:shadow-[3px_3px_0_0_rgba(255,87,34,0.2)] hover:border-b-accent/60 hover:bg-b-field focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-b-accent/50 active:translate-x-1.5 active:translate-y-1.5 active:shadow-none"
+                        class="group relative flex items-center justify-between border border-b-border bg-b-field px-5 py-4 transition-all duration-200 hover:border-b-accent/40 hover:bg-b-paper hover:shadow-[0_4px_20px_rgba(255,87,34,0.12)] hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-b-accent/50 active:translate-y-0"
                       >
-                        <div class="flex w-full items-center justify-between">
-                          <span class="font-['Anton',sans-serif] text-xl uppercase tracking-wide text-b-ink group-hover:text-b-accent transition-colors duration-200">
-                            {chain}
-                          </span>
-                          <div class="flex size-8 items-center justify-center border-2 border-[var(--color-b-ink)] bg-b-field transition-all duration-200 group-hover:bg-b-accent group-hover:border-b-accent group-hover:shadow-[0_0_12px_rgba(255,87,34,0.4)]">
-                            <ChevronRightIcon class="size-4 text-b-ink transition-colors duration-200 group-hover:text-b-paper" />
-                          </div>
+                        <span class="font-['Anton',sans-serif] text-lg uppercase tracking-wide text-b-ink group-hover:text-b-accent transition-colors duration-200">
+                          {chain}
+                        </span>
+                        <div class="flex size-7 items-center justify-center border border-b-border bg-b-paper/50 transition-all duration-200 group-hover:bg-b-accent group-hover:border-b-accent">
+                          <ChevronRightIcon class="size-4 text-b-ink/60 transition-colors duration-200 group-hover:text-b-paper" />
                         </div>
-                        <div class="h-1 w-12 bg-b-ink/60 transition-all duration-200 group-hover:w-full group-hover:bg-b-accent" />
                       </button>
                     )}
                   </For>
@@ -597,9 +607,9 @@ export default function ApplicationPage() {
                   availableChains().length === 0
                 }
               >
-                <div class="flex flex-col items-center justify-center gap-4 py-16 border-4 border-dashed border-b-ink/20">
-                  <LightningIcon class="size-12 text-b-ink/30" />
-                  <p class="text-center text-sm font-semibold uppercase tracking-wider text-b-ink/60">
+                <div class="flex flex-col items-center justify-center gap-4 py-16 border border-dashed border-b-border/50 bg-b-field/30">
+                  <LightningIcon class="size-12 text-b-ink/20" />
+                  <p class="text-center text-sm font-semibold uppercase tracking-wider text-b-ink/50">
                     No chains available.
                   </p>
                 </div>
@@ -614,9 +624,9 @@ export default function ApplicationPage() {
                   filteredChains().length === 0
                 }
               >
-                <div class="flex flex-col items-center justify-center gap-4 py-16 border-4 border-dashed border-b-ink/20">
-                  <SearchIcon class="size-12 text-b-ink/30" />
-                  <p class="text-center text-sm font-semibold uppercase tracking-wider text-b-ink/60">
+                <div class="flex flex-col items-center justify-center gap-4 py-16 border border-dashed border-b-border/50 bg-b-field/30">
+                  <SearchIcon class="size-12 text-b-ink/20" />
+                  <p class="text-center text-sm font-semibold uppercase tracking-wider text-b-ink/50">
                     No chains match your filter.
                   </p>
                 </div>
@@ -628,20 +638,34 @@ export default function ApplicationPage() {
           <Show when={activeTab() === "api-keys"}>
             <div class="flex flex-col gap-6">
               {/* API Keys Section */}
-              <section class="border-4 border-[var(--color-b-ink)] bg-b-field">
-                <div class="border-b-4 border-[var(--color-b-ink)] bg-b-paper px-6 py-4">
-                  <div class="flex items-center gap-3">
-                    <div class="flex size-10 items-center justify-center border-2 border-[var(--color-b-accent)] bg-b-accent/10">
-                      <KeyIcon class="size-5 text-b-accent" />
+              <section class="border border-b-border bg-b-field overflow-hidden">
+                <div class="border-b border-b-border bg-b-paper/30 px-6 py-4">
+                  <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+                    <div class="flex items-center gap-3">
+                      <div class="flex size-10 items-center justify-center border border-b-accent/30 bg-b-accent/10">
+                        <KeyIcon class="size-5 text-b-accent" />
+                      </div>
+                      <div>
+                        <h2 class="font-['Anton',sans-serif] text-xl uppercase tracking-wide text-b-ink">
+                          API Keys
+                        </h2>
+                        <p class="text-xs font-bold uppercase tracking-widest text-b-ink/50">
+                          Manage access keys per environment
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <h2 class="font-['Anton',sans-serif] text-xl uppercase tracking-wide text-b-ink">
-                        API Keys
-                      </h2>
-                      <p class="text-xs font-bold uppercase tracking-widest text-b-ink/50">
-                        Manage access keys per environment
-                      </p>
-                    </div>
+                    <button
+                      type="button"
+                      onClick={openCreateKeyModal}
+                      disabled={
+                        environmentsState() === "pending" ||
+                        createKeyLoading() ||
+                        deleteKeyLoading()
+                      }
+                      class="btn btn-md btn-interactive btn-disabled btn-primary shrink-0"
+                    >
+                      Create Key
+                    </button>
                   </div>
                 </div>
 
@@ -684,21 +708,21 @@ export default function ApplicationPage() {
                       <ul class="flex flex-col gap-3">
                         <For each={apiKeys()}>
                           {(k) => (
-                            <li class="flex flex-col gap-3 border-4 border-[var(--color-b-ink)] bg-b-paper p-4 sm:flex-row sm:items-center sm:justify-between">
+                            <li class="flex flex-col gap-3 border border-b-border bg-b-paper p-4 sm:flex-row sm:items-center sm:justify-between transition-colors hover:border-b-border-hover">
                               <div class="min-w-0 flex-1">
                                 <div class="flex items-center gap-2">
-                                  <span class="inline-flex items-center rounded bg-b-accent/10 px-2 py-0.5 text-xs font-bold uppercase tracking-wider text-b-accent">
+                                  <span class="inline-flex items-center border border-b-accent/20 bg-b-accent/10 px-2 py-0.5 text-xs font-bold uppercase tracking-wider text-b-accent">
                                     {k.environment}
                                   </span>
                                 </div>
                                 <div class="mt-2 flex items-center gap-2">
-                                  <code class="break-all font-mono text-xs font-semibold text-b-ink">
+                                  <code class="break-all font-mono text-xs font-semibold text-b-ink/80">
                                     {k.key}
                                   </code>
                                   <button
                                     type="button"
                                     onClick={() => copyToClipboard(k.key)}
-                                    class="shrink-0 text-b-ink/40 hover:text-b-accent transition-colors"
+                                    class="shrink-0 text-b-ink/30 hover:text-b-accent transition-colors"
                                     title="Copy to clipboard"
                                   >
                                     <CopyIcon class="size-4" />
@@ -734,89 +758,13 @@ export default function ApplicationPage() {
                       apiKeys().length === 0
                     }
                   >
-                    <div class="mb-6 flex flex-col items-center justify-center gap-3 py-8 border-4 border-dashed border-b-ink/20">
-                      <EmptyStateIcon class="size-10 text-b-ink/30" />
-                      <p class="text-sm font-semibold uppercase tracking-wider text-b-ink/60">
+                    <div class="flex flex-col items-center justify-center gap-3 py-8 border border-dashed border-b-border/50 bg-b-paper/20">
+                      <EmptyStateIcon class="size-10 text-b-ink/20" />
+                      <p class="text-sm font-semibold uppercase tracking-wider text-b-ink/50">
                         No API keys yet.
                       </p>
                     </div>
                   </Show>
-
-                  {/* Create New Key */}
-                  <div class="border-t-4 border-[var(--color-b-ink)]/20 pt-6">
-                    <p class="mb-4 text-xs font-bold uppercase tracking-widest text-b-ink/50">
-                      Create New Key
-                    </p>
-                    <form
-                      onSubmit={handleCreateKey}
-                      class="flex flex-col gap-4"
-                    >
-                      <div class="flex flex-col gap-2 sm:flex-row sm:items-end">
-                        <div class="flex-1">
-                          <label
-                            for="new-key-environment"
-                            class="mb-2 block text-xs font-bold uppercase tracking-widest text-b-ink/80"
-                          >
-                            Environment
-                          </label>
-                          <Show when={environmentsState() === "pending"}>
-                            <div class="flex h-12 items-center gap-2 border-4 border-[var(--color-b-ink)] bg-b-paper px-3">
-                              <LoadingSpinner class="size-4" />
-                              <span class="text-xs font-bold uppercase tracking-widest text-b-ink/50">
-                                Loading…
-                              </span>
-                            </div>
-                          </Show>
-                          <Show when={environmentsError()}>
-                            <p class="border-4 border-red-500/50 bg-red-500/10 px-3 py-3 text-xs font-bold uppercase leading-snug text-red-400">
-                              {environmentsError()!.message}
-                            </p>
-                          </Show>
-                          <Show
-                            when={
-                              environmentsState() === "ready" &&
-                              newKeyEnvironment()
-                            }
-                          >
-                            <select
-                              id="new-key-environment"
-                              value={newKeyEnvironment()}
-                              onChange={(e) =>
-                                setNewKeyEnvironment(
-                                  e.currentTarget.value || undefined,
-                                )
-                              }
-                              class="h-12 w-full appearance-none border-4 border-[var(--color-b-ink)] bg-b-paper px-3 pr-10 text-sm font-bold uppercase tracking-widest text-b-ink outline-none focus-visible:ring-4 focus-visible:ring-b-accent/50 hover:border-b-accent/50 transition-colors duration-200 cursor-pointer"
-                            >
-                              <For each={environments()}>
-                                {(env) => (
-                                  <option value={env} class="bg-b-paper">
-                                    {env}
-                                  </option>
-                                )}
-                              </For>
-                            </select>
-                          </Show>
-                        </div>
-                        <button
-                          type="submit"
-                          disabled={createKeyLoading() || !newKeyEnvironment()}
-                          class="btn btn-md btn-interactive btn-disabled btn-primary h-12"
-                        >
-                          <Show when={createKeyLoading()}>
-                            <LoadingSpinner class="size-3.5 text-b-paper" />
-                          </Show>
-                          {createKeyLoading() ? "Creating…" : "Create Key"}
-                        </button>
-                      </div>
-
-                      <Show when={createKeyError()}>
-                        <p class="border-4 border-red-500/50 bg-red-500/10 px-3 py-3 text-xs font-bold uppercase leading-snug text-red-400">
-                          {createKeyError()}
-                        </p>
-                      </Show>
-                    </form>
-                  </div>
                 </div>
               </section>
             </div>
@@ -824,13 +772,13 @@ export default function ApplicationPage() {
 
           {/* General Settings Tab */}
           <Show when={activeTab() === "general"}>
-            <div class="flex flex-col gap-8">
+            <div class="flex flex-col gap-6">
               {/* Rename Section */}
-              <section class="border-4 border-[var(--color-b-ink)] bg-b-field">
-                <div class="border-b-4 border-[var(--color-b-ink)] bg-b-paper px-6 py-4">
+              <section class="border border-b-border bg-b-field overflow-hidden">
+                <div class="border-b border-b-border bg-b-paper/30 px-6 py-4">
                   <div class="flex items-center gap-3">
-                    <div class="flex size-10 items-center justify-center border-2 border-b-ink/50 bg-b-ink/10">
-                      <PencilIcon class="size-5 text-b-ink" />
+                    <div class="flex size-10 items-center justify-center border border-b-ink/20 bg-b-ink/5">
+                      <PencilIcon class="size-5 text-b-ink/70" />
                     </div>
                     <div>
                       <h2 class="font-['Anton',sans-serif] text-xl uppercase tracking-wide text-b-ink">
@@ -848,7 +796,7 @@ export default function ApplicationPage() {
                     <div class="flex flex-col gap-2">
                       <label
                         for="rename-app-name"
-                        class="mb-2 block text-xs font-bold uppercase tracking-widest text-b-ink/80"
+                        class="mb-2 block text-xs font-bold uppercase tracking-widest text-b-ink/70"
                       >
                         Application Name
                       </label>
@@ -863,19 +811,19 @@ export default function ApplicationPage() {
                             onInput={(e) =>
                               setRenameName(e.currentTarget.value)
                             }
-                            class="h-12 w-full border-4 border-[var(--color-b-ink)] bg-b-paper px-3 text-sm font-semibold text-b-ink placeholder:text-b-ink/30 outline-none focus-visible:ring-4 focus-visible:ring-b-accent/50 hover:border-b-accent/50 transition-colors duration-200"
+                            class="h-11 w-full border border-b-border bg-b-paper px-4 text-sm font-semibold text-b-ink placeholder:text-b-ink/25 outline-none focus-visible:border-b-accent/50 focus-visible:ring-2 focus-visible:ring-b-accent/20 hover:border-b-border-hover transition-all duration-200"
                             placeholder="MY APPLICATION"
                             title={applicationNameHint}
                             autocomplete="off"
                           />
-                          <p class="mt-2 text-xs font-semibold uppercase tracking-wider text-b-ink/50">
+                          <p class="mt-2 text-xs font-semibold uppercase tracking-wider text-b-ink/40">
                             {applicationNameHint}
                           </p>
                         </div>
                         <button
                           type="submit"
                           disabled={renameLoading()}
-                          class="btn btn-md btn-interactive btn-disabled btn-primary h-12"
+                          class="btn btn-md btn-interactive btn-disabled btn-primary h-11"
                         >
                           <Show when={renameLoading()}>
                             <LoadingSpinner class="size-3.5 text-b-paper" />
@@ -886,7 +834,7 @@ export default function ApplicationPage() {
                     </div>
 
                     <Show when={renameError()}>
-                      <p class="border-4 border-red-500/50 bg-red-500/10 px-3 py-3 text-xs font-bold uppercase leading-snug text-red-400">
+                      <p class="border border-red-500/40 bg-red-500/10 px-3 py-3 text-xs font-bold uppercase leading-snug text-red-400">
                         {renameError()}
                       </p>
                     </Show>
@@ -895,10 +843,10 @@ export default function ApplicationPage() {
               </section>
 
               {/* Delete Section */}
-              <section class="border-4 border-red-500/50 bg-b-field">
-                <div class="border-b-4 border-red-500/50 bg-red-500/10 px-6 py-4">
+              <section class="border border-red-500/30 bg-b-field overflow-hidden">
+                <div class="border-b border-red-500/30 bg-red-500/5 px-6 py-4">
                   <div class="flex items-center gap-3">
-                    <div class="flex size-10 items-center justify-center border-2 border-red-500 bg-red-500/20">
+                    <div class="flex size-10 items-center justify-center border border-red-500/30 bg-red-500/10">
                       <TrashIcon class="size-5 text-red-400" />
                     </div>
                     <div>
@@ -913,13 +861,13 @@ export default function ApplicationPage() {
                 </div>
 
                 <div class="p-6">
-                  <p class="mb-4 text-sm text-b-ink/80">
+                  <p class="mb-4 text-sm text-b-ink/70">
                     Once deleted, this application and all its associated data
                     will be permanently removed. This action cannot be undone.
                   </p>
 
                   <Show when={deleteError()}>
-                    <p class="mb-4 border-4 border-red-500/50 bg-red-500/10 px-3 py-3 text-xs font-bold uppercase leading-snug text-red-400">
+                    <p class="mb-4 border border-red-500/40 bg-red-500/10 px-3 py-3 text-xs font-bold uppercase leading-snug text-red-400">
                       {deleteError()}
                     </p>
                   </Show>
@@ -943,11 +891,11 @@ export default function ApplicationPage() {
           {/* Providers Tab */}
           <Show when={activeTab() === "providers"}>
             <div class="flex flex-col gap-6">
-              <section class="border-4 border-[var(--color-b-ink)] bg-b-field">
-                <div class="border-b-4 border-[var(--color-b-ink)] bg-b-paper px-6 py-4">
+              <section class="border border-b-border bg-b-field overflow-hidden">
+                <div class="border-b border-b-border bg-b-paper/30 px-6 py-4">
                   <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                     <div class="flex items-center gap-3">
-                      <div class="flex size-10 items-center justify-center border-2 border-[var(--color-b-accent)] bg-b-accent/10">
+                      <div class="flex size-10 items-center justify-center border border-b-accent/30 bg-b-accent/10">
                         <ProviderIcon class="size-5 text-b-accent" />
                       </div>
                       <div>
@@ -992,7 +940,7 @@ export default function ApplicationPage() {
 
                   {/* Error State */}
                   <Show when={providersError()}>
-                    <p class="border-4 border-red-500/50 bg-red-500/10 px-3 py-3 text-xs font-bold uppercase leading-snug text-red-400">
+                    <p class="border border-red-500/40 bg-red-500/10 px-3 py-3 text-xs font-bold uppercase leading-snug text-red-400">
                       {providersError()!.message}
                     </p>
                   </Show>
@@ -1009,14 +957,14 @@ export default function ApplicationPage() {
                     <div class="flex flex-col gap-3">
                       <For each={providers()}>
                         {(provider) => (
-                          <div class="flex flex-col gap-3 border-4 border-[var(--color-b-ink)] bg-b-paper p-4 sm:flex-row sm:items-center sm:justify-between">
+                          <div class="flex flex-col gap-3 border border-b-border bg-b-paper p-4 sm:flex-row sm:items-center sm:justify-between transition-colors hover:border-b-border-hover">
                             <div class="min-w-0 flex-1">
                               <div class="flex items-center gap-2">
                                 <span class="font-['Anton',sans-serif] text-lg uppercase tracking-wide text-b-ink">
                                   {provider.name}
                                 </span>
                               </div>
-                              <div class="mt-2 flex items-center gap-4 text-xs font-semibold uppercase tracking-wider text-b-ink/60">
+                              <div class="mt-2 flex items-center gap-4 text-xs font-semibold uppercase tracking-wider text-b-ink/50">
                                 <span class="inline-flex items-center gap-1">
                                   <LightningIcon class="size-3.5" />
                                   {provider.rateLimit} req/s
@@ -1055,9 +1003,9 @@ export default function ApplicationPage() {
                       providers().length === 0
                     }
                   >
-                    <div class="flex flex-col items-center justify-center gap-3 py-8 border-4 border-dashed border-b-ink/20">
-                      <EmptyStateIcon class="size-10 text-b-ink/30" />
-                      <p class="text-sm font-semibold uppercase tracking-wider text-b-ink/60">
+                    <div class="flex flex-col items-center justify-center gap-3 py-8 border border-dashed border-b-border/50 bg-b-paper/20">
+                      <EmptyStateIcon class="size-10 text-b-ink/20" />
+                      <p class="text-sm font-semibold uppercase tracking-wider text-b-ink/50">
                         No providers available.
                       </p>
                     </div>
@@ -1072,7 +1020,7 @@ export default function ApplicationPage() {
       {/* Delete Application Confirmation Modal */}
       <Show when={deleteLoading() && activeTab() === "general"}>
         <div
-          class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-4 py-8"
+          class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm px-4 py-8"
           role="presentation"
           onClick={() => setDeleteLoading(false)}
         >
@@ -1080,7 +1028,7 @@ export default function ApplicationPage() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="delete-application-title"
-            class="w-full max-w-md border-4 border-red-500/50 bg-b-field p-8 shadow-[12px_12px_0_0_rgba(239,68,68,0.15)]"
+            class="w-full max-w-md border border-red-500/30 bg-b-field p-8 shadow-[0_25px_50px_rgba(0,0,0,0.5)]"
             onClick={(e) => e.stopPropagation()}
           >
             <p class="mb-2 text-xs font-bold uppercase tracking-[0.35em] text-red-400">
@@ -1092,14 +1040,14 @@ export default function ApplicationPage() {
             >
               Delete Application
             </h3>
-            <p class="mb-8 text-sm font-semibold text-b-ink/80">
+            <p class="mb-8 text-sm font-semibold text-b-ink/70">
               Permanently delete{" "}
               <span class="font-bold text-red-400">{application()?.name}</span>?
               This cannot be undone.
             </p>
 
             <Show when={deleteError()}>
-              <p class="mb-6 border-4 border-red-500/50 bg-red-500/10 px-3 py-3 text-xs font-bold uppercase leading-snug text-red-400">
+              <p class="mb-6 border border-red-500/40 bg-red-500/10 px-3 py-3 text-xs font-bold uppercase leading-snug text-red-400">
                 {deleteError()}
               </p>
             </Show>
@@ -1126,7 +1074,7 @@ export default function ApplicationPage() {
 
       <Show when={providerModalOpen()}>
         <div
-          class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-4 py-8"
+          class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm px-4 py-8"
           role="presentation"
           onClick={closeProviderModal}
         >
@@ -1134,7 +1082,7 @@ export default function ApplicationPage() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="new-provider-title"
-            class="w-full max-w-md border-4 border-[var(--color-b-ink)] bg-b-field p-8 shadow-[12px_12px_0_0_rgba(255,87,34,0.15)]"
+            class="w-full max-w-md border border-b-border bg-b-field p-8 shadow-[0_25px_50px_rgba(0,0,0,0.5)]"
             onClick={(e) => e.stopPropagation()}
           >
             <p class="mb-2 text-xs font-bold uppercase tracking-[0.35em] text-b-accent">
@@ -1151,7 +1099,7 @@ export default function ApplicationPage() {
               <div class="flex flex-col gap-2">
                 <label
                   for="new-provider-name"
-                  class="text-xs font-bold uppercase tracking-widest text-b-ink/80"
+                  class="text-xs font-bold uppercase tracking-widest text-b-ink/70"
                 >
                   Name
                 </label>
@@ -1162,12 +1110,12 @@ export default function ApplicationPage() {
                   pattern={applicationNamePattern}
                   value={newProviderName()}
                   onInput={(e) => setNewProviderName(e.currentTarget.value)}
-                  class="border-4 border-[var(--color-b-ink)] bg-b-paper px-3 py-3 text-sm font-semibold text-b-ink placeholder:text-b-ink/30 outline-none focus-visible:ring-4 focus-visible:ring-b-accent/50 hover:border-b-accent/50 transition-colors duration-200"
+                  class="h-11 w-full border border-b-border bg-b-paper px-4 text-sm font-semibold text-b-ink placeholder:text-b-ink/25 outline-none focus-visible:border-b-accent/50 focus-visible:ring-2 focus-visible:ring-b-accent/20 hover:border-b-border-hover transition-all duration-200"
                   placeholder="MY_PROVIDER"
                   title={applicationNameHint}
                   autocomplete="off"
                 />
-                <p class="text-xs font-semibold uppercase tracking-wider text-b-ink/50">
+                <p class="text-xs font-semibold uppercase tracking-wider text-b-ink/40">
                   {applicationNameHint}
                 </p>
               </div>
@@ -1175,7 +1123,7 @@ export default function ApplicationPage() {
               <div class="flex flex-col gap-2">
                 <label
                   for="new-provider-rate-limit"
-                  class="text-xs font-bold uppercase tracking-widest text-b-ink/80"
+                  class="text-xs font-bold uppercase tracking-widest text-b-ink/70"
                 >
                   Rate limit (req/s)
                 </label>
@@ -1189,12 +1137,12 @@ export default function ApplicationPage() {
                   onInput={(e) =>
                     setNewProviderRateLimit(e.currentTarget.value)
                   }
-                  class="border-4 border-[var(--color-b-ink)] bg-b-paper px-3 py-3 text-sm font-semibold text-b-ink placeholder:text-b-ink/30 outline-none focus-visible:ring-4 focus-visible:ring-b-accent/50 hover:border-b-accent/50 transition-colors duration-200"
+                  class="h-11 w-full border border-b-border bg-b-paper px-4 text-sm font-semibold text-b-ink outline-none focus-visible:border-b-accent/50 focus-visible:ring-2 focus-visible:ring-b-accent/20 hover:border-b-border-hover transition-all duration-200"
                 />
               </div>
 
               <Show when={createProviderError()}>
-                <p class="border-4 border-red-500/50 bg-red-500/10 px-3 py-3 text-xs font-bold uppercase leading-snug text-red-400">
+                <p class="border border-red-500/40 bg-red-500/10 px-3 py-3 text-xs font-bold uppercase leading-snug text-red-400">
                   {createProviderError()}
                 </p>
               </Show>
@@ -1226,7 +1174,7 @@ export default function ApplicationPage() {
 
       <Show when={providerToDelete()}>
         <div
-          class="fixed inset-0 z-[55] flex items-center justify-center bg-black/70 backdrop-blur-sm px-4 py-8"
+          class="fixed inset-0 z-[55] flex items-center justify-center bg-black/80 backdrop-blur-sm px-4 py-8"
           role="presentation"
           onClick={() =>
             !deleteProviderLoading() && setProviderToDelete(null)
@@ -1236,7 +1184,7 @@ export default function ApplicationPage() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="delete-provider-title"
-            class="w-full max-w-md border-4 border-red-500/50 bg-b-field p-8 shadow-[12px_12px_0_0_rgba(239,68,68,0.15)]"
+            class="w-full max-w-md border border-red-500/30 bg-b-field p-8 shadow-[0_25px_50px_rgba(0,0,0,0.5)]"
             onClick={(e) => e.stopPropagation()}
           >
             <p class="mb-2 text-xs font-bold uppercase tracking-[0.35em] text-red-400">
@@ -1248,7 +1196,7 @@ export default function ApplicationPage() {
             >
               Delete provider
             </h3>
-            <p class="mb-8 text-sm font-semibold text-b-ink/80">
+            <p class="mb-8 text-sm font-semibold text-b-ink/70">
               Permanently delete{" "}
               <span class="font-bold text-red-400">
                 {providerToDelete()!.name}
@@ -1257,7 +1205,7 @@ export default function ApplicationPage() {
             </p>
 
             <Show when={deleteProviderError()}>
-              <p class="mb-6 border-4 border-red-500/50 bg-red-500/10 px-3 py-3 text-xs font-bold uppercase leading-snug text-red-400">
+              <p class="mb-6 border border-red-500/40 bg-red-500/10 px-3 py-3 text-xs font-bold uppercase leading-snug text-red-400">
                 {deleteProviderError()}
               </p>
             </Show>
@@ -1287,10 +1235,112 @@ export default function ApplicationPage() {
         </div>
       </Show>
 
+      {/* Create Key Modal */}
+      <Show when={createKeyModalOpen()}>
+        <div
+          class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm px-4 py-8"
+          role="presentation"
+          onClick={closeCreateKeyModal}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="create-key-title"
+            class="w-full max-w-md border border-b-border bg-b-field p-8 shadow-[0_25px_50px_rgba(0,0,0,0.5)]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p class="mb-2 text-xs font-bold uppercase tracking-[0.35em] text-b-accent">
+              Create
+            </p>
+            <h3
+              id="create-key-title"
+              class="mb-8 font-['Anton',sans-serif] text-4xl uppercase leading-none tracking-wide text-b-ink"
+            >
+              New API Key
+            </h3>
+
+            <form onSubmit={handleCreateKey} class="flex flex-col gap-6">
+              <div class="flex flex-col gap-2">
+                <label
+                  for="new-key-environment"
+                  class="text-xs font-bold uppercase tracking-widest text-b-ink/70"
+                >
+                  Environment
+                </label>
+                <Show when={environmentsState() === "pending"}>
+                  <div class="flex h-11 items-center gap-2 border border-b-border bg-b-field px-3">
+                    <LoadingSpinner class="size-4" />
+                    <span class="text-xs font-bold uppercase tracking-widest text-b-ink/50">
+                      Loading…
+                    </span>
+                  </div>
+                </Show>
+                <Show when={environmentsError()}>
+                  <p class="border border-red-500/40 bg-red-500/10 px-3 py-3 text-xs font-bold uppercase leading-snug text-red-400">
+                    {environmentsError()!.message}
+                  </p>
+                </Show>
+                <Show
+                  when={
+                    environmentsState() === "ready" && newKeyEnvironment()
+                  }
+                >
+                  <select
+                    id="new-key-environment"
+                    value={newKeyEnvironment()}
+                    onChange={(e) =>
+                      setNewKeyEnvironment(
+                        e.currentTarget.value || undefined,
+                      )
+                    }
+                    class="h-11 w-full appearance-none border border-b-border bg-b-field px-4 pr-10 text-sm font-bold uppercase tracking-widest text-b-ink outline-none focus-visible:border-b-accent/50 focus-visible:ring-2 focus-visible:ring-b-accent/20 hover:border-b-border-hover transition-all duration-200 cursor-pointer"
+                  >
+                    <For each={environments()}>
+                      {(env) => (
+                        <option value={env} class="bg-b-field">
+                          {env}
+                        </option>
+                      )}
+                    </For>
+                  </select>
+                </Show>
+              </div>
+
+              <Show when={createKeyError()}>
+                <p class="border border-red-500/40 bg-red-500/10 px-3 py-3 text-xs font-bold uppercase leading-snug text-red-400">
+                  {createKeyError()}
+                </p>
+              </Show>
+
+              <div class="flex flex-col gap-3 sm:flex-row sm:justify-end">
+                <button
+                  type="button"
+                  onClick={closeCreateKeyModal}
+                  disabled={createKeyLoading()}
+                  class="btn btn-md btn-interactive btn-disabled btn-secondary"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={createKeyLoading() || !newKeyEnvironment()}
+                  class="btn btn-md btn-interactive btn-disabled btn-primary"
+                >
+                  <Show when={createKeyLoading()}>
+                    <LoadingSpinner class="size-3.5 text-b-paper" />
+                  </Show>
+                  {createKeyLoading() ? "Creating…" : "Create Key"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </Show>
+
       {/* Revoke Key Confirmation Modal */}
       <Show when={apiKeyToDelete()}>
         <div
-          class="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 backdrop-blur-sm px-4 py-8"
+          class="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm px-4 py-8"
           role="presentation"
           onClick={() => setApiKeyToDelete(null)}
         >
@@ -1298,7 +1348,7 @@ export default function ApplicationPage() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="delete-api-key-title"
-            class="w-full max-w-md border-4 border-red-500/50 bg-b-field p-8 shadow-[12px_12px_0_0_rgba(239,68,68,0.15)]"
+            class="w-full max-w-md border border-red-500/30 bg-b-field p-8 shadow-[0_25px_50px_rgba(0,0,0,0.5)]"
             onClick={(e) => e.stopPropagation()}
           >
             <p class="mb-2 text-xs font-bold uppercase tracking-[0.35em] text-red-400">
@@ -1310,19 +1360,19 @@ export default function ApplicationPage() {
             >
               API key
             </h3>
-            <p class="mb-4 text-sm font-semibold text-b-ink/80">
+            <p class="mb-4 text-sm font-semibold text-b-ink/70">
               Permanently revoke this key for{" "}
               <span class="font-bold text-red-400">
                 {apiKeyToDelete()!.environment}
               </span>
               ?
             </p>
-            <p class="mb-8 text-xs text-b-ink/50">
+            <p class="mb-8 text-xs text-b-ink/40">
               Clients using this key will stop working immediately.
             </p>
 
             <Show when={deleteKeyError()}>
-              <p class="mb-6 border-4 border-red-500/50 bg-red-500/10 px-3 py-3 text-xs font-bold uppercase leading-snug text-red-400">
+              <p class="mb-6 border border-red-500/40 bg-red-500/10 px-3 py-3 text-xs font-bold uppercase leading-snug text-red-400">
                 {deleteKeyError()}
               </p>
             </Show>

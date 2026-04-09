@@ -1,45 +1,47 @@
 @import "tailwindcss";
 
 @theme {
-  /* Dark theme color palette */
-  --color-b-paper: #121212;
+  /* Refined dark theme color palette */
+  --color-b-paper: #0d0d0d;
   --color-b-ink: #e8e4dc;
   --color-b-accent: #ff5722;
-  --color-b-field: #1e1e1e;
-  --color-b-stripe: #2a2a2a;
+  --color-b-field: #141414;
+  --color-b-stripe: #1a1a1a;
+  --color-b-border: #2d2d2d;
+  --color-b-border-hover: #3d3d3d;
 }
 
 /* Button component utilities */
 @utility btn {
-  @apply inline-flex items-center justify-center gap-2 border-4 font-bold uppercase transition;
+  @apply inline-flex items-center justify-center gap-2 font-bold uppercase transition-all duration-200;
 }
 
 @utility btn-md {
-  @apply px-4 py-3 text-xs tracking-widest;
+  @apply px-5 py-3 text-xs tracking-widest;
 }
 
 @utility btn-sm {
-  @apply px-3 py-2 text-[0.65rem] tracking-widest;
+  @apply px-4 py-2 text-[0.65rem] tracking-widest;
 }
 
 @utility btn-interactive {
-  @apply hover:translate-x-px hover:translate-y-px hover:shadow-none focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-b-accent active:translate-x-0.5 active:translate-y-0.5;
+  @apply hover:translate-y-px active:translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-b-accent;
 }
 
 @utility btn-disabled {
-  @apply disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-x-0 disabled:hover:translate-y-0;
+  @apply disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0;
 }
 
 @utility btn-primary {
-  @apply border-[var(--color-b-accent)] bg-b-accent text-b-paper shadow-[4px_4px_0_0_rgba(255,87,34,0.4)] hover:shadow-[6px_6px_0_0_rgba(255,87,34,0.6)] disabled:shadow-none disabled:hover:shadow-none;
+  @apply bg-b-accent text-b-paper shadow-[0_4px_14px_rgba(255,87,34,0.35)] hover:shadow-[0_6px_20px_rgba(255,87,34,0.45)] hover:brightness-110 disabled:shadow-none;
 }
 
 @utility btn-secondary {
-  @apply border-[var(--color-b-ink)] bg-b-field text-b-ink shadow-[4px_4px_0_0_rgba(232,228,220,0.15)] hover:shadow-[6px_6px_0_0_rgba(232,228,220,0.25)] disabled:hover:shadow-[4px_4px_0_0_rgba(232,228,220,0.15)];
+  @apply border border-b-border bg-b-field text-b-ink hover:border-b-border-hover hover:bg-b-stripe disabled:hover:border-b-border disabled:hover:bg-b-field;
 }
 
 @utility btn-danger {
-  @apply border-red-500 bg-red-500/10 text-red-400 shadow-[4px_4px_0_0_rgba(239,68,68,0.3)] hover:shadow-[6px_6px_0_0_rgba(239,68,68,0.5)] hover:bg-red-500/20 disabled:hover:shadow-[4px_4px_0_0_rgba(239,68,68,0.3)];
+  @apply border border-red-500/40 bg-red-500/10 text-red-400 hover:border-red-500/60 hover:bg-red-500/20 hover:text-red-300;
 }
 
 @layer base {
@@ -53,11 +55,12 @@
     font-family: "IBM Plex Mono", ui-monospace, monospace;
     background-color: var(--color-b-paper);
     color: var(--color-b-ink);
+    /* Subtle grid pattern - much less dense */
     background-image:
-      linear-gradient(var(--color-b-stripe) 1px, transparent 1px),
-      linear-gradient(90deg, var(--color-b-stripe) 1px, transparent 1px);
-    background-size: 24px 24px;
-    background-position: -1px -1px;
+      linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+    background-size: 48px 48px;
+    background-position: center center;
   }
 
   #root {
@@ -68,4 +71,84 @@
     background-color: var(--color-b-accent);
     color: var(--color-b-paper);
   }
+
+  /* Scrollbar styling */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: var(--color-b-field);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-b-border);
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-b-border-hover);
+  }
+}
+
+/* Card component utilities */
+@utility card {
+  @apply border border-b-border bg-b-field transition-all duration-200;
+}
+
+@utility card-interactive {
+  @apply hover:border-b-border-hover hover:shadow-[0_4px_20px_rgba(0,0,0,0.4)] hover:-translate-y-0.5;
+}
+
+@utility card-accent {
+  @apply hover:border-b-accent/40 hover:shadow-[0_4px_20px_rgba(255,87,34,0.15)];
+}
+
+/* Input utilities */
+@utility input-field {
+  @apply border border-b-border bg-b-paper px-4 py-3 text-sm font-semibold text-b-ink placeholder:text-b-ink/25 outline-none transition-all duration-200;
+  @apply focus-visible:border-b-accent/50 focus-visible:ring-2 focus-visible:ring-b-accent/20;
+  @apply hover:border-b-border-hover;
+}
+
+/* Modal utilities */
+@utility modal-overlay {
+  @apply fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm px-4 py-8;
+}
+
+@utility modal-content {
+  @apply w-full max-w-md border border-b-border bg-b-field p-8 shadow-[0_25px_50px_rgba(0,0,0,0.5)];
+}
+
+/* Section header utility */
+@utility section-header {
+  @apply border-b border-b-border bg-b-paper/50 px-6 py-4;
+}
+
+/* Accent text utilities */
+@utility text-accent-gradient {
+  @apply bg-gradient-to-r from-b-accent to-orange-400 bg-clip-text text-transparent;
+}
+
+/* Glow effect for interactive elements */
+@utility glow-accent {
+  @apply shadow-[0_0_20px_rgba(255,87,34,0.3)];
+}
+
+@utility glow-accent-hover {
+  @apply hover:shadow-[0_0_30px_rgba(255,87,34,0.4)];
+}
+
+/* Status indicators */
+@utility status-dot {
+  @apply inline-block size-2 rounded-full;
+}
+
+@utility status-dot-active {
+  @apply bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)];
+}
+
+@utility status-dot-inactive {
+  @apply bg-b-border;
 }

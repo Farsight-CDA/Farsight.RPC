@@ -87,7 +87,7 @@ export default function DashboardPage() {
 
   return (
     <main class="flex flex-1 flex-col items-center gap-8 px-6 py-16">
-      <div class="w-full max-w-2xl border-4 border-[var(--color-b-ink)] bg-b-field p-10 shadow-[10px_10px_0_0_rgba(255,87,34,0.12)] hover:shadow-[12px_12px_0_0_rgba(255,87,34,0.2)] transition-shadow duration-300">
+      <div class="w-full max-w-2xl border border-b-border bg-b-field p-10 shadow-[0_4px_30px_rgba(0,0,0,0.4)]">
         <div class="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p class="mb-3 text-xs font-bold uppercase tracking-[0.4em] text-b-accent">
@@ -105,7 +105,7 @@ export default function DashboardPage() {
             New application
           </button>
         </div>
-        <div class="mt-6 h-1 w-full bg-gradient-to-r from-b-accent/60 via-b-accent/30 to-transparent" />
+        <div class="mt-6 h-px w-full bg-gradient-to-r from-b-accent/50 via-b-accent/20 to-transparent" />
 
         <Show when={applicationsState() === "refreshing"}>
           <div class="mt-6 flex items-center gap-3 text-xs font-bold uppercase tracking-widest text-b-ink/80">
@@ -135,23 +135,23 @@ export default function DashboardPage() {
             (applications() ?? []).length > 0
           }
         >
-          <ul class="mt-8 flex flex-col gap-4">
+          <ul class="mt-8 flex flex-col gap-3">
             <For each={applications()}>
               {(app) => (
                 <li>
                   <A
                     href={`/applications/${app.id}`}
-                    class="group block border-4 border-[var(--color-b-ink)] bg-b-paper p-4 shadow-[4px_4px_0_0_rgba(232,228,220,0.1)] hover:shadow-[6px_6px_0_0_rgba(255,87,34,0.2)] transition-all duration-200 hover:border-b-accent/50 outline-none focus-visible:ring-4 focus-visible:ring-b-accent/50"
+                    class="group block border border-b-border bg-b-paper p-4 transition-all duration-200 hover:border-b-accent/40 hover:bg-b-field hover:shadow-[0_4px_20px_rgba(255,87,34,0.1)] hover:-translate-y-0.5 outline-none focus-visible:ring-2 focus-visible:ring-b-accent/30"
                   >
                     <span class="font-['Anton',sans-serif] text-2xl uppercase tracking-wide text-b-ink group-hover:text-b-accent transition-colors duration-200">
                       {app.name}
                     </span>
-                    <div class="mt-3 flex items-center gap-4 text-xs font-bold uppercase tracking-widest text-b-ink/60">
-                      <div class="flex items-center gap-1 group-hover:text-b-accent/80 transition-colors duration-200">
+                    <div class="mt-3 flex items-center gap-4 text-xs font-bold uppercase tracking-widest text-b-ink/50">
+                      <div class="flex items-center gap-1 group-hover:text-b-accent/70 transition-colors duration-200">
                         <KeyIcon class="size-4" />
                         {app.apiKeyCount}
                       </div>
-                      <div class="flex items-center gap-1 group-hover:text-b-accent/80 transition-colors duration-200">
+                      <div class="flex items-center gap-1 group-hover:text-b-accent/70 transition-colors duration-200">
                         <RpcIcon class="size-4" />
                         {app.rpcCount}
                       </div>
@@ -170,15 +170,17 @@ export default function DashboardPage() {
             (applications() ?? []).length === 0
           }
         >
-          <p class="mt-8 text-sm font-semibold uppercase tracking-wider text-b-ink/60">
-            No applications available.
-          </p>
+          <div class="mt-8 flex flex-col items-center justify-center gap-3 py-8 border border-dashed border-b-border/50 bg-b-paper/20">
+            <p class="text-sm font-semibold uppercase tracking-wider text-b-ink/50">
+              No applications available.
+            </p>
+          </div>
         </Show>
       </div>
 
       <Show when={modalOpen()}>
         <div
-          class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-4 py-8"
+          class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm px-4 py-8"
           role="presentation"
           onClick={closeModal}
         >
@@ -186,7 +188,7 @@ export default function DashboardPage() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="new-application-title"
-            class="w-full max-w-md border-4 border-[var(--color-b-ink)] bg-b-field p-8 shadow-[12px_12px_0_0_rgba(255,87,34,0.15)]"
+            class="w-full max-w-md border border-b-border bg-b-field p-8 shadow-[0_25px_50px_rgba(0,0,0,0.5)]"
             onClick={(e) => e.stopPropagation()}
           >
             <p class="mb-2 text-xs font-bold uppercase tracking-[0.35em] text-b-accent">
@@ -203,7 +205,7 @@ export default function DashboardPage() {
               <div class="flex flex-col gap-2">
                 <label
                   for="new-app-name"
-                  class="text-xs font-bold uppercase tracking-widest text-b-ink/80"
+                  class="text-xs font-bold uppercase tracking-widest text-b-ink/70"
                 >
                   Name
                 </label>
@@ -214,18 +216,18 @@ export default function DashboardPage() {
                   pattern={applicationNamePattern}
                   value={newName()}
                   onInput={(e) => setNewName(e.currentTarget.value)}
-                  class="border-4 border-[var(--color-b-ink)] bg-b-paper px-3 py-3 text-sm font-semibold text-b-ink placeholder:text-b-ink/30 outline-none focus-visible:ring-4 focus-visible:ring-b-accent/50 hover:border-b-accent/50 transition-colors duration-200"
+                  class="h-11 w-full border border-b-border bg-b-paper px-4 text-sm font-semibold text-b-ink placeholder:text-b-ink/25 outline-none focus-visible:border-b-accent/50 focus-visible:ring-2 focus-visible:ring-b-accent/20 hover:border-b-border-hover transition-all duration-200"
                   placeholder="MY APPLICATION"
                   title={applicationNameHint}
                   autocomplete="off"
                 />
-                <p class="text-xs font-semibold uppercase tracking-wider text-b-ink/50">
+                <p class="text-xs font-semibold uppercase tracking-wider text-b-ink/40">
                   {applicationNameHint}
                 </p>
               </div>
 
               <Show when={createError()}>
-                <p class="border-4 border-red-500/50 bg-red-500/10 px-3 py-3 text-xs font-bold uppercase leading-snug text-red-400">
+                <p class="border border-red-500/40 bg-red-500/10 px-3 py-3 text-xs font-bold uppercase leading-snug text-red-400">
                   {createError()}
                 </p>
               </Show>

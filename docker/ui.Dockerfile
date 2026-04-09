@@ -10,6 +10,6 @@ RUN npm run build
 FROM nginx:1.29-alpine AS runtime
 
 COPY --from=build /source/.output/public/ /usr/share/nginx/html/
-COPY docker/web.nginx.conf /etc/nginx/conf.d/default.conf
+COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 80

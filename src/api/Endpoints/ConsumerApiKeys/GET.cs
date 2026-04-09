@@ -30,7 +30,6 @@ public sealed class GET(AppDbContext dbContext) : Endpoint<GET.Request, GET.Cons
         }
 
         var keys = await dbContext.ConsumerApiKeys
-            .AsNoTracking()
             .Where(k => k.ApplicationId == req.ApplicationId)
             .OrderBy(k => k.Environment)
             .ThenBy(k => k.Id)

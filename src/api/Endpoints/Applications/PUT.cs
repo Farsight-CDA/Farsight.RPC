@@ -67,8 +67,6 @@ public sealed class PUT(AppDbContext dbContext) : Endpoint<PUT.Request, PUT.Resp
         }
 
         var response = await dbContext.ConsumerApplications
-            .AsNoTracking()
-            .Where(a => a.Id == req.Id)
             .Select(a => new Response(
                 a.Id,
                 a.Name,
@@ -76,7 +74,7 @@ public sealed class PUT(AppDbContext dbContext) : Endpoint<PUT.Request, PUT.Resp
                 a.RealtimeRpcs!.Count,
                 a.ArchiveRpcs!.Count
             ))
-            .SingleAsync(ct);
+            .SingleAsync(a => a.Id == req.Id, ct);
 
         await Send.OkAsync(response, ct);
     }

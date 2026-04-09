@@ -11,13 +11,13 @@ namespace Farsight.Rpc.Api.Endpoints.Applications;
 
 public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request>
 {
-    public sealed record Request(string? Name);
+    public sealed record Request(string Name);
 
     public sealed class Validator : AbstractValidator<Request>
     {
         public Validator()
         {
-            RuleFor(x => x.Name).ApplyStandardRules();
+            RuleFor(x => x.Name).ApplyNameValidation();
         }
     }
 
@@ -29,9 +29,7 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request>
 
     public override async Task HandleAsync(Request req, CancellationToken ct)
     {
-        string name = req.Name!;
-
-        if(await dbContext.ConsumerApplications.AnyAsync(a => a.Name == name, ct))
+        if(await dbContext.ConsumerApplications.AnyAsync(a => a.Name == req.Name, ct))
         {
             ThrowError("An application with this name already exists.", 409);
         }
@@ -39,7 +37,7 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request>
         var application = new ConsumerApplication
         {
             Id = Guid.NewGuid(),
-            Name = name,
+            Name = req.Name,
         };
 
         dbContext.ConsumerApplications.Add(application);

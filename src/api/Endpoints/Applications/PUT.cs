@@ -14,15 +14,14 @@ public sealed class PUT(AppDbContext dbContext) : Endpoint<PUT.Request>
     {
         [RouteParam]
         public Guid Id { get; init; }
-
-        public string? Name { get; init; }
+        public required string Name { get; init; }
     }
 
     public sealed class Validator : AbstractValidator<Request>
     {
         public Validator()
         {
-            RuleFor(x => x.Name).ApplyStandardRules();
+            RuleFor(x => x.Name).ApplyNameValidation();
         }
     }
 
@@ -34,8 +33,6 @@ public sealed class PUT(AppDbContext dbContext) : Endpoint<PUT.Request>
 
     public override async Task HandleAsync(Request req, CancellationToken ct)
     {
-        string name = req.Name!;
-
         var application = await dbContext.ConsumerApplications
             .SingleOrDefaultAsync(a => a.Id == req.Id, ct);
 
@@ -44,12 +41,12 @@ public sealed class PUT(AppDbContext dbContext) : Endpoint<PUT.Request>
             ThrowError("Application not found.", 404);
         }
 
-        if(await dbContext.ConsumerApplications.AnyAsync(a => a.Id != req.Id && a.Name == name, ct))
+        if(await dbContext.ConsumerApplications.AnyAsync(a => a.Id != req.Id && a.Name == req.Name, ct))
         {
             ThrowError("An application with this name already exists.", 409);
         }
 
-        application.Name = name;
+        application.Name = req.Name;
 
         try
         {

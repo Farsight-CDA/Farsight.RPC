@@ -9,7 +9,7 @@ internal static partial class NameValidation
     public const string OUTER_WHITESPACE_MESSAGE = "Name cannot have leading or trailing whitespace.";
     public const string ALLOWED_CHARACTERS_MESSAGE = "Name can only contain letters, numbers, underscores, and hyphens.";
 
-    public static IRuleBuilderOptions<T, string?> ApplyStandardRules<T>(this IRuleBuilderInitial<T, string?> ruleBuilder)
+    public static IRuleBuilderOptions<T, string?> ApplyNameValidation<T>(this IRuleBuilderInitial<T, string?> ruleBuilder)
         => ruleBuilder
             .Cascade(CascadeMode.Stop)
             .Must(static name => !String.IsNullOrWhiteSpace(name))

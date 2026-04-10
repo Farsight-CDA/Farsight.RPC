@@ -19,7 +19,7 @@ public sealed class PUT(AppDbContext dbContext) : Endpoint<PUT.Request>
         ulong IndexerBlockOffset
     );
 
-    public sealed class Validator : AbstractValidator<Request>
+    public sealed class Validator : Validator<Request>
     {
         public Validator()
         {

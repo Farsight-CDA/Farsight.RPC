@@ -15,7 +15,7 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request>
         string Name
     );
 
-    public sealed class Validator : AbstractValidator<Request>
+    public sealed class Validator : Validator<Request>
     {
         public Validator()
         {

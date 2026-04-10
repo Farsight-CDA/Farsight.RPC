@@ -15,7 +15,7 @@ public sealed class GET(AppDbContext dbContext) : Endpoint<GET.Request, RpcEndpo
         [property: RouteParam] string Environment
     );
 
-    public sealed class Validator : AbstractValidator<Request>
+    public sealed class Validator : Validator<Request>
     {
         public Validator()
         {

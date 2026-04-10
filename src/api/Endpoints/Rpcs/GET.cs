@@ -13,7 +13,7 @@ public sealed class GET(AppDbContext dbContext) : Endpoint<GET.Request, ApiKeyRp
         [property: FromHeader(ApiKeyHeaders.API_KEY)] string ApiKey
     );
 
-    public sealed class Validator : AbstractValidator<Request>
+    public sealed class Validator : Validator<Request>
     {
         public Validator()
         {

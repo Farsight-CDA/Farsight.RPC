@@ -23,7 +23,7 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request>
         ulong IndexerBlockOffset
     );
 
-    public sealed class Validator : AbstractValidator<Request>
+    public sealed class Validator : Validator<Request>
     {
         public Validator(ChainService chainService)
         {

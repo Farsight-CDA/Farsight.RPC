@@ -139,7 +139,7 @@ const ApplicationLayoutContent: ParentComponent = (props) => {
                         </span>
                       </div>
                     </Show>
-                    <Show when={environment.environmentsState() === "error"}>
+                    <Show when={environment.environmentsState() === "errored"}>
                       <p class="border border-red-500/40 bg-red-500/10 px-3 py-2 text-[0.65rem] font-bold uppercase text-red-400 w-48">
                         Error
                       </p>

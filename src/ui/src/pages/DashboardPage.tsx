@@ -1,9 +1,15 @@
 import { A } from "@solidjs/router";
-import { createSignal, For, Show } from "solid-js";
+import { createSignal, For, Show, createMemo } from "solid-js";
 import LoadingSpinner from "../components/LoadingSpinner";
 import KeyIcon from "../components/icons/KeyIcon";
 import RpcIcon from "../components/icons/RpcIcon";
+import SearchIcon from "../components/icons/SearchIcon";
 import { useAuth } from "../lib/auth";
+import {
+  nameValidationHint,
+  nameValidationPattern,
+  validateName,
+} from "../lib/name-validation";
 import { useReferenceData } from "../lib/reference-data";
 
 async function readErrorMessage(
@@ -25,10 +31,6 @@ async function readErrorMessage(
   return fallback;
 }
 
-const applicationNamePattern = "[A-Za-z0-9_-]+";
-const applicationNameHint =
-  "Use only letters, numbers, underscores, and hyphens.";
-
 export default function DashboardPage() {
   const auth = useAuth();
   const referenceData = useReferenceData();
@@ -41,6 +43,7 @@ export default function DashboardPage() {
   const [newName, setNewName] = createSignal("");
   const [createError, setCreateError] = createSignal<string | null>(null);
   const [createLoading, setCreateLoading] = createSignal(false);
+  const [searchQuery, setSearchQuery] = createSignal("");
 
   const openModal = () => {
     setCreateError(null);
@@ -57,6 +60,14 @@ export default function DashboardPage() {
     e.preventDefault();
     const token = auth.token;
     if (!token) return;
+
+    const name = newName();
+    const validationError = validateName(name);
+    if (validationError) {
+      setCreateError(validationError);
+      return;
+    }
+
     setCreateError(null);
     setCreateLoading(true);
     try {
@@ -66,7 +77,7 @@ export default function DashboardPage() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ name: newName() }),
+        body: JSON.stringify({ name }),
       });
       if (!response.ok) {
         throw new Error(
@@ -85,97 +96,186 @@ export default function DashboardPage() {
     }
   };
 
+  const filteredApps = createMemo(() => {
+    const apps = applications() ?? [];
+    const query = searchQuery().toLowerCase().trim();
+
+    if (query) {
+      return apps.filter((app) =>
+        app.name.toLowerCase().includes(query),
+      );
+    }
+
+    return apps;
+  });
+
+  const appCount = createMemo(() => (applications() ?? []).length);
+  const filteredCount = createMemo(() => filteredApps().length);
+
   return (
-    <main class="flex flex-1 flex-col items-center gap-8 px-6 py-16">
-      <div class="w-full max-w-2xl border border-b-border bg-b-field p-10 shadow-[0_4px_30px_rgba(0,0,0,0.4)]">
-        <div class="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p class="mb-3 text-xs font-bold uppercase tracking-[0.4em] text-b-accent">
+    <main class="flex flex-1 flex-col items-center gap-8 px-4 sm:px-6 py-12 sm:py-16">
+      <div class="w-full max-w-6xl border border-b-border bg-b-field shadow-[0_4px_30px_rgba(0,0,0,0.4)]">
+        {/* Compact Header Section */}
+        <div class="p-5 sm:p-8">
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <h2 class="font-['Anton',sans-serif] text-3xl sm:text-4xl uppercase leading-none text-b-ink">
               Applications
-            </p>
-            <h2 class="font-['Anton',sans-serif] text-5xl uppercase leading-none text-b-ink">
-              Choose one
             </h2>
+            <button
+              type="button"
+              onClick={openModal}
+              class="btn btn-md btn-interactive btn-disabled btn-primary shrink-0"
+            >
+              Create
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={openModal}
-            class="btn btn-md btn-interactive btn-disabled btn-primary shrink-0"
-          >
-            New application
-          </button>
+
+          {/* Search Bar */}
+          <div class="mt-5 pt-5 border-t border-b-border">
+            <div class="relative max-w-md">
+              <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <SearchIcon class="size-4 text-b-ink/40" />
+              </div>
+              <input
+                type="text"
+                placeholder="Search..."
+                value={searchQuery()}
+                onInput={(e) => setSearchQuery(e.currentTarget.value)}
+                class="w-full h-9 pl-9 pr-3 border border-b-border bg-b-paper text-sm font-semibold text-b-ink placeholder:text-b-ink/30 outline-none focus-visible:border-b-accent/50 focus-visible:ring-2 focus-visible:ring-b-accent/20 hover:border-b-border-hover transition-all duration-200"
+              />
+            </div>
+
+            {/* Filter Status */}
+            <div class="mt-3 text-xs font-semibold uppercase tracking-wider text-b-ink/40">
+              <span>Showing {filteredCount()} of {appCount()}</span>
+            </div>
+          </div>
         </div>
-        <div class="mt-6 h-px w-full bg-gradient-to-r from-b-accent/50 via-b-accent/20 to-transparent" />
 
-        <Show when={applicationsState() === "refreshing"}>
-          <div class="mt-6 flex items-center gap-3 text-xs font-bold uppercase tracking-widest text-b-ink/80">
-            <LoadingSpinner class="size-4" />
-            Updating…
-          </div>
-        </Show>
+        {/* Content Area */}
+        <div class="px-5 pb-5 sm:px-8 sm:pb-8 pt-2">
+          <Show when={applicationsState() === "refreshing"}>
+            <div class="flex items-center gap-3 text-xs font-bold uppercase tracking-widest text-b-ink/80 py-4">
+              <LoadingSpinner class="size-4" />
+              Updating…
+            </div>
+          </Show>
 
-        <Show when={applicationsError()}>
-          <p class="mt-8 border-4 border-red-500/50 bg-red-500/10 px-3 py-3 text-xs font-bold uppercase leading-snug text-red-400">
-            {applicationsError()!.message}
-          </p>
-        </Show>
+          <Show when={applicationsError()}>
+            <p class="border-4 border-red-500/50 bg-red-500/10 px-3 py-3 text-xs font-bold uppercase leading-snug text-red-400">
+              {applicationsError()!.message}
+            </p>
+          </Show>
 
-        <Show when={applicationsState() === "pending"}>
-          <div class="mt-8 flex items-center gap-3 text-sm font-semibold uppercase tracking-wider text-b-ink/80">
-            <LoadingSpinner class="size-5" />
-            Loading…
-          </div>
-        </Show>
+          <Show when={applicationsState() === "pending"}>
+            <div class="flex items-center justify-center gap-3 py-16 text-sm font-semibold uppercase tracking-wider text-b-ink/80">
+              <LoadingSpinner class="size-5" />
+              Loading…
+            </div>
+          </Show>
 
-        <Show
-          when={
-            !applicationsError() &&
-            (applicationsState() === "ready" ||
-              applicationsState() === "refreshing") &&
-            (applications() ?? []).length > 0
-          }
-        >
-          <ul class="mt-8 flex flex-col gap-3">
-            <For each={applications()}>
-              {(app) => (
-                <li>
+          {/* Applications Grid */}
+          <Show
+            when={
+              !applicationsError() &&
+              (applicationsState() === "ready" ||
+                applicationsState() === "refreshing") &&
+              filteredApps().length > 0
+            }
+          >
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              <For each={filteredApps()}>
+                {(app) => (
                   <A
                     href={`/applications/${app.id}`}
-                    class="group block border border-b-border bg-b-paper p-4 transition-all duration-200 hover:border-b-accent/40 hover:bg-b-field hover:shadow-[0_4px_20px_rgba(255,87,34,0.1)] hover:-translate-y-0.5 outline-none focus-visible:ring-2 focus-visible:ring-b-accent/30"
+                    class="group relative border border-b-border bg-b-paper p-5 transition-all duration-200 hover:border-b-accent/40 hover:bg-b-field hover:shadow-[0_4px_20px_rgba(255,87,34,0.12)] hover:-translate-y-0.5 outline-none focus-visible:ring-2 focus-visible:ring-b-accent/30 overflow-hidden"
                   >
-                    <span class="font-['Anton',sans-serif] text-2xl uppercase tracking-wide text-b-ink group-hover:text-b-accent transition-colors duration-200">
+                    {/* Decorative Corner Accent */}
+                    <div class="absolute top-0 right-0 w-12 h-12 bg-gradient-to-bl from-b-accent/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+
+                    {/* App Name */}
+                    <h3 class="font-['Anton',sans-serif] text-xl uppercase tracking-wide text-b-ink group-hover:text-b-accent transition-colors duration-200 line-clamp-1" title={app.name}>
                       {app.name}
-                    </span>
-                    <div class="mt-3 flex items-center gap-4 text-xs font-bold uppercase tracking-widest text-b-ink/50">
-                      <div class="flex items-center gap-1 group-hover:text-b-accent/70 transition-colors duration-200">
-                        <KeyIcon class="size-4" />
-                        {app.apiKeyCount}
+                    </h3>
+
+                    {/* Stats Row */}
+                    <div class="mt-4 flex items-center gap-4">
+                      <div class="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-b-ink/40 group-hover:text-b-accent/60 transition-colors duration-200">
+                        <KeyIcon class="size-3.5" />
+                        <span>{app.apiKeyCount ?? 0}</span>
                       </div>
-                      <div class="flex items-center gap-1 group-hover:text-b-accent/70 transition-colors duration-200">
-                        <RpcIcon class="size-4" />
-                        {app.rpcCount}
+                      <div class="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-b-ink/40 group-hover:text-b-accent/60 transition-colors duration-200">
+                        <RpcIcon class="size-3.5" />
+                        <span>{app.rpcCount ?? 0}</span>
                       </div>
                     </div>
-                  </A>
-                </li>
-              )}
-            </For>
-          </ul>
-        </Show>
 
-        <Show
-          when={
-            !applicationsError() &&
-            applicationsState() === "ready" &&
-            (applications() ?? []).length === 0
-          }
-        >
-          <div class="mt-8 flex flex-col items-center justify-center gap-3 py-8 border border-dashed border-b-border/50 bg-b-paper/20">
-            <p class="text-sm font-semibold uppercase tracking-wider text-b-ink/50">
-              No applications available.
-            </p>
-          </div>
-        </Show>
+                    {/* Arrow Indicator */}
+                    <div class="absolute bottom-5 right-5 opacity-0 group-hover:opacity-100 transition-all duration-200 transform translate-x-2 group-hover:translate-x-0">
+                      <svg
+                        class="size-5 text-b-accent"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        stroke-width="2"
+                      >
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                      </svg>
+                    </div>
+                  </A>
+                )}
+              </For>
+            </div>
+          </Show>
+
+          {/* Empty States */}
+          <Show
+            when={
+              !applicationsError() &&
+              applicationsState() === "ready" &&
+              (applications() ?? []).length === 0
+            }
+          >
+            <div class="flex flex-col items-center justify-center gap-3 py-12 border border-dashed border-b-border/50 bg-b-paper/20">
+              <svg class="size-6 text-b-ink/30" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+              </svg>
+              <p class="text-sm font-semibold uppercase tracking-wider text-b-ink/50">
+                No applications yet
+              </p>
+              <button
+                type="button"
+                onClick={openModal}
+                class="btn btn-sm btn-interactive btn-primary"
+              >
+Create
+              </button>
+            </div>
+          </Show>
+
+          {/* No Search Results */}
+          <Show
+            when={
+              !applicationsError() &&
+              applicationsState() === "ready" &&
+              (applications() ?? []).length > 0 &&
+              filteredApps().length === 0
+            }
+          >
+            <div class="flex flex-col items-center justify-center gap-2 py-12 border border-dashed border-b-border/50 bg-b-paper/20">
+              <SearchIcon class="size-5 text-b-ink/30 mb-1" />
+              <p class="text-sm font-semibold uppercase tracking-wider text-b-ink/50">
+                No matches for "{searchQuery()}"
+              </p>
+              <button
+                onClick={() => setSearchQuery("")}
+                class="text-xs font-bold uppercase tracking-wider text-b-accent hover:underline"
+              >
+                Clear
+              </button>
+            </div>
+          </Show>
+        </div>
       </div>
 
       <Show when={modalOpen()}>
@@ -213,16 +313,19 @@ export default function DashboardPage() {
                   id="new-app-name"
                   type="text"
                   required
-                  pattern={applicationNamePattern}
+                  pattern={nameValidationPattern}
                   value={newName()}
-                  onInput={(e) => setNewName(e.currentTarget.value)}
+                  onInput={(e) => {
+                    setNewName(e.currentTarget.value);
+                    setCreateError(null);
+                  }}
                   class="h-11 w-full border border-b-border bg-b-paper px-4 text-sm font-semibold text-b-ink placeholder:text-b-ink/25 outline-none focus-visible:border-b-accent/50 focus-visible:ring-2 focus-visible:ring-b-accent/20 hover:border-b-border-hover transition-all duration-200"
                   placeholder="MY APPLICATION"
-                  title={applicationNameHint}
+                  title={nameValidationHint}
                   autocomplete="off"
                 />
                 <p class="text-xs font-semibold uppercase tracking-wider text-b-ink/40">
-                  {applicationNameHint}
+                  {nameValidationHint}
                 </p>
               </div>
 

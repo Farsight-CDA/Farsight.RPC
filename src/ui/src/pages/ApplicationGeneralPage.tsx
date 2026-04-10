@@ -1,9 +1,14 @@
-import { createMemo, createSignal, Show } from "solid-js";
+import { createEffect, createMemo, createSignal, Show } from "solid-js";
 import { useNavigate, useParams } from "@solidjs/router";
 import LoadingSpinner from "../components/LoadingSpinner";
 import PencilIcon from "../components/icons/PencilIcon";
 import TrashIcon from "../components/icons/TrashIcon";
 import { useAuth } from "../lib/auth";
+import {
+  nameValidationHint,
+  nameValidationPattern,
+  validateName,
+} from "../lib/name-validation";
 import { useReferenceData } from "../lib/reference-data";
 
 async function readErrorMessage(
@@ -26,9 +31,6 @@ async function readErrorMessage(
   return fallback;
 }
 
-const applicationNamePattern = "[A-Za-z0-9_-]+";
-const applicationNameHint = "Use only letters, numbers, underscores, and hyphens.";
-
 export default function ApplicationGeneralPage() {
   const auth = useAuth();
   const referenceData = useReferenceData();
@@ -50,11 +52,23 @@ export default function ApplicationGeneralPage() {
   const [deleteError, setDeleteError] = createSignal<string | null>(null);
   const [deleteLoading, setDeleteLoading] = createSignal(false);
 
+  createEffect(() => {
+    setRenameName(application()?.name ?? "");
+  });
+
   const handleRename = async (e: SubmitEvent) => {
     e.preventDefault();
     const token = auth.token;
     const app = application();
     if (!token || !app) return;
+
+    const name = renameName();
+    const validationError = validateName(name);
+    if (validationError) {
+      setRenameError(validationError);
+      return;
+    }
+
     setRenameError(null);
     setRenameLoading(true);
     try {
@@ -64,7 +78,7 @@ export default function ApplicationGeneralPage() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ name: renameName() }),
+        body: JSON.stringify({ name }),
       });
       if (!response.ok) {
         throw new Error(await readErrorMessage(response, "Failed to rename application"));
@@ -140,16 +154,19 @@ export default function ApplicationGeneralPage() {
                       id="rename-app-name"
                       type="text"
                       required
-                      pattern={applicationNamePattern}
-                      value={renameName() || application()?.name || ""}
-                      onInput={(e) => setRenameName(e.currentTarget.value)}
+                      pattern={nameValidationPattern}
+                      value={renameName()}
+                      onInput={(e) => {
+                        setRenameName(e.currentTarget.value);
+                        setRenameError(null);
+                      }}
                       class="h-11 w-full border border-b-border bg-b-paper px-4 text-sm font-semibold text-b-ink placeholder:text-b-ink/25 outline-none focus-visible:border-b-accent/50 focus-visible:ring-2 focus-visible:ring-b-accent/20 hover:border-b-border-hover transition-all duration-200"
                       placeholder="MY APPLICATION"
-                      title={applicationNameHint}
+                      title={nameValidationHint}
                       autocomplete="off"
                     />
                     <p class="mt-2 text-xs font-semibold uppercase tracking-wider text-b-ink/40">
-                      {applicationNameHint}
+                      {nameValidationHint}
                     </p>
                   </div>
                   <button

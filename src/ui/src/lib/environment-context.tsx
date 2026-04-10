@@ -5,7 +5,9 @@ interface EnvironmentContextValue {
   selectedEnvironment: Accessor<string | undefined>;
   setSelectedEnvironment: Setter<string | undefined>;
   environments: Accessor<string[]>;
-  environmentsState: Accessor<"pending" | "ready" | "error">;
+  environmentsState: Accessor<
+    "idle" | "pending" | "refreshing" | "ready" | "errored"
+  >;
   environmentsError: Accessor<Error | null>;
 }
 

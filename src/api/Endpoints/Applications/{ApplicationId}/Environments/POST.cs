@@ -47,6 +47,7 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request>
             Id = Guid.NewGuid(),
             ApplicationId = req.ApplicationId,
             Name = req.Name,
+            Chains = [],
         });
 
         try

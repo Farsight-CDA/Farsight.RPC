@@ -40,9 +40,20 @@ public sealed class GET(AppDbContext dbContext) : Endpoint<GET.Request, ApiKeyRp
             ThrowError("API key not found.", 404);
         }
 
+        var activeChains = await dbContext.ApplicationEnvironments
+            .AsNoTracking()
+            .Where(environment => environment.ApplicationId == key.ApplicationId && environment.Id == key.EnvironmentId)
+            .Select(environment => environment.Chains)
+            .SingleOrDefaultAsync(ct);
+
+        if(activeChains is null)
+        {
+            ThrowError("Environment not found.", 404);
+        }
+
         var rpcs = await dbContext.Rpcs
             .AsNoTracking()
-            .Where(rpc => rpc.ApplicationId == key.ApplicationId && rpc.EnvironmentId == key.EnvironmentId)
+            .Where(rpc => rpc.ApplicationId == key.ApplicationId && rpc.EnvironmentId == key.EnvironmentId && activeChains.Contains(rpc.Chain))
             .OrderBy(rpc => rpc.Chain)
             .ThenBy(rpc => EF.Property<string>(rpc, "RpcType"))
             .ThenBy(rpc => rpc.Id)

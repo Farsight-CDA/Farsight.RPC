@@ -52,9 +52,19 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request>
             ThrowError("Application not found.", 404);
         }
 
-        if(!await dbContext.ApplicationEnvironments.AnyAsync(environment => environment.ApplicationId == req.ApplicationId && environment.Id == req.EnvironmentId, ct))
+        var environmentChains = await dbContext.ApplicationEnvironments
+            .Where(environment => environment.ApplicationId == req.ApplicationId && environment.Id == req.EnvironmentId)
+            .Select(environment => environment.Chains)
+            .SingleOrDefaultAsync(ct);
+
+        if(environmentChains is null)
         {
             ThrowError("Environment not found.", 404);
+        }
+
+        if(!environmentChains.Contains(req.Chain, StringComparer.Ordinal))
+        {
+            ThrowError("Chain is not enabled for this environment.");
         }
 
         if(!await dbContext.RpcProviders.AnyAsync(provider => provider.Id == req.ProviderId, ct))

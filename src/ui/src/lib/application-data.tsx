@@ -19,6 +19,7 @@ type LoadState = "idle" | "pending" | "refreshing" | "ready" | "errored";
 export type ApplicationEnvironmentSummary = {
   id: string;
   name: string;
+  chains: string[];
 };
 
 export type ConsumerApiKeySummary = {
@@ -71,6 +72,8 @@ type ApplicationDataContextValue = {
   refreshStructures: () => Promise<void>;
   refreshRpcs: () => Promise<void>;
   refresh: () => Promise<void>;
+  addEnvironmentChain: (environmentId: string, chain: string) => Promise<void>;
+  removeEnvironmentChain: (environmentId: string, chain: string) => Promise<void>;
 };
 
 const ApplicationDataContext = createContext<ApplicationDataContextValue>();
@@ -104,6 +107,27 @@ async function fetchApplicationDetail(
   }
 
   return response.json() as Promise<ApplicationDetail>;
+}
+
+async function readErrorMessage(
+  response: Response,
+  fallbackMessage: string,
+): Promise<string> {
+  try {
+    const data = (await response.json()) as {
+      message?: string;
+      errors?: Record<string, string[]>;
+    };
+    if (data.message && data.message !== "One or more errors occurred!") {
+      return data.message;
+    }
+    const first = data.errors && Object.values(data.errors).flat()[0];
+    if (first) {
+      return first;
+    }
+  } catch {}
+
+  return fallbackMessage;
 }
 
 export function ApplicationDataProvider(props: ParentProps) {
@@ -312,6 +336,68 @@ export function ApplicationDataProvider(props: ParentProps) {
     await Promise.all([refreshDetail(), refreshRpcs()]);
   };
 
+  const updateEnvironmentChains = async (
+    environmentId: string,
+    chains: string[],
+  ) => {
+    const token = auth.token;
+    const id = applicationId();
+    const environment = environments().find((item) => item.id === environmentId);
+    if (!token || !id || !environment) {
+      throw new Error("Environment not found");
+    }
+
+    const response = await fetch(
+      `/api/Applications/${id}/Environments/${environmentId}`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          name: environment.name,
+          chains,
+        }),
+      },
+    );
+
+    if (!response.ok) {
+      throw new Error(
+        await readErrorMessage(response, "Failed to update environment chains"),
+      );
+    }
+
+    await refreshEnvironments();
+  };
+
+  const addEnvironmentChain = async (environmentId: string, chain: string) => {
+    const environment = environments().find((item) => item.id === environmentId);
+    if (!environment) {
+      throw new Error("Environment not found");
+    }
+    if (environment.chains.includes(chain)) {
+      return;
+    }
+
+    await updateEnvironmentChains(environmentId, [...environment.chains, chain]);
+  };
+
+  const removeEnvironmentChain = async (environmentId: string, chain: string) => {
+    const environment = environments().find((item) => item.id === environmentId);
+    if (!environment) {
+      throw new Error("Environment not found");
+    }
+    if (!environment.chains.includes(chain)) {
+      return;
+    }
+
+    await updateEnvironmentChains(
+      environmentId,
+      environment.chains.filter((item) => item !== chain),
+    );
+  };
+
   createEffect(() => {
     const token = auth.token;
     const id = applicationId();
@@ -354,6 +440,7 @@ export function ApplicationDataProvider(props: ParentProps) {
     const envState = environmentsState();
     const envError = environmentsError();
     const environmentIds = environments().map((environment) => environment.id);
+    const currentRpcsKey = loadedRpcsKey();
 
     if (!token || !id) {
       clearRpcs();
@@ -369,8 +456,13 @@ export function ApplicationDataProvider(props: ParentProps) {
     }
 
     if (envState !== "ready") {
-      setRpcsState(rpcs().length > 0 ? "refreshing" : "pending");
       setRpcsError(null);
+
+      // Keep already-loaded RPC data ready while environment details refresh.
+      if (envState === "pending" || currentRpcsKey === null) {
+        setRpcsState(rpcs().length > 0 ? "refreshing" : "pending");
+      }
+
       return;
     }
 
@@ -435,6 +527,8 @@ export function ApplicationDataProvider(props: ParentProps) {
     refreshStructures,
     refreshRpcs,
     refresh,
+    addEnvironmentChain,
+    removeEnvironmentChain,
   };
 
   return (

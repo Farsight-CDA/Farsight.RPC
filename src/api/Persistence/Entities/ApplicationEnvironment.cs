@@ -7,6 +7,7 @@ public sealed record ApplicationEnvironment
     public required Guid Id { get; init; }
     public required Guid ApplicationId { get; init; }
     public required string Name { get; set; }
+    public required string[] Chains { get; set; }
 
     //Navigation Property
     public ConsumerApplication? Application { get; private set; }

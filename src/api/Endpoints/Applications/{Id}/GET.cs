@@ -10,7 +10,8 @@ public sealed class GETById(AppDbContext dbContext) : Endpoint<GETById.Request, 
 {
     public sealed record EnvironmentSummary(
         Guid Id,
-        string Name
+        string Name,
+        string[] Chains
     );
 
     public sealed record ApiKeySummary(
@@ -63,7 +64,7 @@ public sealed class GETById(AppDbContext dbContext) : Endpoint<GETById.Request, 
             .AsNoTracking()
             .Where(environment => environment.ApplicationId == req.ApplicationId)
             .OrderBy(environment => environment.Name)
-            .Select(environment => new EnvironmentSummary(environment.Id, environment.Name))
+            .Select(environment => new EnvironmentSummary(environment.Id, environment.Name, environment.Chains))
             .ToArrayAsync(ct);
 
         await Send.OkAsync(new Response(

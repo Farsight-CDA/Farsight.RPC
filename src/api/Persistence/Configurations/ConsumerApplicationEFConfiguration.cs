@@ -1,7 +1,7 @@
 using Farsight.Rpc.Api.Persistence.Entities;
 using Farsight.Rpc.Types;
-using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Farsight.Rpc.Api.Persistence.Configurations;

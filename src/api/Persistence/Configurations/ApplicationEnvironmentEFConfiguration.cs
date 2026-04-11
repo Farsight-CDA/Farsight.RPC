@@ -1,11 +1,17 @@
 using Farsight.Rpc.Api.Persistence.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Farsight.Rpc.Api.Persistence.Configurations;
 
 internal sealed class ApplicationEnvironmentEFConfiguration : IEntityTypeConfiguration<ApplicationEnvironment>
 {
+    private static readonly ValueComparer<string[]> _chainsComparer = new(
+        (left, right) => left != null && right != null && left.SequenceEqual(right),
+        values => values.Aggregate(0, (hash, value) => HashCode.Combine(hash, value)),
+        values => values.ToArray());
+
     public void Configure(EntityTypeBuilder<ApplicationEnvironment> entity)
     {
         entity.HasKey(x => x.Id);
@@ -16,6 +22,10 @@ internal sealed class ApplicationEnvironmentEFConfiguration : IEntityTypeConfigu
 
         entity.Property(x => x.Name)
             .UseCollation(AppDbContext.NAME_CASE_INSENSITIVE_COLLATION);
+
+        entity.Property(x => x.Chains)
+            .HasColumnType("text[]")
+            .Metadata.SetValueComparer(_chainsComparer);
 
         entity.HasOne(x => x.Application)
             .WithMany(x => x.Environments)

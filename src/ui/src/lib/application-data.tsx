@@ -469,7 +469,14 @@ export function ApplicationDataProvider(props: ParentProps) {
     const requestKey = `${token}:${id}:${environmentIds.join("|")}`;
     if (loadedRpcsKey() !== requestKey) {
       void untrack(refreshRpcs);
+      return;
     }
+
+    // Detail refreshes can temporarily move environments out of `ready` without
+    // invalidating the loaded RPC payload. Restore the settled RPC state when the
+    // environment set is unchanged so the RPC tab does not get stuck loading.
+    setRpcsError(null);
+    setRpcsState("ready");
   });
 
   const rpcsByEnvironment = createMemo(() => {

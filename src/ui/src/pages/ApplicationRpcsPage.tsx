@@ -45,6 +45,8 @@ const rpcValidationTimedOutMessage = "RPC validation timed out.";
 async function validateRpcEndpoint(
   token: string,
   address: string,
+  chain: string,
+  rpcType: ApplicationRpc["type"],
 ): Promise<{ ok: true; chainId: string } | { ok: false; message: string }> {
   const controller = new AbortController();
   const timeoutId = globalThis.setTimeout(
@@ -59,7 +61,7 @@ async function validateRpcEndpoint(
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({ address: address.trim() }),
+      body: JSON.stringify({ address: address.trim(), chain, rpcType }),
       signal: controller.signal,
     });
     if (!response.ok) {
@@ -152,7 +154,7 @@ export default function ApplicationRpcsPage() {
   >("Debug");
   const [newRpcIndexerStepSize, setNewRpcIndexerStepSize] = createSignal("1");
   const [newRpcIndexerBlockOffset, setNewRpcIndexerBlockOffset] =
-    createSignal("1");
+    createSignal("0");
   const [createRpcError, setCreateRpcError] = createSignal<string | null>(null);
   const [createRpcLoading, setCreateRpcLoading] = createSignal(false);
   const [createRpcTestStatus, setCreateRpcTestStatus] = createSignal<
@@ -522,7 +524,12 @@ export default function ApplicationRpcsPage() {
       if (token) {
         setEditRpcTestStatus("testing");
         try {
-          const result = await validateRpcEndpoint(token, rpc.address);
+          const result = await validateRpcEndpoint(
+            token,
+            rpc.address,
+            rpc.chain,
+            rpc.type,
+          );
           if (result.ok) {
             setEditRpcTestStatus("passed");
             setEditRpcTestChainId(result.chainId);
@@ -553,6 +560,8 @@ export default function ApplicationRpcsPage() {
   const runCreateRpcTest = async () => {
     const token = auth.token;
     if (!token) return;
+    const chain = selectedChainForRpc();
+    if (!chain) return;
     const address = newRpcAddress().trim();
     if (!isValidRpcAddress(address)) {
       setCreateRpcError(addressHint);
@@ -566,7 +575,12 @@ export default function ApplicationRpcsPage() {
     setCreateRpcTestError(null);
     setCreateRpcSaveConfirm(false);
     try {
-      const result = await validateRpcEndpoint(token, address);
+      const result = await validateRpcEndpoint(
+        token,
+        address,
+        chain,
+        newRpcType(),
+      );
       if (result.ok) {
         setCreateRpcTestStatus("passed");
         setCreateRpcTestChainId(result.chainId);
@@ -584,7 +598,8 @@ export default function ApplicationRpcsPage() {
 
   const runEditRpcTest = async () => {
     const token = auth.token;
-    if (!token) return;
+    const rpc = rpcToEdit();
+    if (!token || !rpc) return;
     const address = editRpcAddress().trim();
     if (!isValidRpcAddress(address)) {
       setEditRpcError(addressHint);
@@ -598,7 +613,12 @@ export default function ApplicationRpcsPage() {
     setEditRpcTestError(null);
     setEditRpcSaveConfirm(false);
     try {
-      const result = await validateRpcEndpoint(token, address);
+      const result = await validateRpcEndpoint(
+        token,
+        address,
+        rpc.chain,
+        rpc.type,
+      );
       if (result.ok) {
         setEditRpcTestStatus("passed");
         setEditRpcTestChainId(result.chainId);

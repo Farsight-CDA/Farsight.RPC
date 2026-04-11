@@ -1,3 +1,4 @@
+using Farsight.Common.Extensions;
 using Farsight.Rpc.Api.Auth;
 using Farsight.Rpc.Api.Services;
 using FastEndpoints;
@@ -15,5 +16,5 @@ public sealed class GET(ChainService chainService) : EndpointWithoutRequest<Read
     }
 
     public override async Task HandleAsync(CancellationToken ct)
-        => await Send.OkAsync(_chainService.GetAllChainNames(), ct);
+        => await Send.OkAsync(_chainService.Chains.Select(x => x.Name).ToArray(), ct);
 }

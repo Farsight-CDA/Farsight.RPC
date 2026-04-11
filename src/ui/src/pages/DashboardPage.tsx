@@ -10,6 +10,7 @@ import {
   nameValidationPattern,
   validateName,
 } from "../lib/name-validation";
+import { createModalBackdropHandlers } from "../lib/createModalBackdropHandlers";
 import { useReferenceData } from "../lib/reference-data";
 import { useEscapeKey } from "../lib/useEscapeKey";
 
@@ -61,6 +62,8 @@ export default function DashboardPage() {
   };
 
   useEscapeKey(modalOpen, closeModal);
+
+  const modalBackdropHandlers = createModalBackdropHandlers(closeModal);
 
   const isStructureSelected = (structure: string) =>
     newStructures().includes(structure);
@@ -318,7 +321,7 @@ export default function DashboardPage() {
         <div
           class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm px-4 py-8"
           role="presentation"
-          onClick={closeModal}
+          {...modalBackdropHandlers}
         >
           <div
             role="dialog"

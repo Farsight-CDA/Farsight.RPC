@@ -5,6 +5,7 @@ import KeyIcon from "../components/icons/KeyIcon";
 import CopyIcon from "../components/icons/CopyIcon";
 import EmptyStateIcon from "../components/icons/EmptyStateIcon";
 import ChevronDownIcon from "../components/icons/ChevronDownIcon";
+import { createModalBackdropHandlers } from "../lib/createModalBackdropHandlers";
 import { useAuth } from "../lib/auth";
 import { useReferenceData } from "../lib/reference-data";
 import {
@@ -157,6 +158,12 @@ export default function ApplicationApiKeysPage() {
   useEscapeKey(
     () => apiKeyToDelete() !== null,
     () => setApiKeyToDelete(null),
+  );
+
+  const createKeyModalBackdropHandlers =
+    createModalBackdropHandlers(closeCreateKeyModal);
+  const deleteKeyModalBackdropHandlers = createModalBackdropHandlers(() =>
+    setApiKeyToDelete(null),
   );
 
   const handleCopyApiKey = (key: ConsumerApiKeySummary) => {
@@ -351,7 +358,7 @@ export default function ApplicationApiKeysPage() {
         <div
           class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm px-4 py-8"
           role="presentation"
-          onClick={closeCreateKeyModal}
+          {...createKeyModalBackdropHandlers}
         >
           <div
             role="dialog"
@@ -457,7 +464,7 @@ export default function ApplicationApiKeysPage() {
         <div
           class="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm px-4 py-8"
           role="presentation"
-          onClick={() => setApiKeyToDelete(null)}
+          {...deleteKeyModalBackdropHandlers}
         >
           <div
             role="dialog"

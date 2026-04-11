@@ -11,6 +11,7 @@ import PlusIcon from "../components/icons/PlusIcon";
 import ChevronDownIcon from "../components/icons/ChevronDownIcon";
 import CheckmarkIcon from "../components/icons/CheckmarkIcon";
 import WarningIcon from "../components/icons/WarningIcon";
+import { createModalBackdropHandlers } from "../lib/createModalBackdropHandlers";
 import { useAuth } from "../lib/auth";
 import {
   useReferenceData,
@@ -610,6 +611,17 @@ export default function ApplicationRpcsPage() {
       if (!disableChainLoading()) setChainToDisable(null);
     },
   );
+
+  const createRpcModalBackdropHandlers =
+    createModalBackdropHandlers(closeCreateRpcModal);
+  const editRpcModalBackdropHandlers =
+    createModalBackdropHandlers(closeEditRpcModal);
+  const deleteRpcBackdropHandlers = createModalBackdropHandlers(() => {
+    if (!deleteRpcLoading()) setRpcToDelete(null);
+  });
+  const disableChainBackdropHandlers = createModalBackdropHandlers(() => {
+    if (!disableChainLoading()) setChainToDisable(null);
+  });
 
   const runCreateRpcTest = async () => {
     const token = auth.token;
@@ -1478,7 +1490,7 @@ export default function ApplicationRpcsPage() {
         <div
           class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm px-4 py-8"
           role="presentation"
-          onClick={closeCreateRpcModal}
+          {...createRpcModalBackdropHandlers}
         >
           <div
             role="dialog"
@@ -1870,7 +1882,7 @@ export default function ApplicationRpcsPage() {
         <div
           class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm px-4 py-8"
           role="presentation"
-          onClick={closeEditRpcModal}
+          {...editRpcModalBackdropHandlers}
         >
           <div
             role="dialog"
@@ -2164,7 +2176,7 @@ export default function ApplicationRpcsPage() {
         <div
           class="fixed inset-0 z-[55] flex items-center justify-center bg-black/80 backdrop-blur-sm px-4 py-8"
           role="presentation"
-          onClick={() => !deleteRpcLoading() && setRpcToDelete(null)}
+          {...deleteRpcBackdropHandlers}
         >
           <div
             role="dialog"
@@ -2226,7 +2238,7 @@ export default function ApplicationRpcsPage() {
         <div
           class="fixed inset-0 z-[55] flex items-center justify-center bg-black/80 backdrop-blur-sm px-4 py-8"
           role="presentation"
-          onClick={() => !disableChainLoading() && setChainToDisable(null)}
+          {...disableChainBackdropHandlers}
         >
           <div
             role="dialog"

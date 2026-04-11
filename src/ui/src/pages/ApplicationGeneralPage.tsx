@@ -4,6 +4,7 @@ import LoadingSpinner from "../components/LoadingSpinner";
 import PencilIcon from "../components/icons/PencilIcon";
 import TrashIcon from "../components/icons/TrashIcon";
 
+import { createModalBackdropHandlers } from "../lib/createModalBackdropHandlers";
 import { useAuth } from "../lib/auth";
 import {
   nameValidationHint,
@@ -136,6 +137,10 @@ export default function ApplicationGeneralPage() {
 
   useEscapeKey(deleteLoading, () => setDeleteLoading(false));
 
+  const deleteApplicationBackdropHandlers = createModalBackdropHandlers(() =>
+    setDeleteLoading(false),
+  );
+
   return (
     <>
       <div class="flex flex-col gap-6">
@@ -264,7 +269,7 @@ export default function ApplicationGeneralPage() {
         <div
           class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm px-4 py-8"
           role="presentation"
-          onClick={() => setDeleteLoading(false)}
+          {...deleteApplicationBackdropHandlers}
         >
           <div
             role="dialog"

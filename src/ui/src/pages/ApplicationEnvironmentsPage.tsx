@@ -5,6 +5,7 @@ import EmptyStateIcon from "../components/icons/EmptyStateIcon";
 import EnvironmentIcon from "../components/icons/EnvironmentIcon";
 import RpcIcon from "../components/icons/RpcIcon";
 
+import { createModalBackdropHandlers } from "../lib/createModalBackdropHandlers";
 import { useAuth } from "../lib/auth";
 import {
   nameValidationHint,
@@ -102,6 +103,9 @@ export default function ApplicationEnvironmentsPage() {
   };
 
   useEscapeKey(environmentModalOpen, closeEnvironmentModal);
+
+  const environmentModalBackdropHandlers =
+    createModalBackdropHandlers(closeEnvironmentModal);
 
   const handleCreateEnvironment = async (e: SubmitEvent) => {
     e.preventDefault();
@@ -467,7 +471,7 @@ export default function ApplicationEnvironmentsPage() {
         <div
           class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm px-4 py-8"
           role="presentation"
-          onClick={closeEnvironmentModal}
+          {...environmentModalBackdropHandlers}
         >
           <div
             role="dialog"

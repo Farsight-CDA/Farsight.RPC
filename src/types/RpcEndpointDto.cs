@@ -3,9 +3,9 @@ using System.Text.Json.Serialization;
 namespace Farsight.Rpc.Types;
 
 [JsonPolymorphic(TypeDiscriminatorPropertyName = "type")]
-[JsonDerivedType(typeof(Realtime), "Realtime")]
-[JsonDerivedType(typeof(Archive), "Archive")]
-[JsonDerivedType(typeof(Tracing), "Tracing")]
+[JsonDerivedType(typeof(Realtime), nameof(RpcType.Realtime))]
+[JsonDerivedType(typeof(Archive), nameof(RpcType.Archive))]
+[JsonDerivedType(typeof(Tracing), nameof(RpcType.Tracing))]
 public abstract record RpcEndpointDto
 {
     public required Guid Id { get; init; }

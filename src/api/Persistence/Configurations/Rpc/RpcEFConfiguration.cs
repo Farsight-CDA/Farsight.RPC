@@ -1,4 +1,5 @@
 using Farsight.Rpc.Api.Persistence.Entities.Rpc;
+using Farsight.Rpc.Types;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -24,9 +25,9 @@ internal sealed class RpcEFConfiguration : IEntityTypeConfiguration<RpcEndpoint>
         entity.Property(x => x.ProviderId);
 
         entity.HasDiscriminator<string>("RpcType")
-            .HasValue<RpcEndpoint.Realtime>("Realtime")
-            .HasValue<RpcEndpoint.Archive>("Archive")
-            .HasValue<RpcEndpoint.Tracing>("Tracing");
+            .HasValue<RpcEndpoint.Realtime>(nameof(RpcType.Realtime))
+            .HasValue<RpcEndpoint.Archive>(nameof(RpcType.Archive))
+            .HasValue<RpcEndpoint.Tracing>(nameof(RpcType.Tracing));
 
         entity.ToTable("Rpcs");
     }

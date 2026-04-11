@@ -8,6 +8,7 @@ import RpcIcon from "../components/icons/RpcIcon";
 import KeyIcon from "../components/icons/KeyIcon";
 import SettingsIcon from "../components/icons/SettingsIcon";
 import ProviderIcon from "../components/icons/ProviderIcon";
+import StructureIcon from "../components/icons/StructureIcon";
 import ChevronDownIcon from "../components/icons/ChevronDownIcon";
 import { EnvironmentProvider, useEnvironment } from "../lib/environment-context";
 
@@ -39,6 +40,7 @@ const ApplicationLayoutContent: ParentComponent = (props) => {
   const getActiveTab = () => {
     const path = location.pathname;
     if (path.includes("/api-keys")) return "api-keys";
+    if (path.includes("/structures")) return "structures";
     if (path.includes("/general")) return "general";
     if (path.includes("/providers")) return "providers";
     return "rpcs";
@@ -103,6 +105,17 @@ const ApplicationLayoutContent: ParentComponent = (props) => {
                   >
                     <KeyIcon class="size-3.5" />
                     API Keys
+                  </A>
+                  <A
+                    href={`/applications/${applicationId()}/structures`}
+                    class={`flex items-center gap-1.5 px-4 py-2 text-[0.65rem] font-bold uppercase tracking-widest transition-all duration-200 ${
+                      getActiveTab() === "structures"
+                        ? "border-b-2 border-b-accent bg-b-accent/5 text-b-accent"
+                        : "text-b-ink/50 hover:text-b-ink hover:bg-b-ink/5"
+                    }`}
+                  >
+                    <StructureIcon class="size-3.5" />
+                    Structures
                   </A>
                   <A
                     href={`/applications/${applicationId()}/general`}

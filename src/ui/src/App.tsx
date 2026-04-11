@@ -1,5 +1,4 @@
 import { Router, Route, type RouteSectionProps } from "@solidjs/router";
-import { JSX } from "solid-js";
 import { AuthProvider, type AuthState } from "./lib/auth";
 import RequireAuth from "./components/RequireAuth";
 import LoginPage from "./pages/LoginPage";
@@ -8,12 +7,23 @@ import ApplicationLayout from "./pages/ApplicationLayout";
 import ApplicationRpcsPage from "./pages/ApplicationRpcsPage";
 import ApplicationApiKeysPage from "./pages/ApplicationApiKeysPage";
 import ApplicationGeneralPage from "./pages/ApplicationGeneralPage";
+import ApplicationStructuresPage from "./pages/ApplicationStructuresPage";
 import ApplicationProvidersPage from "./pages/ApplicationProvidersPage";
 import {
   ReferenceDataProvider,
   type ReferenceDataSnapshot,
 } from "./lib/reference-data";
 import { ApplicationDataProvider } from "./lib/application-data";
+
+function ApplicationShell(props: RouteSectionProps) {
+  return (
+    <RequireAuth>
+      <ApplicationDataProvider>
+        <ApplicationLayout>{props.children}</ApplicationLayout>
+      </ApplicationDataProvider>
+    </RequireAuth>
+  );
+}
 
 type AppProps = {
   initialAuthState?: AuthState;
@@ -37,19 +47,11 @@ export default function App(props: AppProps) {
               </RequireAuth>
             )}
           />
-          <Route
-            path="/applications/:applicationId"
-            component={(props: RouteSectionProps) => (
-              <RequireAuth>
-                <ApplicationDataProvider>
-                  <ApplicationLayout>{props.children}</ApplicationLayout>
-                </ApplicationDataProvider>
-              </RequireAuth>
-            )}
-          >
+          <Route path="/applications/:applicationId" component={ApplicationShell}>
             <Route path="/" component={ApplicationRpcsPage} />
             <Route path="/rpcs" component={ApplicationRpcsPage} />
             <Route path="/api-keys" component={ApplicationApiKeysPage} />
+            <Route path="/structures" component={ApplicationStructuresPage} />
             <Route path="/general" component={ApplicationGeneralPage} />
             <Route path="/providers" component={ApplicationProvidersPage} />
           </Route>

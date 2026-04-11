@@ -335,11 +335,7 @@ export function ApplicationDataProvider(props: ParentProps) {
     if (!token || !id) {
       return false;
     }
-    const detailPending =
-      apiKeysState() === "pending" && apiKeys().length === 0;
-    const rpcsPending =
-      rpcsState() === "pending" && rpcs().length === 0;
-    return detailPending || rpcsPending;
+    return apiKeysState() === "pending" && apiKeys().length === 0;
   });
 
   const value: ApplicationDataContextValue = {

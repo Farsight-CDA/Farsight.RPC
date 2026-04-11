@@ -7,7 +7,7 @@ internal static partial class NameValidation
 {
     public const string REQUIRED_MESSAGE = "Name is required.";
     public const string OUTER_WHITESPACE_MESSAGE = "Name cannot have leading or trailing whitespace.";
-    public const string ALLOWED_CHARACTERS_MESSAGE = "Name can only contain letters, numbers, underscores, and hyphens.";
+    public const string ALLOWED_CHARACTERS_MESSAGE = "Name can only contain letters, numbers, periods, underscores, and hyphens.";
 
     public static IRuleBuilderOptions<T, string?> ApplyNameValidation<T>(this IRuleBuilderInitial<T, string?> ruleBuilder)
         => ruleBuilder
@@ -19,6 +19,6 @@ internal static partial class NameValidation
             .Must(static name => name is not null && AllowedCharactersRegex().IsMatch(name))
             .WithMessage(ALLOWED_CHARACTERS_MESSAGE);
 
-    [GeneratedRegex("^[A-Za-z0-9_-]+$", RegexOptions.CultureInvariant)]
+    [GeneratedRegex("^[A-Za-z0-9_.-]+$", RegexOptions.CultureInvariant)]
     private static partial Regex AllowedCharactersRegex();
 }

@@ -475,7 +475,7 @@ export default function ApplicationRpcsPage() {
     setNewRpcAddress("");
     setNewRpcTracingMode("Debug");
     setNewRpcIndexerStepSize("1");
-    setNewRpcIndexerBlockOffset("1");
+    setNewRpcIndexerBlockOffset("0");
     const prods = providers();
     if (prods.length > 0) {
       setNewRpcProviderId(prods[0].id);

@@ -15,8 +15,7 @@ public sealed class PUT(AppDbContext dbContext) : Endpoint<PUT.Request>
         Uri Address,
         Guid ProviderId,
         ulong IndexerStepSize,
-        ulong DexIndexerStepSize,
-        ulong IndexerBlockOffset
+        ulong? IndexerBlockOffset
     );
 
     public sealed class Validator : Validator<Request>
@@ -34,12 +33,8 @@ public sealed class PUT(AppDbContext dbContext) : Endpoint<PUT.Request>
                 .Must(static value => value != default)
                 .WithMessage("Indexer step size is required.");
 
-            RuleFor(x => x.DexIndexerStepSize)
-                .Must(static value => value != default)
-                .WithMessage("DEX indexer step size is required.");
-
             RuleFor(x => x.IndexerBlockOffset)
-                .Must(static value => value != default)
+                .NotNull()
                 .WithMessage("Indexer block offset is required.");
         }
     }
@@ -63,8 +58,7 @@ public sealed class PUT(AppDbContext dbContext) : Endpoint<PUT.Request>
                 .SetProperty(rpc => rpc.Address, req.Address)
                 .SetProperty(rpc => rpc.ProviderId, req.ProviderId)
                 .SetProperty(rpc => rpc.IndexerStepSize, req.IndexerStepSize)
-                .SetProperty(rpc => rpc.DexIndexerStepSize, req.DexIndexerStepSize)
-                .SetProperty(rpc => rpc.IndexerBlockOffset, req.IndexerBlockOffset), ct);
+                .SetProperty(rpc => rpc.IndexerBlockOffset, req.IndexerBlockOffset!.Value), ct);
 
         if(updatedRows == 0)
         {

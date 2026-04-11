@@ -35,7 +35,6 @@ public abstract class RpcEndpoint
     public sealed class Archive : RpcEndpoint
     {
         public ulong IndexerStepSize { get; set; }
-        public ulong DexIndexerStepSize { get; set; }
         public ulong IndexerBlockOffset { get; set; }
     }
 

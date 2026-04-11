@@ -98,7 +98,6 @@ public partial class Initial : Migration
                 ApplicationId = table.Column<Guid>(type: "uuid", nullable: false),
                 RpcType = table.Column<string>(type: "character varying(13)", maxLength: 13, nullable: false),
                 IndexerStepSize = table.Column<decimal>(type: "numeric(20,0)", nullable: true),
-                DexIndexerStepSize = table.Column<decimal>(type: "numeric(20,0)", nullable: true),
                 IndexerBlockOffset = table.Column<decimal>(type: "numeric(20,0)", nullable: true),
                 TracingMode = table.Column<int>(type: "integer", nullable: true)
             },

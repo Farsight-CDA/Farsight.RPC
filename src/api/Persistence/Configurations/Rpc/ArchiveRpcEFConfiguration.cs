@@ -9,7 +9,6 @@ internal sealed class ArchiveRpcEFConfiguration : IEntityTypeConfiguration<RpcEn
     public void Configure(EntityTypeBuilder<RpcEndpoint.Archive> entity)
     {
         entity.Property(x => x.IndexerStepSize);
-        entity.Property(x => x.DexIndexerStepSize);
         entity.Property(x => x.IndexerBlockOffset);
     }
 }

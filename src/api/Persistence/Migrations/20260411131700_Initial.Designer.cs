@@ -169,9 +169,6 @@ namespace Farsight.Rpc.Api.Persistence.Migrations
                 {
                     b.HasBaseType("Farsight.Rpc.Api.Persistence.Entities.Rpc.RpcEndpoint");
 
-                    b.Property<decimal>("DexIndexerStepSize")
-                        .HasColumnType("numeric(20,0)");
-
                     b.Property<decimal>("IndexerBlockOffset")
                         .HasColumnType("numeric(20,0)");
 

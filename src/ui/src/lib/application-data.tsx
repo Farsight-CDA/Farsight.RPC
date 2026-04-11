@@ -39,7 +39,6 @@ export type ApplicationRpc = {
   applicationId: string;
   tracingMode?: string;
   indexerStepSize?: number;
-  dexIndexerStepSize?: number;
   indexerBlockOffset?: number;
 };
 

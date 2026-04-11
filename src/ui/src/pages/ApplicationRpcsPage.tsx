@@ -151,8 +151,6 @@ export default function ApplicationRpcsPage() {
     "Debug" | "Trace"
   >("Debug");
   const [newRpcIndexerStepSize, setNewRpcIndexerStepSize] = createSignal("1");
-  const [newRpcDexIndexerStepSize, setNewRpcDexIndexerStepSize] =
-    createSignal("1");
   const [newRpcIndexerBlockOffset, setNewRpcIndexerBlockOffset] =
     createSignal("1");
   const [createRpcError, setCreateRpcError] = createSignal<string | null>(null);
@@ -174,8 +172,6 @@ export default function ApplicationRpcsPage() {
     "Debug" | "Trace"
   >("Debug");
   const [editRpcIndexerStepSize, setEditRpcIndexerStepSize] = createSignal("1");
-  const [editRpcDexIndexerStepSize, setEditRpcDexIndexerStepSize] =
-    createSignal("1");
   const [editRpcIndexerBlockOffset, setEditRpcIndexerBlockOffset] =
     createSignal("1");
   const [editRpcError, setEditRpcError] = createSignal<string | null>(null);
@@ -479,7 +475,6 @@ export default function ApplicationRpcsPage() {
     setNewRpcAddress("");
     setNewRpcTracingMode("Debug");
     setNewRpcIndexerStepSize("1");
-    setNewRpcDexIndexerStepSize("1");
     setNewRpcIndexerBlockOffset("1");
     const prods = providers();
     if (prods.length > 0) {
@@ -515,13 +510,8 @@ export default function ApplicationRpcsPage() {
         ? String(rpc.indexerStepSize)
         : "1",
     );
-    setEditRpcDexIndexerStepSize(
-      rpc.type === "Archive" && rpc.dexIndexerStepSize
-        ? String(rpc.dexIndexerStepSize)
-        : "1",
-    );
     setEditRpcIndexerBlockOffset(
-      rpc.type === "Archive" && rpc.indexerBlockOffset
+      rpc.type === "Archive" && rpc.indexerBlockOffset !== undefined
         ? String(rpc.indexerBlockOffset)
         : "1",
     );
@@ -666,7 +656,6 @@ export default function ApplicationRpcsPage() {
 
     if (rpcType === "Archive") {
       body.indexerStepSize = Number.parseInt(newRpcIndexerStepSize(), 10);
-      body.dexIndexerStepSize = Number.parseInt(newRpcDexIndexerStepSize(), 10);
       body.indexerBlockOffset = Number.parseInt(newRpcIndexerBlockOffset(), 10);
     }
 
@@ -740,10 +729,6 @@ export default function ApplicationRpcsPage() {
 
       if (rpc.type === "Archive") {
         body.indexerStepSize = Number.parseInt(editRpcIndexerStepSize(), 10);
-        body.dexIndexerStepSize = Number.parseInt(
-          editRpcDexIndexerStepSize(),
-          10,
-        );
         body.indexerBlockOffset = Number.parseInt(
           editRpcIndexerBlockOffset(),
           10,
@@ -1317,18 +1302,13 @@ export default function ApplicationRpcsPage() {
                                 </Show>
                                 <Show when={rpc.type === "Archive"}>
                                   <div class="mt-2 flex items-center gap-4 text-xs font-semibold uppercase tracking-wider text-b-ink/40">
-                                    <Show when={rpc.indexerStepSize}>
-                                      <span>Step: {rpc.indexerStepSize}</span>
-                                    </Show>
-                                    <Show when={rpc.dexIndexerStepSize}>
-                                      <span>
-                                        DEX Step: {rpc.dexIndexerStepSize}
-                                      </span>
-                                    </Show>
-                                    <Show when={rpc.indexerBlockOffset}>
-                                      <span>
-                                        Offset: {rpc.indexerBlockOffset}
-                                      </span>
+                                <Show when={rpc.indexerStepSize}>
+                                  <span>Step: {rpc.indexerStepSize}</span>
+                                </Show>
+                                <Show when={rpc.indexerBlockOffset !== undefined}>
+                                  <span>
+                                    Offset: {rpc.indexerBlockOffset}
+                                  </span>
                                     </Show>
                                   </div>
                                 </Show>
@@ -1608,7 +1588,7 @@ export default function ApplicationRpcsPage() {
               </Show>
 
               <Show when={newRpcType() === "Archive"}>
-                <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div class="flex flex-col gap-2">
                     <label
                       for="rpc-indexer-step-size"
@@ -1631,26 +1611,6 @@ export default function ApplicationRpcsPage() {
                   </div>
                   <div class="flex flex-col gap-2">
                     <label
-                      for="rpc-dex-indexer-step-size"
-                      class="text-xs font-bold uppercase tracking-widest text-b-ink/70"
-                    >
-                      Dex Step
-                    </label>
-                    <input
-                      id="rpc-dex-indexer-step-size"
-                      type="number"
-                      min="1"
-                      required={newRpcType() === "Archive"}
-                      value={newRpcDexIndexerStepSize()}
-                      onInput={(e) =>
-                        setNewRpcDexIndexerStepSize(e.currentTarget.value)
-                      }
-                      class="h-11 w-full border border-b-border bg-b-paper px-4 text-sm font-semibold text-b-ink placeholder:text-b-ink/25 outline-none focus-visible:border-b-accent/50 focus-visible:ring-2 focus-visible:ring-b-accent/20 hover:border-b-border-hover transition-all duration-200"
-                      inputmode="numeric"
-                    />
-                  </div>
-                  <div class="flex flex-col gap-2">
-                    <label
                       for="rpc-indexer-block-offset"
                       class="text-xs font-bold uppercase tracking-widest text-b-ink/70"
                     >
@@ -1659,7 +1619,7 @@ export default function ApplicationRpcsPage() {
                     <input
                       id="rpc-indexer-block-offset"
                       type="number"
-                      min="1"
+                      min="0"
                       required={newRpcType() === "Archive"}
                       value={newRpcIndexerBlockOffset()}
                       onInput={(e) =>
@@ -1907,7 +1867,7 @@ export default function ApplicationRpcsPage() {
               </Show>
 
               <Show when={rpcToEdit()?.type === "Archive"}>
-                <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div class="flex flex-col gap-2">
                     <label
                       for="edit-rpc-indexer-step-size"
@@ -1930,26 +1890,6 @@ export default function ApplicationRpcsPage() {
                   </div>
                   <div class="flex flex-col gap-2">
                     <label
-                      for="edit-rpc-dex-indexer-step-size"
-                      class="text-xs font-bold uppercase tracking-widest text-b-ink/70"
-                    >
-                      Dex Step
-                    </label>
-                    <input
-                      id="edit-rpc-dex-indexer-step-size"
-                      type="number"
-                      min="1"
-                      required={rpcToEdit()?.type === "Archive"}
-                      value={editRpcDexIndexerStepSize()}
-                      onInput={(e) =>
-                        setEditRpcDexIndexerStepSize(e.currentTarget.value)
-                      }
-                      class="h-11 w-full border border-b-border bg-b-paper px-4 text-sm font-semibold text-b-ink placeholder:text-b-ink/25 outline-none focus-visible:border-b-accent/50 focus-visible:ring-2 focus-visible:ring-b-accent/20 hover:border-b-border-hover transition-all duration-200"
-                      inputmode="numeric"
-                    />
-                  </div>
-                  <div class="flex flex-col gap-2">
-                    <label
                       for="edit-rpc-indexer-block-offset"
                       class="text-xs font-bold uppercase tracking-widest text-b-ink/70"
                     >
@@ -1958,7 +1898,7 @@ export default function ApplicationRpcsPage() {
                     <input
                       id="edit-rpc-indexer-block-offset"
                       type="number"
-                      min="1"
+                      min="0"
                       required={rpcToEdit()?.type === "Archive"}
                       value={editRpcIndexerBlockOffset()}
                       onInput={(e) =>

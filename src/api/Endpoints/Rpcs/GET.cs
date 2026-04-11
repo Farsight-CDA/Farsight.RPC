@@ -95,7 +95,6 @@ public sealed class GET(AppDbContext dbContext) : Endpoint<GET.Request, ApiKeyRp
                 Address = archive.Address,
                 ProviderId = archive.ProviderId,
                 IndexerStepSize = archive.IndexerStepSize,
-                DexIndexerStepSize = archive.DexIndexerStepSize,
                 IndexerBlockOffset = archive.IndexerBlockOffset,
             },
             RpcEndpoint.Tracing tracing => new RpcEndpointDto.Tracing

@@ -17,7 +17,6 @@ public abstract record RpcEndpointDto
     public sealed record Archive : RpcEndpointDto
     {
         public ulong IndexerStepSize { get; init; }
-        public ulong DexIndexerStepSize { get; init; }
         public ulong IndexerBlockOffset { get; init; }
     }
 

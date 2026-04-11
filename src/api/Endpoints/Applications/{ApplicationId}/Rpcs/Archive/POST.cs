@@ -18,8 +18,7 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request>
         Uri Address,
         Guid ProviderId,
         ulong IndexerStepSize,
-        ulong DexIndexerStepSize,
-        ulong IndexerBlockOffset
+        ulong? IndexerBlockOffset
     );
 
     public sealed class Validator : Validator<Request>
@@ -44,12 +43,8 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request>
                 .Must(static value => value != default)
                 .WithMessage("Indexer step size is required.");
 
-            RuleFor(x => x.DexIndexerStepSize)
-                .Must(static value => value != default)
-                .WithMessage("DEX indexer step size is required.");
-
             RuleFor(x => x.IndexerBlockOffset)
-                .Must(static value => value != default)
+                .NotNull()
                 .WithMessage("Indexer block offset is required.");
         }
     }
@@ -96,8 +91,7 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request>
             Address = req.Address,
             ProviderId = req.ProviderId,
             IndexerStepSize = req.IndexerStepSize,
-            DexIndexerStepSize = req.DexIndexerStepSize,
-            IndexerBlockOffset = req.IndexerBlockOffset,
+            IndexerBlockOffset = req.IndexerBlockOffset!.Value,
         });
 
         await dbContext.SaveChangesAsync(ct);

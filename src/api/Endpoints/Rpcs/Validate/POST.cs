@@ -58,7 +58,7 @@ public sealed class POST(ChainService chainService) : Endpoint<POST.Request, POS
             ulong actualChainId = await client.InitializeAsync(IQuery.GetChainId(), cts.Token);
             if(actualChainId != expectedChainId)
             {
-                ThrowError($"{req.RpcType!.Value} RPC for {req.Chain} returned chain id {actualChainId}, expected {expectedChainId}.", 400);
+                ThrowError($"RPC for {req.Chain} returned chain id {actualChainId}, expected {expectedChainId}.", 400);
             }
 
             await Send.OkAsync(new Response(actualChainId), ct);

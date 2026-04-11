@@ -1563,14 +1563,17 @@ export default function ApplicationRpcsPage() {
                   </div>
                 </Show>
                 <Show when={createRpcTestStatus() === "passed"}>
-                  <p class="text-xs font-semibold uppercase tracking-wider text-green-400">
-                    Reachable · chain id {createRpcTestChainId()}
-                  </p>
+                  <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-green-400">
+                    <CheckmarkIcon class="size-3.5" />
+                    <span>Reachable · chain id {createRpcTestChainId()}</span>
+                  </div>
+                  <p class="text-xs font-semibold text-b-ink/60">Looks correct</p>
                 </Show>
                 <Show when={createRpcTestStatus() === "failed"}>
-                  <p class="text-xs font-semibold uppercase tracking-wider text-amber-300">
-                    {createRpcTestError() ?? "RPC validation failed"}
-                  </p>
+                  <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-amber-300">
+                    <WarningIcon class="size-3.5" />
+                    <span>{createRpcTestError() ?? "RPC validation failed"}</span>
+                  </div>
                 </Show>
               </div>
 
@@ -1842,14 +1845,17 @@ export default function ApplicationRpcsPage() {
                   </div>
                 </Show>
                 <Show when={editRpcTestStatus() === "passed"}>
-                  <p class="text-xs font-semibold uppercase tracking-wider text-green-400">
-                    Reachable · chain id {editRpcTestChainId()}
-                  </p>
+                  <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-green-400">
+                    <CheckmarkIcon class="size-3.5" />
+                    <span>Reachable · chain id {editRpcTestChainId()}</span>
+                  </div>
+                  <p class="text-xs font-semibold text-b-ink/60">Looks correct</p>
                 </Show>
                 <Show when={editRpcTestStatus() === "failed"}>
-                  <p class="text-xs font-semibold uppercase tracking-wider text-amber-300">
-                    {editRpcTestError() ?? "RPC validation failed"}
-                  </p>
+                  <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-amber-300">
+                    <WarningIcon class="size-3.5" />
+                    <span>{editRpcTestError() ?? "RPC validation failed"}</span>
+                  </div>
                 </Show>
               </div>
 

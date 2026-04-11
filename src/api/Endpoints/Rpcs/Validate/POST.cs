@@ -1,4 +1,5 @@
 using EtherSharp.Client;
+using EtherSharp.Common.Exceptions;
 using EtherSharp.Query;
 using Farsight.Common.Extensions;
 using Farsight.Rpc.Api.Auth;
@@ -61,9 +62,8 @@ public sealed class POST(ChainService chainService) : Endpoint<POST.Request, POS
                 ThrowError($"RPC for {req.Chain} returned chain id {actualChainId}, expected {expectedChainId}.", 400);
             }
 
-            // TODO: Replace mock with actual tracing mode probing
             TracingMode? detectedTracingMode = req.RpcType == RpcType.Tracing
-                ? Types.TracingMode.Debug
+                ? await ProbeTracingModeAsync(client, cts.Token)
                 : null;
 
             await Send.OkAsync(new Response(actualChainId, detectedTracingMode), ct);
@@ -76,5 +76,38 @@ public sealed class POST(ChainService chainService) : Endpoint<POST.Request, POS
         {
             ThrowError(ex.GetBaseException().Message, 502);
         }
+    }
+
+    private static async Task<TracingMode> ProbeTracingModeAsync(IEtherClient client, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            await client.Trace.TraceTransactionCallsAsync("0x", cancellationToken);
+        }
+        catch(RPCException ex) when(ex.Message.Contains("invalid argument", StringComparison.OrdinalIgnoreCase) || ex.Message.Contains("Invalid params", StringComparison.OrdinalIgnoreCase))
+        {
+            return TracingMode.Trace;
+        }
+        catch(RPCException ex)
+        when(ex.Message.Contains("trace_replayTransaction", StringComparison.OrdinalIgnoreCase) || ex.Message.Contains("Method not found", StringComparison.OrdinalIgnoreCase) || ex.Message.Contains("rpc method is not available", StringComparison.OrdinalIgnoreCase))
+        {
+            // Method-not-found errors include the missing method name, so fall through to the next probe.
+        }
+
+        try
+        {
+            await client.Debug.TraceTransactionCallsAsync("0x", cancellationToken);
+        }
+        catch(RPCException ex) when(ex.Message.Contains("invalid argument", StringComparison.OrdinalIgnoreCase) || ex.Message.Contains("Invalid params", StringComparison.OrdinalIgnoreCase))
+        {
+            return TracingMode.Debug;
+        }
+        catch(RPCException ex)
+        when(ex.Message.Contains("debug_traceTransaction", StringComparison.OrdinalIgnoreCase) || ex.Message.Contains("Method not found", StringComparison.OrdinalIgnoreCase) || ex.Message.Contains("rpc method is not available", StringComparison.OrdinalIgnoreCase))
+        {
+            // Method-not-found errors include the missing method name, so fall through to the final failure.
+        }
+
+        throw new InvalidOperationException("No tracing mode supported");
     }
 }

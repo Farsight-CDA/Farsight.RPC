@@ -36,9 +36,9 @@ public sealed class POST : Endpoint<POST.Request, POST.Response>
 
         try
         {
-            var client = req.Address.Scheme is "ws" or "wss"
-                ? EtherClientBuilder.CreateForWebsocket(req.Address).BuildReadClient()
-                : EtherClientBuilder.CreateForHttpRpc(req.Address).BuildReadClient();
+            await using var client = req.Address.Scheme is "ws" or "wss"
+                 ? EtherClientBuilder.CreateForWebsocket(req.Address).BuildReadClient()
+                 : EtherClientBuilder.CreateForHttpRpc(req.Address).BuildReadClient();
 
             ulong chainId = await client.InitializeAsync(IQuery.GetChainId(), cts.Token);
             await Send.OkAsync(new Response(chainId), ct);

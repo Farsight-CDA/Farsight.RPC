@@ -337,7 +337,7 @@ export default function ApplicationEnvironmentsPage() {
                     const isDeleting = () =>
                       deleteEnvironmentLoadingId() === environment.id;
                     return (
-                      <div class="border border-b-border bg-b-paper/20 p-4">
+                      <div class="border border-b-border bg-b-paper/40 p-4 shadow-[0_1px_0_rgba(0,0,0,0.35)] transition-colors hover:border-b-border-hover">
                         <Show
                           when={!isEditing()}
                           fallback={
@@ -369,7 +369,7 @@ export default function ApplicationEnvironmentsPage() {
                                     void handleRenameEnvironment(environment.id)
                                   }
                                   disabled={editEnvironmentLoading()}
-                                  class="btn btn-md btn-interactive btn-disabled btn-primary"
+                                  class="btn btn-sm btn-interactive btn-disabled btn-primary"
                                 >
                                   <Show when={editEnvironmentLoading()}>
                                     <LoadingSpinner class="size-3.5 text-b-paper" />
@@ -414,7 +414,7 @@ export default function ApplicationEnvironmentsPage() {
                                   startEditingEnvironment(environment)
                                 }
                                 disabled={isDeleting()}
-                                class="btn btn-md btn-interactive btn-disabled btn-secondary"
+                                class="btn btn-sm btn-interactive btn-disabled btn-secondary"
                               >
                                 Rename
                               </button>
@@ -424,7 +424,7 @@ export default function ApplicationEnvironmentsPage() {
                                   void handleDeleteEnvironment(environment)
                                 }
                                 disabled={isDeleting()}
-                                class="btn btn-md btn-interactive btn-disabled btn-danger"
+                                class="btn btn-sm btn-interactive btn-disabled btn-danger"
                               >
                                 <Show when={isDeleting()}>
                                   <LoadingSpinner class="size-3.5" />

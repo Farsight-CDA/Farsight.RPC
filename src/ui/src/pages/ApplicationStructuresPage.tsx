@@ -84,25 +84,26 @@ export default function ApplicationStructuresPage() {
   };
 
   return (
-    <section class="border border-b-border bg-b-field overflow-hidden">
-      <div class="border-b border-b-border bg-b-paper/30 px-6 py-4">
-        <div class="flex items-center gap-3">
-          <div class="flex size-10 items-center justify-center border border-b-accent/30 bg-b-accent/10">
-            <StructureIcon class="size-5 text-b-accent" />
-          </div>
-          <div>
-            <h2 class="font-['Anton',sans-serif] text-xl uppercase tracking-wide text-b-ink">
-              Supported Structures
-            </h2>
-            <p class="text-xs font-bold uppercase tracking-widest text-b-ink/50">
-              Select optional structure requirements for this application
-            </p>
+    <div class="flex flex-col gap-6">
+      <section class="border border-b-border bg-b-field overflow-hidden">
+        <div class="border-b border-b-border bg-b-paper/30 px-6 py-4">
+          <div class="flex items-center gap-3">
+            <div class="flex size-10 items-center justify-center border border-b-accent/30 bg-b-accent/10">
+              <StructureIcon class="size-5 text-b-accent" />
+            </div>
+            <div>
+              <h2 class="font-['Anton',sans-serif] text-xl uppercase tracking-wide text-b-ink">
+                Supported Structures
+              </h2>
+              <p class="text-xs font-bold uppercase tracking-widest text-b-ink/50">
+                Select optional structure requirements for this application
+              </p>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div class="p-6">
-        <div class="flex flex-col gap-3">
+        <div class="p-6">
+          <div class="flex flex-col gap-3">
           <For each={rpcStructures()}>
             {(def) => {
               const typeEntries = () =>
@@ -182,6 +183,7 @@ export default function ApplicationStructuresPage() {
           </div>
         </Show>
       </div>
-    </section>
+      </section>
+    </div>
   );
 }

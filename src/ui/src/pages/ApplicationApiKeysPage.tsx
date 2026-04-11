@@ -232,7 +232,7 @@ export default function ApplicationApiKeysPage() {
             </Show>
 
             <Show when={apiKeysError()}>
-              <p class="border-4 border-red-500/50 bg-red-500/10 px-3 py-3 text-xs font-bold uppercase leading-snug text-red-400">
+              <p class="mb-4 border border-red-500/40 bg-red-500/10 px-3 py-3 text-xs font-bold uppercase leading-snug text-red-400">
                 {apiKeysError()!.message}
               </p>
             </Show>
@@ -244,7 +244,7 @@ export default function ApplicationApiKeysPage() {
                 environments().length === 0
               }
             >
-              <div class="mb-6 flex flex-col items-center justify-center gap-3 border border-dashed border-b-border/50 bg-b-paper/20 py-8">
+              <div class="flex flex-col items-center justify-center gap-3 py-8 border border-dashed border-b-border/50 bg-b-paper/20">
                 <EmptyStateIcon class="size-10 text-b-ink/20" />
                 <p class="text-sm font-semibold uppercase tracking-wider text-b-ink/50">
                   Add an environment before creating API keys.
@@ -260,7 +260,7 @@ export default function ApplicationApiKeysPage() {
                 apiKeys().length > 0
               }
             >
-              <div class="mb-6">
+              <div>
                 <ul class="flex flex-col gap-4">
                   <For each={apiKeys()}>
                     {(k) => (

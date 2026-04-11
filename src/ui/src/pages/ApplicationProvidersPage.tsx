@@ -292,7 +292,7 @@ export default function ApplicationProvidersPage() {
                     const isDeleting = () =>
                       providerToDelete()?.id === provider.id;
                     return (
-                      <div class="flex flex-col gap-3 border border-b-border bg-b-paper p-4 sm:flex-row sm:items-center sm:justify-between transition-colors hover:border-b-border-hover">
+                      <div class="flex flex-col gap-3 border border-b-border bg-b-paper/40 p-4 shadow-[0_1px_0_rgba(0,0,0,0.35)] transition-colors hover:border-b-border-hover sm:flex-row sm:items-center sm:justify-between">
                         <Show
                           when={!isEditing()}
                           fallback={
@@ -322,7 +322,7 @@ export default function ApplicationProvidersPage() {
                                     void handleRenameProvider(provider.id)
                                   }
                                   disabled={editProviderLoading()}
-                                  class="btn btn-md btn-interactive btn-disabled btn-primary"
+                                  class="btn btn-sm btn-interactive btn-disabled btn-primary"
                                 >
                                   <Show when={editProviderLoading()}>
                                     <LoadingSpinner class="size-3.5 text-b-paper" />

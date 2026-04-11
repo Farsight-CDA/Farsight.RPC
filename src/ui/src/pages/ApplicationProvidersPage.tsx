@@ -64,6 +64,8 @@ export default function ApplicationProvidersPage() {
     null,
   );
   const [editingProviderName, setEditingProviderName] = createSignal("");
+  const [editingProviderRateLimit, setEditingProviderRateLimit] =
+    createSignal("");
   const [editProviderError, setEditProviderError] = createSignal<string | null>(
     null,
   );
@@ -161,31 +163,45 @@ export default function ApplicationProvidersPage() {
     setEditProviderError(null);
     setEditingProviderId(provider.id);
     setEditingProviderName(provider.name);
+    setEditingProviderRateLimit(String(provider.rateLimit));
   };
 
   const cancelEditingProvider = () => {
     if (editProviderLoading()) return;
     setEditingProviderId(null);
     setEditingProviderName("");
+    setEditingProviderRateLimit("");
     setEditProviderError(null);
   };
 
-  const handleRenameProvider = async (providerId: string) => {
+  const handleUpdateProvider = async (providerId: string) => {
     const token = auth.token;
     if (!token) return;
 
     const name = editingProviderName();
+    const rateLimitStr = editingProviderRateLimit();
     const validationError = validateName(name);
     if (validationError) {
       setEditProviderError(validationError);
       return;
     }
 
-    // Skip API call if name hasn't changed
+    const rateLimit = Number(rateLimitStr);
+    if (!Number.isFinite(rateLimit) || rateLimit <= 0) {
+      setEditProviderError("Rate limit must be a positive number.");
+      return;
+    }
+
+    // Skip API call if nothing has changed
     const provider = providers().find((p) => p.id === providerId);
-    if (provider && provider.name === name) {
+    if (
+      provider &&
+      provider.name === name &&
+      provider.rateLimit === rateLimit
+    ) {
       setEditingProviderId(null);
       setEditingProviderName("");
+      setEditingProviderRateLimit("");
       return;
     }
 
@@ -198,23 +214,24 @@ export default function ApplicationProvidersPage() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ name }),
+        body: JSON.stringify({ name, rateLimit }),
       });
       if (!response.ok) {
         throw new Error(
           await readErrorMessage(
             response,
-            "Failed to rename provider",
+            "Failed to update provider",
             "An RPC provider with this name already exists.",
           ),
         );
       }
       setEditingProviderId(null);
       setEditingProviderName("");
+      setEditingProviderRateLimit("");
       await referenceData.refreshRpcProviders();
     } catch (err) {
       setEditProviderError(
-        err instanceof Error ? err.message : "Failed to rename provider",
+        err instanceof Error ? err.message : "Failed to update provider",
       );
     } finally {
       setEditProviderLoading(false);
@@ -310,6 +327,21 @@ export default function ApplicationProvidersPage() {
                                 title={nameValidationHint}
                                 autocomplete="off"
                               />
+                              <input
+                                type="number"
+                                required
+                                min={1}
+                                step={1}
+                                value={editingProviderRateLimit()}
+                                onInput={(e) => {
+                                  setEditingProviderRateLimit(
+                                    e.currentTarget.value,
+                                  );
+                                  setEditProviderError(null);
+                                }}
+                                class="h-11 w-full border border-b-border bg-b-paper px-4 text-sm font-semibold text-b-ink placeholder:text-b-ink/25 outline-none focus-visible:border-b-accent/50 focus-visible:ring-2 focus-visible:ring-b-accent/20 hover:border-b-border-hover transition-all duration-200"
+                                placeholder="Rate limit (req/s)"
+                              />
                               <Show when={editProviderError()}>
                                 <p class="border border-red-500/40 bg-red-500/10 px-3 py-3 text-xs font-bold uppercase leading-snug text-red-400">
                                   {editProviderError()}
@@ -318,8 +350,16 @@ export default function ApplicationProvidersPage() {
                               <div class="flex flex-col gap-3 sm:flex-row sm:justify-end">
                                 <button
                                   type="button"
+                                  onClick={cancelEditingProvider}
+                                  disabled={editProviderLoading()}
+                                  class="btn btn-sm btn-interactive btn-disabled btn-secondary"
+                                >
+                                  Cancel
+                                </button>
+                                <button
+                                  type="button"
                                   onClick={() =>
-                                    void handleRenameProvider(provider.id)
+                                    void handleUpdateProvider(provider.id)
                                   }
                                   disabled={editProviderLoading()}
                                   class="btn btn-sm btn-interactive btn-disabled btn-primary"
@@ -327,11 +367,7 @@ export default function ApplicationProvidersPage() {
                                   <Show when={editProviderLoading()}>
                                     <LoadingSpinner class="size-3.5 text-b-paper" />
                                   </Show>
-                                  {editProviderLoading()
-                                    ? "Saving…"
-                                    : provider.name === editingProviderName()
-                                      ? "Cancel"
-                                      : "Save"}
+                                  {editProviderLoading() ? "Saving…" : "Save"}
                                 </button>
                               </div>
                             </div>
@@ -365,7 +401,7 @@ export default function ApplicationProvidersPage() {
                               }
                               class="btn btn-sm btn-interactive btn-disabled btn-secondary shrink-0"
                             >
-                              Rename
+                              Edit
                             </button>
                             <button
                               type="button"

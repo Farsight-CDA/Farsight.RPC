@@ -12,7 +12,8 @@ public sealed class PUT(AppDbContext dbContext) : Endpoint<PUT.Request>
 {
     public sealed record Request(
         [property: RouteParam] Guid RpcProviderId,
-        string Name
+        string Name,
+        int RateLimit
     );
 
     public sealed class Validator : Validator<Request>
@@ -20,6 +21,7 @@ public sealed class PUT(AppDbContext dbContext) : Endpoint<PUT.Request>
         public Validator()
         {
             RuleFor(x => x.Name).ApplyNameValidation();
+            RuleFor(x => x.RateLimit).GreaterThan(0);
         }
     }
 
@@ -45,6 +47,7 @@ public sealed class PUT(AppDbContext dbContext) : Endpoint<PUT.Request>
         }
 
         rpcProvider.Name = req.Name;
+        rpcProvider.RateLimit = req.RateLimit;
 
         try
         {

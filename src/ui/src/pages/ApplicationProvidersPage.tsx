@@ -15,6 +15,7 @@ import {
   type RpcProviderSummary,
 } from "../lib/reference-data";
 import { useApplicationData } from "../lib/application-data";
+import { useEscapeKey } from "../lib/useEscapeKey";
 
 async function readErrorMessage(
   response: Response,
@@ -82,6 +83,14 @@ export default function ApplicationProvidersPage() {
     if (createProviderLoading()) return;
     setProviderModalOpen(false);
   };
+
+  useEscapeKey(providerModalOpen, closeProviderModal);
+  useEscapeKey(
+    () => providerToDelete() !== null,
+    () => {
+      if (!deleteProviderLoading()) setProviderToDelete(null);
+    },
+  );
 
   const handleCreateProvider = async (e: SubmitEvent) => {
     e.preventDefault();

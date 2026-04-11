@@ -11,6 +11,7 @@ import {
   validateName,
 } from "../lib/name-validation";
 import { useReferenceData } from "../lib/reference-data";
+import { useEscapeKey } from "../lib/useEscapeKey";
 
 async function readErrorMessage(
   response: Response,
@@ -132,6 +133,8 @@ export default function ApplicationGeneralPage() {
       setDeleteLoading(false);
     }
   };
+
+  useEscapeKey(deleteLoading, () => setDeleteLoading(false));
 
   return (
     <>

@@ -11,6 +11,7 @@ import {
   validateName,
 } from "../lib/name-validation";
 import { useReferenceData } from "../lib/reference-data";
+import { useEscapeKey } from "../lib/useEscapeKey";
 
 async function readErrorMessage(
   response: Response,
@@ -58,6 +59,8 @@ export default function DashboardPage() {
     if (createLoading()) return;
     setModalOpen(false);
   };
+
+  useEscapeKey(modalOpen, closeModal);
 
   const isStructureSelected = (structure: string) =>
     newStructures().includes(structure);

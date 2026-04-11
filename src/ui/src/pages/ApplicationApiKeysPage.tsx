@@ -11,6 +11,7 @@ import {
   useApplicationData,
   type ConsumerApiKeySummary,
 } from "../lib/application-data";
+import { useEscapeKey } from "../lib/useEscapeKey";
 
 async function readErrorMessage(
   response: Response,
@@ -151,6 +152,12 @@ export default function ApplicationApiKeysPage() {
     if (createKeyLoading()) return;
     setCreateKeyModalOpen(false);
   };
+
+  useEscapeKey(createKeyModalOpen, closeCreateKeyModal);
+  useEscapeKey(
+    () => apiKeyToDelete() !== null,
+    () => setApiKeyToDelete(null),
+  );
 
   const handleCopyApiKey = (key: ConsumerApiKeySummary) => {
     void navigator.clipboard.writeText(key.key);

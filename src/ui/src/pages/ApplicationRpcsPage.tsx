@@ -22,6 +22,7 @@ import {
   type ApplicationRpc,
 } from "../lib/application-data";
 import { useEnvironment } from "../lib/environment-context";
+import { useEscapeKey } from "../lib/useEscapeKey";
 
 async function readErrorMessage(
   response: Response,
@@ -594,6 +595,21 @@ export default function ApplicationRpcsPage() {
     setEditRpcModalOpen(false);
     setRpcToEdit(null);
   };
+
+  useEscapeKey(createRpcModalOpen, closeCreateRpcModal);
+  useEscapeKey(editRpcModalOpen, closeEditRpcModal);
+  useEscapeKey(
+    () => rpcToDelete() !== null,
+    () => {
+      if (!deleteRpcLoading()) setRpcToDelete(null);
+    },
+  );
+  useEscapeKey(
+    () => chainToDisable() !== null,
+    () => {
+      if (!disableChainLoading()) setChainToDisable(null);
+    },
+  );
 
   const runCreateRpcTest = async () => {
     const token = auth.token;

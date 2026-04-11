@@ -16,6 +16,7 @@ import {
   useApplicationData,
   type ApplicationEnvironmentSummary,
 } from "../lib/application-data";
+import { useEscapeKey } from "../lib/useEscapeKey";
 
 async function readErrorMessage(
   response: Response,
@@ -99,6 +100,8 @@ export default function ApplicationEnvironmentsPage() {
     if (createEnvironmentLoading()) return;
     setEnvironmentModalOpen(false);
   };
+
+  useEscapeKey(environmentModalOpen, closeEnvironmentModal);
 
   const handleCreateEnvironment = async (e: SubmitEvent) => {
     e.preventDefault();

@@ -66,7 +66,8 @@ export default function ApplicationEnvironmentsPage() {
   const [editEnvironmentError, setEditEnvironmentError] = createSignal<
     string | null
   >(null);
-  const [editEnvironmentLoading, setEditEnvironmentLoading] = createSignal(false);
+  const [editEnvironmentLoading, setEditEnvironmentLoading] =
+    createSignal(false);
 
   const [deleteEnvironmentError, setDeleteEnvironmentError] = createSignal<
     string | null
@@ -120,7 +121,7 @@ export default function ApplicationEnvironmentsPage() {
       }
       setEnvironmentModalOpen(false);
       setNewEnvironmentName("");
-      await applicationData.refreshEnvironments();
+      await applicationData.refreshApplication();
     } catch (err) {
       setCreateEnvironmentError(
         err instanceof Error ? err.message : "Failed to create environment",
@@ -130,7 +131,9 @@ export default function ApplicationEnvironmentsPage() {
     }
   };
 
-  const startEditingEnvironment = (environment: ApplicationEnvironmentSummary) => {
+  const startEditingEnvironment = (
+    environment: ApplicationEnvironmentSummary,
+  ) => {
     setEditEnvironmentError(null);
     setEditingEnvironmentId(environment.id);
     setEditingEnvironmentName(environment.name);
@@ -180,7 +183,7 @@ export default function ApplicationEnvironmentsPage() {
       }
       setEditingEnvironmentId(null);
       setEditingEnvironmentName("");
-      await applicationData.refreshEnvironments();
+      await applicationData.refreshApplication();
     } catch (err) {
       setEditEnvironmentError(
         err instanceof Error ? err.message : "Failed to rename environment",
@@ -190,7 +193,9 @@ export default function ApplicationEnvironmentsPage() {
     }
   };
 
-  const handleDeleteEnvironment = async (environment: ApplicationEnvironmentSummary) => {
+  const handleDeleteEnvironment = async (
+    environment: ApplicationEnvironmentSummary,
+  ) => {
     const token = auth.token;
     const app = application();
     if (!token || !app) return;
@@ -221,7 +226,7 @@ export default function ApplicationEnvironmentsPage() {
         cancelEditingEnvironment();
       }
       await Promise.all([
-        applicationData.refreshEnvironments(),
+        applicationData.refreshApplication(),
         referenceData.refreshApplications(),
       ]);
     } catch (err) {
@@ -290,7 +295,8 @@ export default function ApplicationEnvironmentsPage() {
 
             <Show
               when={
-                (environmentsState() === "ready" || environmentsState() === "refreshing") &&
+                (environmentsState() === "ready" ||
+                  environmentsState() === "refreshing") &&
                 environments().length > 0
               }
             >
@@ -303,8 +309,10 @@ export default function ApplicationEnvironmentsPage() {
               <div class="flex flex-col gap-3">
                 <For each={environments()}>
                   {(environment) => {
-                    const isEditing = () => editingEnvironmentId() === environment.id;
-                    const isDeleting = () => deleteEnvironmentLoadingId() === environment.id;
+                    const isEditing = () =>
+                      editingEnvironmentId() === environment.id;
+                    const isDeleting = () =>
+                      deleteEnvironmentLoadingId() === environment.id;
                     return (
                       <div class="border border-b-border bg-b-paper/20 p-4">
                         <Show
@@ -317,7 +325,9 @@ export default function ApplicationEnvironmentsPage() {
                                 pattern={nameValidationPattern}
                                 value={editingEnvironmentName()}
                                 onInput={(e) => {
-                                  setEditingEnvironmentName(e.currentTarget.value);
+                                  setEditingEnvironmentName(
+                                    e.currentTarget.value,
+                                  );
                                   setEditEnvironmentError(null);
                                 }}
                                 class="h-11 w-full border border-b-border bg-b-paper px-4 text-sm font-semibold text-b-ink placeholder:text-b-ink/25 outline-none focus-visible:border-b-accent/50 focus-visible:ring-2 focus-visible:ring-b-accent/20 hover:border-b-border-hover transition-all duration-200"
@@ -340,14 +350,18 @@ export default function ApplicationEnvironmentsPage() {
                                 </button>
                                 <button
                                   type="button"
-                                  onClick={() => void handleRenameEnvironment(environment.id)}
+                                  onClick={() =>
+                                    void handleRenameEnvironment(environment.id)
+                                  }
                                   disabled={editEnvironmentLoading()}
                                   class="btn btn-md btn-interactive btn-disabled btn-primary"
                                 >
                                   <Show when={editEnvironmentLoading()}>
                                     <LoadingSpinner class="size-3.5 text-b-paper" />
                                   </Show>
-                                  {editEnvironmentLoading() ? "Saving…" : "Save"}
+                                  {editEnvironmentLoading()
+                                    ? "Saving…"
+                                    : "Save"}
                                 </button>
                               </div>
                             </div>
@@ -362,7 +376,9 @@ export default function ApplicationEnvironmentsPage() {
                             <div class="flex flex-col gap-3 sm:flex-row sm:justify-end">
                               <button
                                 type="button"
-                                onClick={() => startEditingEnvironment(environment)}
+                                onClick={() =>
+                                  startEditingEnvironment(environment)
+                                }
                                 disabled={isDeleting()}
                                 class="btn btn-md btn-interactive btn-disabled btn-secondary"
                               >
@@ -370,7 +386,9 @@ export default function ApplicationEnvironmentsPage() {
                               </button>
                               <button
                                 type="button"
-                                onClick={() => void handleDeleteEnvironment(environment)}
+                                onClick={() =>
+                                  void handleDeleteEnvironment(environment)
+                                }
                                 disabled={isDeleting()}
                                 class="btn btn-md btn-interactive btn-disabled btn-danger"
                               >
@@ -391,7 +409,8 @@ export default function ApplicationEnvironmentsPage() {
 
             <Show
               when={
-                (environmentsState() === "ready" || environmentsState() === "refreshing") &&
+                (environmentsState() === "ready" ||
+                  environmentsState() === "refreshing") &&
                 environments().length === 0
               }
             >
@@ -429,7 +448,10 @@ export default function ApplicationEnvironmentsPage() {
               New environment
             </h3>
 
-            <form onSubmit={handleCreateEnvironment} class="flex flex-col gap-6">
+            <form
+              onSubmit={handleCreateEnvironment}
+              class="flex flex-col gap-6"
+            >
               <div class="flex flex-col gap-2">
                 <label
                   for="new-environment-name"

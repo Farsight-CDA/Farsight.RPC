@@ -76,8 +76,8 @@ async function fetchReferenceList<T>(
 export async function preloadReferenceData(
   token: string,
 ): Promise<ReferenceDataSnapshot> {
-  const [applications, rpcProviders, chains, rpcStructures] =
-    await Promise.all([
+  const [applications, rpcProviders, chains, rpcStructures] = await Promise.all(
+    [
       fetchReferenceList<ApplicationSummary>(
         "/api/Applications",
         token,
@@ -94,7 +94,8 @@ export async function preloadReferenceData(
         token,
         "Failed to load RPC structures",
       ),
-    ]);
+    ],
+  );
 
   return {
     applications,
@@ -142,15 +143,14 @@ export function ReferenceDataProvider(props: ReferenceDataProviderProps) {
   );
   const [chainsError, setChainsError] = createSignal<Error | null>(null);
 
-  const [rpcStructures, setRpcStructures] = createSignal<RpcStructureDefinition[]>(
-    initialData?.rpcStructures ?? [],
-  );
+  const [rpcStructures, setRpcStructures] = createSignal<
+    RpcStructureDefinition[]
+  >(initialData?.rpcStructures ?? []);
   const [rpcStructuresState, setRpcStructuresState] = createSignal<LoadState>(
     initialData ? "ready" : "idle",
   );
-  const [rpcStructuresError, setRpcStructuresError] = createSignal<Error | null>(
-    null,
-  );
+  const [rpcStructuresError, setRpcStructuresError] =
+    createSignal<Error | null>(null);
 
   let activeLoad: Promise<void> | null = null;
   let activeLoadToken: string | null = null;

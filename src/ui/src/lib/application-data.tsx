@@ -66,14 +66,14 @@ type ApplicationDataContextValue = {
   rpcs: ListController<ApplicationRpc>;
   rpcsByEnvironment: Accessor<Record<string, ApplicationRpc[]>>;
   structures: ListController<string>;
-  refreshDetail: () => Promise<void>;
-  refreshApiKeys: () => Promise<void>;
-  refreshEnvironments: () => Promise<void>;
-  refreshStructures: () => Promise<void>;
+  refreshApplication: () => Promise<void>;
   refreshRpcs: () => Promise<void>;
   refresh: () => Promise<void>;
   addEnvironmentChain: (environmentId: string, chain: string) => Promise<void>;
-  removeEnvironmentChain: (environmentId: string, chain: string) => Promise<void>;
+  removeEnvironmentChain: (
+    environmentId: string,
+    chain: string,
+  ) => Promise<void>;
 };
 
 const ApplicationDataContext = createContext<ApplicationDataContextValue>();
@@ -150,9 +150,13 @@ export function ApplicationDataProvider(props: ParentProps) {
 
   const [structures, setStructures] = createSignal<string[]>([]);
   const [structuresState, setStructuresState] = createSignal<LoadState>("idle");
-  const [structuresError, setStructuresError] = createSignal<Error | null>(null);
+  const [structuresError, setStructuresError] = createSignal<Error | null>(
+    null,
+  );
 
-  const [loadedDetailKey, setLoadedDetailKey] = createSignal<string | null>(null);
+  const [loadedDetailKey, setLoadedDetailKey] = createSignal<string | null>(
+    null,
+  );
   let activeDetailLoad: Promise<void> | null = null;
   let activeDetailLoadKey: string | null = null;
 
@@ -193,7 +197,7 @@ export function ApplicationDataProvider(props: ParentProps) {
     clearRpcs();
   };
 
-  const refreshDetail = async () => {
+  const refreshApplication = async () => {
     const token = auth.token;
     const id = applicationId();
     if (!token || !id) {
@@ -252,10 +256,6 @@ export function ApplicationDataProvider(props: ParentProps) {
       activeDetailLoadKey = null;
     }
   };
-
-  const refreshApiKeys = refreshDetail;
-  const refreshEnvironments = refreshDetail;
-  const refreshStructures = refreshDetail;
 
   const refreshRpcs = async () => {
     const token = auth.token;
@@ -333,7 +333,7 @@ export function ApplicationDataProvider(props: ParentProps) {
   };
 
   const refresh = async () => {
-    await Promise.all([refreshDetail(), refreshRpcs()]);
+    await Promise.all([refreshApplication(), refreshRpcs()]);
   };
 
   const updateEnvironmentChains = async (
@@ -342,7 +342,9 @@ export function ApplicationDataProvider(props: ParentProps) {
   ) => {
     const token = auth.token;
     const id = applicationId();
-    const environment = environments().find((item) => item.id === environmentId);
+    const environment = environments().find(
+      (item) => item.id === environmentId,
+    );
     if (!token || !id || !environment) {
       throw new Error("Environment not found");
     }
@@ -368,11 +370,13 @@ export function ApplicationDataProvider(props: ParentProps) {
       );
     }
 
-    await refreshEnvironments();
+    await refreshApplication();
   };
 
   const addEnvironmentChain = async (environmentId: string, chain: string) => {
-    const environment = environments().find((item) => item.id === environmentId);
+    const environment = environments().find(
+      (item) => item.id === environmentId,
+    );
     if (!environment) {
       throw new Error("Environment not found");
     }
@@ -380,11 +384,19 @@ export function ApplicationDataProvider(props: ParentProps) {
       return;
     }
 
-    await updateEnvironmentChains(environmentId, [...environment.chains, chain]);
+    await updateEnvironmentChains(environmentId, [
+      ...environment.chains,
+      chain,
+    ]);
   };
 
-  const removeEnvironmentChain = async (environmentId: string, chain: string) => {
-    const environment = environments().find((item) => item.id === environmentId);
+  const removeEnvironmentChain = async (
+    environmentId: string,
+    chain: string,
+  ) => {
+    const environment = environments().find(
+      (item) => item.id === environmentId,
+    );
     if (!environment) {
       throw new Error("Environment not found");
     }
@@ -430,7 +442,7 @@ export function ApplicationDataProvider(props: ParentProps) {
 
     const requestKey = `${token}:${id}`;
     if (loadedDetailKey() !== requestKey) {
-      void untrack(refreshDetail);
+      void untrack(refreshApplication);
     }
   });
 
@@ -528,10 +540,7 @@ export function ApplicationDataProvider(props: ParentProps) {
       state: structuresState,
       error: structuresError,
     },
-    refreshDetail,
-    refreshApiKeys,
-    refreshEnvironments,
-    refreshStructures,
+    refreshApplication,
     refreshRpcs,
     refresh,
     addEnvironmentChain,

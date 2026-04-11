@@ -5,8 +5,14 @@ import LightningIcon from "../components/icons/LightningIcon";
 import EmptyStateIcon from "../components/icons/EmptyStateIcon";
 import RpcIcon from "../components/icons/RpcIcon";
 import { useAuth } from "../lib/auth";
-import { nameValidationHint, nameValidationPattern } from "../lib/name-validation";
-import { useReferenceData, type RpcProviderSummary } from "../lib/reference-data";
+import {
+  nameValidationHint,
+  nameValidationPattern,
+} from "../lib/name-validation";
+import {
+  useReferenceData,
+  type RpcProviderSummary,
+} from "../lib/reference-data";
 import { useApplicationData } from "../lib/application-data";
 
 async function readErrorMessage(
@@ -41,11 +47,16 @@ export default function ApplicationProvidersPage() {
   const [providerModalOpen, setProviderModalOpen] = createSignal(false);
   const [newProviderName, setNewProviderName] = createSignal("");
   const [newProviderRateLimit, setNewProviderRateLimit] = createSignal("100");
-  const [createProviderError, setCreateProviderError] = createSignal<string | null>(null);
+  const [createProviderError, setCreateProviderError] = createSignal<
+    string | null
+  >(null);
   const [createProviderLoading, setCreateProviderLoading] = createSignal(false);
 
-  const [providerToDelete, setProviderToDelete] = createSignal<RpcProviderSummary | null>(null);
-  const [deleteProviderError, setDeleteProviderError] = createSignal<string | null>(null);
+  const [providerToDelete, setProviderToDelete] =
+    createSignal<RpcProviderSummary | null>(null);
+  const [deleteProviderError, setDeleteProviderError] = createSignal<
+    string | null
+  >(null);
   const [deleteProviderLoading, setDeleteProviderLoading] = createSignal(false);
 
   const openProviderModal = () => {
@@ -116,7 +127,9 @@ export default function ApplicationProvidersPage() {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!response.ok) {
-        throw new Error(await readErrorMessage(response, "Failed to delete RPC provider"));
+        throw new Error(
+          await readErrorMessage(response, "Failed to delete RPC provider"),
+        );
       }
       setProviderToDelete(null);
       await referenceData.refreshRpcProviders();
@@ -189,7 +202,8 @@ export default function ApplicationProvidersPage() {
             <Show
               when={
                 !providersError() &&
-                (providersState() === "ready" || providersState() === "refreshing") &&
+                (providersState() === "ready" ||
+                  providersState() === "refreshing") &&
                 providers().length > 0
               }
             >
@@ -220,7 +234,9 @@ export default function ApplicationProvidersPage() {
                           setDeleteProviderError(null);
                           setProviderToDelete(provider);
                         }}
-                        disabled={createProviderLoading() || deleteProviderLoading()}
+                        disabled={
+                          createProviderLoading() || deleteProviderLoading()
+                        }
                         class="btn btn-sm btn-interactive btn-disabled btn-danger shrink-0"
                       >
                         Delete
@@ -234,7 +250,8 @@ export default function ApplicationProvidersPage() {
             <Show
               when={
                 !providersError() &&
-                (providersState() === "ready" || providersState() === "refreshing") &&
+                (providersState() === "ready" ||
+                  providersState() === "refreshing") &&
                 providers().length === 0
               }
             >
@@ -311,7 +328,9 @@ export default function ApplicationProvidersPage() {
                   min={1}
                   step={1}
                   value={newProviderRateLimit()}
-                  onInput={(e) => setNewProviderRateLimit(e.currentTarget.value)}
+                  onInput={(e) =>
+                    setNewProviderRateLimit(e.currentTarget.value)
+                  }
                   class="h-11 w-full border border-b-border bg-b-paper px-4 text-sm font-semibold text-b-ink outline-none focus-visible:border-b-accent/50 focus-visible:ring-2 focus-visible:ring-b-accent/20 hover:border-b-border-hover transition-all duration-200"
                 />
               </div>
@@ -374,16 +393,19 @@ export default function ApplicationProvidersPage() {
               <span class="font-bold text-red-400">
                 {providerToDelete()!.name}
               </span>
-              ?{providerToDelete()!.rpcCount > 0 && (
+              ?
+              {providerToDelete()!.rpcCount > 0 && (
                 <>
                   {" "}
                   This will also delete{" "}
                   <span class="font-bold text-b-ink">
-                    {providerToDelete()!.rpcCount} endpoint{providerToDelete()!.rpcCount === 1 ? "" : "s"}
-                  </span>
-                  {" "}depending on this provider.
+                    {providerToDelete()!.rpcCount} endpoint
+                    {providerToDelete()!.rpcCount === 1 ? "" : "s"}
+                  </span>{" "}
+                  depending on this provider.
                 </>
-              )} This cannot be undone.
+              )}{" "}
+              This cannot be undone.
             </p>
 
             <Show when={deleteProviderError()}>

@@ -117,9 +117,7 @@ export default function DashboardPage() {
     const query = searchQuery().toLowerCase().trim();
 
     if (query) {
-      return apps.filter((app) =>
-        app.name.toLowerCase().includes(query),
-      );
+      return apps.filter((app) => app.name.toLowerCase().includes(query));
     }
 
     return apps;
@@ -163,7 +161,9 @@ export default function DashboardPage() {
 
             {/* Filter Status */}
             <div class="mt-3 text-xs font-semibold uppercase tracking-wider text-b-ink/40">
-              <span>Showing {filteredCount()} of {appCount()}</span>
+              <span>
+                Showing {filteredCount()} of {appCount()}
+              </span>
             </div>
           </div>
         </div>
@@ -210,7 +210,10 @@ export default function DashboardPage() {
                     <div class="absolute top-0 right-0 w-12 h-12 bg-gradient-to-bl from-b-accent/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
 
                     {/* App Name */}
-                    <h3 class="font-['Anton',sans-serif] text-xl uppercase tracking-wide text-b-ink group-hover:text-b-accent transition-colors duration-200 line-clamp-1" title={app.name}>
+                    <h3
+                      class="font-['Anton',sans-serif] text-xl uppercase tracking-wide text-b-ink group-hover:text-b-accent transition-colors duration-200 line-clamp-1"
+                      title={app.name}
+                    >
                       {app.name}
                     </h3>
 
@@ -235,7 +238,11 @@ export default function DashboardPage() {
                         stroke="currentColor"
                         stroke-width="2"
                       >
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          d="M17 8l4 4m0 0l-4 4m4-4H3"
+                        />
                       </svg>
                     </div>
                   </A>
@@ -253,8 +260,18 @@ export default function DashboardPage() {
             }
           >
             <div class="flex flex-col items-center justify-center gap-3 py-12 border border-dashed border-b-border/50 bg-b-paper/20">
-              <svg class="size-6 text-b-ink/30" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+              <svg
+                class="size-6 text-b-ink/30"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="1.5"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+                />
               </svg>
               <p class="text-sm font-semibold uppercase tracking-wider text-b-ink/50">
                 No applications yet
@@ -264,7 +281,7 @@ export default function DashboardPage() {
                 onClick={openModal}
                 class="btn btn-sm btn-interactive btn-primary"
               >
-Create
+                Create
               </button>
             </div>
           </Show>
@@ -355,7 +372,8 @@ Create
                 <div class="flex flex-col gap-3">
                   <For each={rpcStructures()}>
                     {(def) => {
-                      const typeEntries = () => Object.entries(def.requiredRpcTypes);
+                      const typeEntries = () =>
+                        Object.entries(def.requiredRpcTypes);
                       return (
                         <button
                           type="button"

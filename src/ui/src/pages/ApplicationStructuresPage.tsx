@@ -39,7 +39,9 @@ export default function ApplicationStructuresPage() {
   const rpcStructures = referenceData.rpcStructures.data;
   const appStructures = applicationData.structures.data;
 
-  const [structuresError, setStructuresError] = createSignal<string | null>(null);
+  const [structuresError, setStructuresError] = createSignal<string | null>(
+    null,
+  );
   const [structuresLoading, setStructuresLoading] = createSignal(false);
 
   const isStructureSelected = (structure: string) =>
@@ -71,7 +73,7 @@ export default function ApplicationStructuresPage() {
           await readErrorMessage(response, "Failed to update structures"),
         );
       }
-      await applicationData.refreshStructures();
+      await applicationData.refreshApplication();
     } catch (err) {
       setStructuresError(
         err instanceof Error ? err.message : "Failed to update structures",
@@ -124,8 +126,18 @@ export default function ApplicationStructuresPage() {
                     }`}
                   >
                     <Show when={isStructureSelected(def.structure)}>
-                      <svg class="size-3 text-b-paper" viewBox="0 0 12 12" fill="none">
-                        <path d="M2 6l3 3 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                      <svg
+                        class="size-3 text-b-paper"
+                        viewBox="0 0 12 12"
+                        fill="none"
+                      >
+                        <path
+                          d="M2 6l3 3 5-5"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        />
                       </svg>
                     </Show>
                   </div>

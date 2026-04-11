@@ -1,4 +1,9 @@
-import { Router, Route, Navigate, type RouteSectionProps } from "@solidjs/router";
+import {
+  Router,
+  Route,
+  Navigate,
+  type RouteSectionProps,
+} from "@solidjs/router";
 import { AuthProvider, type AuthState } from "./lib/auth";
 import RequireAuth from "./components/RequireAuth";
 import LoginPage from "./pages/LoginPage";
@@ -48,12 +53,18 @@ export default function App(props: AppProps) {
               </RequireAuth>
             )}
           />
-          <Route path="/applications/:applicationId" component={ApplicationShell}>
+          <Route
+            path="/applications/:applicationId"
+            component={ApplicationShell}
+          >
             <Route path="/" component={ApplicationRpcsPage} />
             <Route path="/rpcs" component={ApplicationRpcsPage} />
             <Route path="/api-keys" component={ApplicationApiKeysPage} />
             <Route path="/structures" component={ApplicationStructuresPage} />
-            <Route path="/environments" component={ApplicationEnvironmentsPage} />
+            <Route
+              path="/environments"
+              component={ApplicationEnvironmentsPage}
+            />
             <Route path="/general" component={ApplicationGeneralPage} />
             <Route path="/providers" component={ApplicationProvidersPage} />
           </Route>

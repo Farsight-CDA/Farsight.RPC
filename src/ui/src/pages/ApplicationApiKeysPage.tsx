@@ -7,7 +7,10 @@ import EmptyStateIcon from "../components/icons/EmptyStateIcon";
 import ChevronDownIcon from "../components/icons/ChevronDownIcon";
 import { useAuth } from "../lib/auth";
 import { useReferenceData } from "../lib/reference-data";
-import { useApplicationData, type ConsumerApiKeySummary } from "../lib/application-data";
+import {
+  useApplicationData,
+  type ConsumerApiKeySummary,
+} from "../lib/application-data";
 
 async function readErrorMessage(
   response: Response,
@@ -40,8 +43,11 @@ export default function ApplicationApiKeysPage() {
   const apiKeysState = applicationData.apiKeys.state;
   const apiKeysError = applicationData.apiKeys.error;
 
-  const [apiKeyToDelete, setApiKeyToDelete] = createSignal<ConsumerApiKeySummary | null>(null);
-  const [newKeyEnvironmentId, setNewKeyEnvironmentId] = createSignal<string | undefined>(undefined);
+  const [apiKeyToDelete, setApiKeyToDelete] =
+    createSignal<ConsumerApiKeySummary | null>(null);
+  const [newKeyEnvironmentId, setNewKeyEnvironmentId] = createSignal<
+    string | undefined
+  >(undefined);
   const [createKeyError, setCreateKeyError] = createSignal<string | null>(null);
   const [createKeyLoading, setCreateKeyLoading] = createSignal(false);
   const [deleteKeyError, setDeleteKeyError] = createSignal<string | null>(null);
@@ -53,7 +59,10 @@ export default function ApplicationApiKeysPage() {
   createEffect(() => {
     const envs = environments();
     const selected = newKeyEnvironmentId();
-    if (envs.length > 0 && !envs.some((environment) => environment.id === selected)) {
+    if (
+      envs.length > 0 &&
+      !envs.some((environment) => environment.id === selected)
+    ) {
       setNewKeyEnvironmentId(envs[0].id);
       return;
     }
@@ -81,10 +90,12 @@ export default function ApplicationApiKeysPage() {
         body: JSON.stringify({ environmentId }),
       });
       if (!response.ok) {
-        throw new Error(await readErrorMessage(response, "Failed to create API key"));
+        throw new Error(
+          await readErrorMessage(response, "Failed to create API key"),
+        );
       }
       await Promise.all([
-        applicationData.refreshApiKeys(),
+        applicationData.refreshApplication(),
         referenceData.refreshApplications(),
       ]);
       setCreateKeyModalOpen(false);
@@ -113,11 +124,13 @@ export default function ApplicationApiKeysPage() {
         },
       );
       if (!response.ok) {
-        throw new Error(await readErrorMessage(response, "Failed to delete API key"));
+        throw new Error(
+          await readErrorMessage(response, "Failed to delete API key"),
+        );
       }
       setApiKeyToDelete(null);
       await Promise.all([
-        applicationData.refreshApiKeys(),
+        applicationData.refreshApplication(),
         referenceData.refreshApplications(),
       ]);
     } catch (err) {
@@ -165,8 +178,8 @@ export default function ApplicationApiKeysPage() {
     key.length <= 6 ? key : `${key.slice(0, 6)}…`;
 
   const getEnvironmentName = (environmentId: string) =>
-    environments().find((environment) => environment.id === environmentId)?.name ??
-    "Unknown";
+    environments().find((environment) => environment.id === environmentId)
+      ?.name ?? "Unknown";
 
   return (
     <>
@@ -242,7 +255,8 @@ export default function ApplicationApiKeysPage() {
             <Show
               when={
                 !apiKeysError() &&
-                (apiKeysState() === "ready" || apiKeysState() === "refreshing") &&
+                (apiKeysState() === "ready" ||
+                  apiKeysState() === "refreshing") &&
                 apiKeys().length > 0
               }
             >
@@ -257,9 +271,9 @@ export default function ApplicationApiKeysPage() {
                         <div class="flex flex-col gap-4 p-4 sm:flex-row sm:items-stretch sm:justify-between sm:gap-6">
                           <div class="min-w-0 flex-1 flex flex-col gap-3">
                             <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                                <span class="inline-flex items-center border border-b-accent/25 bg-b-accent/10 px-2 py-0.5 text-xs font-bold uppercase tracking-wider text-b-accent">
-                                 {getEnvironmentName(k.environmentId)}
-                                </span>
+                              <span class="inline-flex items-center border border-b-accent/25 bg-b-accent/10 px-2 py-0.5 text-xs font-bold uppercase tracking-wider text-b-accent">
+                                {getEnvironmentName(k.environmentId)}
+                              </span>
                               <p class="text-xs font-semibold uppercase tracking-wider text-b-ink/40">
                                 Last used{" "}
                                 <span class="font-bold normal-case tracking-normal text-b-ink/70">
@@ -274,11 +288,15 @@ export default function ApplicationApiKeysPage() {
                               <button
                                 type="button"
                                 onClick={() => handleCopyApiKey(k)}
-                                disabled={createKeyLoading() || deleteKeyLoading()}
+                                disabled={
+                                  createKeyLoading() || deleteKeyLoading()
+                                }
                                 class="btn btn-sm btn-interactive btn-disabled btn-secondary inline-flex shrink-0 items-center justify-center gap-2"
                               >
                                 <CopyIcon class="size-3.5 opacity-80" />
-                                {copiedKeyId() === k.id ? "Copied" : "Copy full key"}
+                                {copiedKeyId() === k.id
+                                  ? "Copied"
+                                  : "Copy full key"}
                               </button>
                             </div>
                           </div>
@@ -289,7 +307,9 @@ export default function ApplicationApiKeysPage() {
                                 setDeleteKeyError(null);
                                 setApiKeyToDelete(k);
                               }}
-                              disabled={createKeyLoading() || deleteKeyLoading()}
+                              disabled={
+                                createKeyLoading() || deleteKeyLoading()
+                              }
                               class="btn btn-sm btn-interactive btn-disabled btn-danger w-full sm:w-auto"
                             >
                               Revoke
@@ -303,14 +323,15 @@ export default function ApplicationApiKeysPage() {
               </div>
             </Show>
 
-             <Show
-               when={
-                 !apiKeysError() &&
-                 environments().length > 0 &&
-                 (apiKeysState() === "ready" || apiKeysState() === "refreshing") &&
-                 apiKeys().length === 0
-               }
-             >
+            <Show
+              when={
+                !apiKeysError() &&
+                environments().length > 0 &&
+                (apiKeysState() === "ready" ||
+                  apiKeysState() === "refreshing") &&
+                apiKeys().length === 0
+              }
+            >
               <div class="flex flex-col items-center justify-center gap-3 py-8 border border-dashed border-b-border/50 bg-b-paper/20">
                 <EmptyStateIcon class="size-10 text-b-ink/20" />
                 <p class="text-sm font-semibold uppercase tracking-wider text-b-ink/50">
@@ -347,7 +368,10 @@ export default function ApplicationApiKeysPage() {
 
             <form onSubmit={handleCreateKey} class="flex flex-col gap-6">
               <div class="flex flex-col gap-2">
-                <label for="new-key-environment" class="text-xs font-bold uppercase tracking-widest text-b-ink/70">
+                <label
+                  for="new-key-environment"
+                  class="text-xs font-bold uppercase tracking-widest text-b-ink/70"
+                >
                   Environment
                 </label>
                 <Show when={environmentsState() === "pending"}>
@@ -363,13 +387,19 @@ export default function ApplicationApiKeysPage() {
                     {environmentsError()!.message}
                   </p>
                 </Show>
-                <Show when={environmentsState() === "ready" && newKeyEnvironmentId()}>
+                <Show
+                  when={
+                    environmentsState() === "ready" && newKeyEnvironmentId()
+                  }
+                >
                   <div class="relative">
                     <select
                       id="new-key-environment"
                       value={newKeyEnvironmentId()}
                       onChange={(e) =>
-                        setNewKeyEnvironmentId(e.currentTarget.value || undefined)
+                        setNewKeyEnvironmentId(
+                          e.currentTarget.value || undefined,
+                        )
                       }
                       class="h-11 w-full appearance-none border border-b-border bg-b-field px-4 pr-10 text-sm font-bold uppercase tracking-widest text-b-ink outline-none focus-visible:border-b-accent/50 focus-visible:ring-2 focus-visible:ring-b-accent/20 hover:border-b-border-hover transition-all duration-200 cursor-pointer"
                     >

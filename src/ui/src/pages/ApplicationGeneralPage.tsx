@@ -258,13 +258,18 @@ export default function ApplicationGeneralPage() {
                 <span class="inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-red-500/10 px-1.5 text-xs font-bold text-red-400">
                   {application()?.rpcCount ?? 0}
                 </span>
-                <span>RPC{application()?.rpcCount === 1 ? "" : "s"} will be deleted</span>
+                <span>
+                  RPC{application()?.rpcCount === 1 ? "" : "s"} will be deleted
+                </span>
               </div>
               <div class="flex items-center gap-2 text-sm text-b-ink/60">
                 <span class="inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-red-500/10 px-1.5 text-xs font-bold text-red-400">
                   {application()?.apiKeyCount ?? 0}
                 </span>
-                <span>API key{application()?.apiKeyCount === 1 ? "" : "s"} will be deleted</span>
+                <span>
+                  API key{application()?.apiKeyCount === 1 ? "" : "s"} will be
+                  deleted
+                </span>
               </div>
             </div>
 

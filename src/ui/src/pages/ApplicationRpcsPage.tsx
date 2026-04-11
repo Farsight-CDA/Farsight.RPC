@@ -1565,9 +1565,8 @@ export default function ApplicationRpcsPage() {
                 <Show when={createRpcTestStatus() === "passed"}>
                   <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-green-400">
                     <CheckmarkIcon class="size-3.5" />
-                    <span>Reachable · chain id {createRpcTestChainId()}</span>
+                    <span>Looks correct</span>
                   </div>
-                  <p class="text-xs font-semibold text-b-ink/60">Looks correct</p>
                 </Show>
                 <Show when={createRpcTestStatus() === "failed"}>
                   <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-amber-300">
@@ -1847,9 +1846,8 @@ export default function ApplicationRpcsPage() {
                 <Show when={editRpcTestStatus() === "passed"}>
                   <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-green-400">
                     <CheckmarkIcon class="size-3.5" />
-                    <span>Reachable · chain id {editRpcTestChainId()}</span>
+                    <span>Looks correct</span>
                   </div>
-                  <p class="text-xs font-semibold text-b-ink/60">Looks correct</p>
                 </Show>
                 <Show when={editRpcTestStatus() === "failed"}>
                   <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-amber-300">

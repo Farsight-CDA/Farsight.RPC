@@ -192,44 +192,32 @@ export default function ApplicationGeneralPage() {
 
         <section class="border border-red-500/30 bg-b-field overflow-hidden">
           <div class="border-b border-red-500/30 bg-red-500/5 px-6 py-4">
-            <div class="flex items-center gap-3">
-              <div class="flex size-10 items-center justify-center border border-red-500/30 bg-red-500/10">
-                <TrashIcon class="size-5 text-red-400" />
+            <div class="flex items-center justify-between gap-4">
+              <div class="flex items-center gap-3">
+                <div class="flex size-10 items-center justify-center border border-red-500/30 bg-red-500/10">
+                  <TrashIcon class="size-5 text-red-400" />
+                </div>
+                <div>
+                  <h2 class="font-['Anton',sans-serif] text-xl uppercase tracking-wide text-red-400">
+                    Delete Application
+                  </h2>
+                  <p class="text-xs font-bold uppercase tracking-widest text-red-400/60">
+                    Remove all data permanently
+                  </p>
+                </div>
               </div>
-              <div>
-                <h2 class="font-['Anton',sans-serif] text-xl uppercase tracking-wide text-red-400">
-                  Delete Application
-                </h2>
-                <p class="text-xs font-bold uppercase tracking-widest text-red-400/60">
-                  Permanently remove this application
-                </p>
-              </div>
+              <button
+                type="button"
+                onClick={() => setDeleteLoading(true)}
+                disabled={deleteLoading()}
+                class="btn btn-md btn-interactive btn-disabled btn-danger"
+              >
+                <Show when={deleteLoading()}>
+                  <LoadingSpinner class="size-3.5" />
+                </Show>
+                {deleteLoading() ? "Deleting…" : "Delete"}
+              </button>
             </div>
-          </div>
-
-          <div class="p-6">
-            <p class="mb-4 text-sm text-b-ink/70">
-              Once deleted, this application and all its associated data
-              will be permanently removed. This action cannot be undone.
-            </p>
-
-            <Show when={deleteError()}>
-              <p class="mb-4 border border-red-500/40 bg-red-500/10 px-3 py-3 text-xs font-bold uppercase leading-snug text-red-400">
-                {deleteError()}
-              </p>
-            </Show>
-
-            <button
-              type="button"
-              onClick={() => setDeleteLoading(true)}
-              disabled={deleteLoading()}
-              class="btn btn-md btn-interactive btn-disabled btn-danger"
-            >
-              <Show when={deleteLoading()}>
-                <LoadingSpinner class="size-3.5" />
-              </Show>
-              {deleteLoading() ? "Deleting…" : "Delete Application"}
-            </button>
           </div>
         </section>
       </div>
@@ -256,11 +244,25 @@ export default function ApplicationGeneralPage() {
             >
               Delete Application
             </h3>
-            <p class="mb-8 text-sm font-semibold text-b-ink/70">
+            <p class="mb-4 text-sm font-semibold text-b-ink/70">
               Permanently delete{" "}
               <span class="font-bold text-red-400">{application()?.name}</span>?
               This cannot be undone.
             </p>
+            <div class="mb-6 space-y-2">
+              <div class="flex items-center gap-2 text-sm text-b-ink/60">
+                <span class="inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-red-500/10 px-1.5 text-xs font-bold text-red-400">
+                  {application()?.rpcCount ?? 0}
+                </span>
+                <span>RPC{application()?.rpcCount === 1 ? '' : 's'} will be deleted</span>
+              </div>
+              <div class="flex items-center gap-2 text-sm text-b-ink/60">
+                <span class="inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-red-500/10 px-1.5 text-xs font-bold text-red-400">
+                  {application()?.apiKeyCount ?? 0}
+                </span>
+                <span>API key{application()?.apiKeyCount === 1 ? '' : 's'} will be deleted</span>
+              </div>
+            </div>
 
             <Show when={deleteError()}>
               <p class="mb-6 border border-red-500/40 bg-red-500/10 px-3 py-3 text-xs font-bold uppercase leading-snug text-red-400">

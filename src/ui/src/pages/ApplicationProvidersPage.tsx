@@ -28,8 +28,9 @@ async function readErrorMessage(
   return fallback;
 }
 
-const applicationNamePattern = "[A-Za-z0-9_-]+";
-const applicationNameHint = "Use only letters, numbers, underscores, and hyphens.";
+const applicationNamePattern = "[A-Za-z0-9_.-]+";
+const applicationNameHint =
+  "Use only letters, numbers, periods, underscores, and hyphens.";
 
 export default function ApplicationProvidersPage() {
   const auth = useAuth();

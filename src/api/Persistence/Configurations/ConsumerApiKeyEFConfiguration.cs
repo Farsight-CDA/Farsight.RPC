@@ -16,6 +16,7 @@ internal sealed class ConsumerApiKeyEFConfiguration : IEntityTypeConfiguration<C
         entity.Property(x => x.Environment);
         entity.Property(x => x.ApplicationId);
         entity.Property(x => x.Key);
+        entity.Property(x => x.LastUsedAt);
 
         entity.ToTable("ConsumerApiKeys");
     }

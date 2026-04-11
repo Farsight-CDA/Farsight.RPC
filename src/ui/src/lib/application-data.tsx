@@ -20,6 +20,7 @@ export type ConsumerApiKeySummary = {
   id: string;
   environment: string;
   key: string;
+  lastUsedAt?: string;
 };
 
 export type ApplicationRpc = {

@@ -11,7 +11,8 @@ public sealed class GETById(AppDbContext dbContext) : Endpoint<GETById.Request, 
     public sealed record ApiKeySummary(
         Guid Id,
         HostEnvironment Environment,
-        string Key
+        string Key,
+        DateTimeOffset? LastUsedAt
     );
 
     public sealed record Request(
@@ -47,7 +48,7 @@ public sealed class GETById(AppDbContext dbContext) : Endpoint<GETById.Request, 
         var apiKeys = await dbContext.ConsumerApiKeys
             .Where(k => k.ApplicationId == req.Id)
             .OrderBy(k => k.Id)
-            .Select(k => new ApiKeySummary(k.Id, k.Environment, k.Key))
+            .Select(k => new ApiKeySummary(k.Id, k.Environment, k.Key, k.LastUsedAt))
             .ToArrayAsync(ct);
 
         await Send.OkAsync(new Response(

@@ -47,6 +47,8 @@ export default function ApplicationApiKeysPage() {
   const [deleteKeyError, setDeleteKeyError] = createSignal<string | null>(null);
   const [deleteKeyLoading, setDeleteKeyLoading] = createSignal(false);
   const [createKeyModalOpen, setCreateKeyModalOpen] = createSignal(false);
+  const [copiedKeyId, setCopiedKeyId] = createSignal<string | null>(null);
+  let copyFeedbackTimer: ReturnType<typeof setTimeout> | undefined;
 
   createEffect(() => {
     const envs = environments();
@@ -132,9 +134,30 @@ export default function ApplicationApiKeysPage() {
     setCreateKeyModalOpen(false);
   };
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
+  const handleCopyApiKey = (key: ConsumerApiKeySummary) => {
+    void navigator.clipboard.writeText(key.key);
+    if (copyFeedbackTimer !== undefined) {
+      clearTimeout(copyFeedbackTimer);
+    }
+    setCopiedKeyId(key.id);
+    copyFeedbackTimer = setTimeout(() => {
+      setCopiedKeyId(null);
+      copyFeedbackTimer = undefined;
+    }, 2000);
   };
+
+  const formatLastUsed = (iso?: string) => {
+    if (!iso) return "Never used";
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return "Unknown";
+    return d.toLocaleString(undefined, {
+      dateStyle: "medium",
+      timeStyle: "short",
+    });
+  };
+
+  const formatKeyPreview = (key: string) =>
+    key.length <= 6 ? key : `${key.slice(0, 6)}…`;
 
   return (
     <>
@@ -202,41 +225,52 @@ export default function ApplicationApiKeysPage() {
                 <p class="mb-3 text-xs font-bold uppercase tracking-widest text-b-ink/50">
                   Active Keys
                 </p>
-                <ul class="flex flex-col gap-3">
+                <ul class="flex flex-col gap-4">
                   <For each={apiKeys()}>
                     {(k) => (
-                      <li class="flex flex-col gap-3 border border-b-border bg-b-paper p-4 sm:flex-row sm:items-center sm:justify-between transition-colors hover:border-b-border-hover">
-                        <div class="min-w-0 flex-1">
-                          <div class="flex items-center gap-2">
-                            <span class="inline-flex items-center border border-b-accent/20 bg-b-accent/10 px-2 py-0.5 text-xs font-bold uppercase tracking-wider text-b-accent">
-                              {k.environment}
-                            </span>
+                      <li class="border border-b-border bg-b-paper/40 shadow-[0_1px_0_rgba(0,0,0,0.35)] transition-colors hover:border-b-border-hover">
+                        <div class="flex flex-col gap-4 p-4 sm:flex-row sm:items-stretch sm:justify-between sm:gap-6">
+                          <div class="min-w-0 flex-1 flex flex-col gap-3">
+                            <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                              <span class="inline-flex items-center border border-b-accent/25 bg-b-accent/10 px-2 py-0.5 text-xs font-bold uppercase tracking-wider text-b-accent">
+                                {k.environment}
+                              </span>
+                              <p class="text-xs font-semibold uppercase tracking-wider text-b-ink/40">
+                                Last used{" "}
+                                <span class="font-bold normal-case tracking-normal text-b-ink/70">
+                                  {formatLastUsed(k.lastUsedAt)}
+                                </span>
+                              </p>
+                            </div>
+                            <div class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-2">
+                              <code class="select-all font-mono text-xs font-semibold tracking-wide text-b-ink/85">
+                                {formatKeyPreview(k.key)}
+                              </code>
+                              <button
+                                type="button"
+                                onClick={() => handleCopyApiKey(k)}
+                                disabled={createKeyLoading() || deleteKeyLoading()}
+                                class="btn btn-sm btn-interactive btn-disabled btn-secondary inline-flex shrink-0 items-center justify-center gap-2"
+                              >
+                                <CopyIcon class="size-3.5 opacity-80" />
+                                {copiedKeyId() === k.id ? "Copied" : "Copy full key"}
+                              </button>
+                            </div>
                           </div>
-                          <div class="mt-2 flex items-center gap-2">
-                            <code class="break-all font-mono text-xs font-semibold text-b-ink/80">
-                              {k.key}
-                            </code>
+                          <div class="flex shrink-0 flex-col justify-center border-t border-b-border/60 pt-3 sm:border-l sm:border-t-0 sm:pl-6 sm:pt-0">
                             <button
                               type="button"
-                              onClick={() => copyToClipboard(k.key)}
-                              class="shrink-0 text-b-ink/30 hover:text-b-accent transition-colors"
-                              title="Copy to clipboard"
+                              onClick={() => {
+                                setDeleteKeyError(null);
+                                setApiKeyToDelete(k);
+                              }}
+                              disabled={createKeyLoading() || deleteKeyLoading()}
+                              class="btn btn-sm btn-interactive btn-disabled btn-danger w-full sm:w-auto"
                             >
-                              <CopyIcon class="size-4" />
+                              Revoke
                             </button>
                           </div>
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setDeleteKeyError(null);
-                            setApiKeyToDelete(k);
-                          }}
-                          disabled={createKeyLoading() || deleteKeyLoading()}
-                          class="btn btn-sm btn-interactive btn-disabled btn-danger shrink-0"
-                        >
-                          Revoke
-                        </button>
                       </li>
                     )}
                   </For>

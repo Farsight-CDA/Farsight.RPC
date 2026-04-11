@@ -12,4 +12,5 @@ public sealed class ConsumerApiKey
     public ConsumerApplication? Application { get; private set; }
 
     public required string Key { get; init; }
+    public DateTimeOffset? LastUsedAt { get; set; }
 }

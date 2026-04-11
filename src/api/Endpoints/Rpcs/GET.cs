@@ -32,13 +32,7 @@ public sealed class GET(AppDbContext dbContext) : Endpoint<GET.Request, ApiKeyRp
     public override async Task HandleAsync(Request req, CancellationToken ct)
     {
         var key = await dbContext.ConsumerApiKeys
-            .AsNoTracking()
             .Where(k => k.Key == req.ApiKey)
-            .Select(k => new
-            {
-                k.ApplicationId,
-                k.Environment,
-            })
             .SingleOrDefaultAsync(ct);
 
         if(key is null)
@@ -69,6 +63,9 @@ public sealed class GET(AppDbContext dbContext) : Endpoint<GET.Request, ApiKeyRp
                 provider.RateLimit
             ))
             .ToArrayAsync(ct);
+
+        key.LastUsedAt = DateTimeOffset.UtcNow;
+        await dbContext.SaveChangesAsync(ct);
 
         await Send.OkAsync(new ApiKeyRpcsDto(
             rpcs.GroupBy(rpc => rpc.Chain)

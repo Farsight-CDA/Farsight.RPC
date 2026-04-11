@@ -5,6 +5,7 @@ import LightningIcon from "../components/icons/LightningIcon";
 import EmptyStateIcon from "../components/icons/EmptyStateIcon";
 import RpcIcon from "../components/icons/RpcIcon";
 import { useAuth } from "../lib/auth";
+import { nameValidationHint, nameValidationPattern } from "../lib/name-validation";
 import { useReferenceData, type RpcProviderSummary } from "../lib/reference-data";
 import { useApplicationData } from "../lib/application-data";
 
@@ -27,10 +28,6 @@ async function readErrorMessage(
     return conflictHint ?? "An RPC provider with this name already exists.";
   return fallback;
 }
-
-const applicationNamePattern = "[A-Za-z0-9_.-]+";
-const applicationNameHint =
-  "Use only letters, numbers, periods, underscores, and hyphens.";
 
 export default function ApplicationProvidersPage() {
   const auth = useAuth();
@@ -287,16 +284,16 @@ export default function ApplicationProvidersPage() {
                   id="new-provider-name"
                   type="text"
                   required
-                  pattern={applicationNamePattern}
+                  pattern={nameValidationPattern}
                   value={newProviderName()}
                   onInput={(e) => setNewProviderName(e.currentTarget.value)}
                   class="h-11 w-full border border-b-border bg-b-paper px-4 text-sm font-semibold text-b-ink placeholder:text-b-ink/25 outline-none focus-visible:border-b-accent/50 focus-visible:ring-2 focus-visible:ring-b-accent/20 hover:border-b-border-hover transition-all duration-200"
                   placeholder="MY_PROVIDER"
-                  title={applicationNameHint}
+                  title={nameValidationHint}
                   autocomplete="off"
                 />
                 <p class="text-xs font-semibold uppercase tracking-wider text-b-ink/40">
-                  {applicationNameHint}
+                  {nameValidationHint}
                 </p>
               </div>
 

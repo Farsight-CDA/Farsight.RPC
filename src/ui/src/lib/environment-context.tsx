@@ -1,41 +1,26 @@
-import { createContext, createSignal, useContext, type ParentComponent, type Accessor, type Setter } from "solid-js";
-import { useReferenceData } from "./reference-data";
+import type { Accessor, Setter } from "solid-js";
+import {
+  useApplicationData,
+  type ApplicationEnvironmentSummary,
+} from "./application-data";
 
-interface EnvironmentContextValue {
-  selectedEnvironment: Accessor<string | undefined>;
-  setSelectedEnvironment: Setter<string | undefined>;
-  environments: Accessor<string[]>;
+export type EnvironmentContextValue = {
+  selectedEnvironmentId: Accessor<string | undefined>;
+  setSelectedEnvironmentId: Setter<string | undefined>;
+  environments: Accessor<ApplicationEnvironmentSummary[]>;
   environmentsState: Accessor<
     "idle" | "pending" | "refreshing" | "ready" | "errored"
   >;
   environmentsError: Accessor<Error | null>;
-}
-
-const EnvironmentContext = createContext<EnvironmentContextValue>();
-
-export const EnvironmentProvider: ParentComponent = (props) => {
-  const referenceData = useReferenceData();
-  const [selectedEnvironment, setSelectedEnvironment] = createSignal<string | undefined>(undefined);
-
-  return (
-    <EnvironmentContext.Provider
-      value={{
-        selectedEnvironment,
-        setSelectedEnvironment,
-        environments: referenceData.hostEnvironments.data,
-        environmentsState: referenceData.hostEnvironments.state,
-        environmentsError: referenceData.hostEnvironments.error,
-      }}
-    >
-      {props.children}
-    </EnvironmentContext.Provider>
-  );
 };
 
-export const useEnvironment = () => {
-  const context = useContext(EnvironmentContext);
-  if (!context) {
-    throw new Error("useEnvironment must be used within an EnvironmentProvider");
-  }
-  return context;
+export const useEnvironment = (): EnvironmentContextValue => {
+  const applicationData = useApplicationData();
+  return {
+    selectedEnvironmentId: applicationData.selectedEnvironmentId,
+    setSelectedEnvironmentId: applicationData.setSelectedEnvironmentId,
+    environments: applicationData.environments.data,
+    environmentsState: applicationData.environments.state,
+    environmentsError: applicationData.environments.error,
+  };
 };

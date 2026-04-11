@@ -85,26 +85,21 @@ export default function ApplicationStructuresPage() {
     <section class="border border-b-border bg-b-field overflow-hidden">
       <div class="border-b border-b-border bg-b-paper/30 px-6 py-4">
         <div class="flex items-center gap-3">
-          <div class="flex size-10 items-center justify-center border border-b-ink/20 bg-b-ink/5">
-            <StructureIcon class="size-5 text-b-ink/70" />
+          <div class="flex size-10 items-center justify-center border border-b-accent/30 bg-b-accent/10">
+            <StructureIcon class="size-5 text-b-accent" />
           </div>
           <div>
             <h2 class="font-['Anton',sans-serif] text-xl uppercase tracking-wide text-b-ink">
               Supported Structures
             </h2>
             <p class="text-xs font-bold uppercase tracking-widest text-b-ink/50">
-              Define expected RPC configurations
+              Select optional structure requirements for this application
             </p>
           </div>
         </div>
       </div>
 
       <div class="p-6">
-        <p class="mb-4 text-sm text-b-ink/70">
-          Select which RPC structures this application supports. Each chain's
-          RPCs will be validated against these structures.
-        </p>
-
         <div class="flex flex-col gap-3">
           <For each={rpcStructures()}>
             {(def) => {

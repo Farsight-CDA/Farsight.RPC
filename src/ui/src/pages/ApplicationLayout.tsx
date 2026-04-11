@@ -1,5 +1,5 @@
 import { A, useNavigate } from "@solidjs/router";
-import { For, Show, createEffect, createMemo, type ParentComponent } from "solid-js";
+import { For, Show, createMemo, type ParentComponent } from "solid-js";
 import { useReferenceData } from "../lib/reference-data";
 import { useParams, useLocation } from "@solidjs/router";
 import LoadingSpinner from "../components/LoadingSpinner";
@@ -9,8 +9,9 @@ import KeyIcon from "../components/icons/KeyIcon";
 import SettingsIcon from "../components/icons/SettingsIcon";
 import ProviderIcon from "../components/icons/ProviderIcon";
 import StructureIcon from "../components/icons/StructureIcon";
+import EnvironmentIcon from "../components/icons/EnvironmentIcon";
 import ChevronDownIcon from "../components/icons/ChevronDownIcon";
-import { EnvironmentProvider, useEnvironment } from "../lib/environment-context";
+import { useEnvironment } from "../lib/environment-context";
 
 const ApplicationLayoutContent: ParentComponent = (props) => {
   const referenceData = useReferenceData();
@@ -28,19 +29,11 @@ const ApplicationLayoutContent: ParentComponent = (props) => {
     () => applications().find((app) => app.id === applicationId()) ?? null,
   );
 
-  // Initialize environment selection when environments load
-  createEffect(() => {
-    const envs = environment.environments();
-    const selected = environment.selectedEnvironment();
-    if (envs.length > 0 && (!selected || !envs.includes(selected))) {
-      environment.setSelectedEnvironment(envs[0]);
-    }
-  });
-
   const getActiveTab = () => {
     const path = location.pathname;
     if (path.includes("/api-keys")) return "api-keys";
     if (path.includes("/structures")) return "structures";
+    if (path.includes("/environments")) return "environments";
     if (path.includes("/general")) return "general";
     if (path.includes("/providers")) return "providers";
     return "rpcs";
@@ -85,6 +78,39 @@ const ApplicationLayoutContent: ParentComponent = (props) => {
               <div class="flex items-center justify-between border-b border-b-border/50">
                 <div class="flex">
                   <A
+                    href={`/applications/${applicationId()}/general`}
+                    class={`flex items-center gap-1.5 px-4 py-2 text-[0.65rem] font-bold uppercase tracking-widest transition-all duration-200 ${
+                      getActiveTab() === "general"
+                        ? "border-b-2 border-b-accent bg-b-accent/5 text-b-accent"
+                        : "text-b-ink/50 hover:text-b-ink hover:bg-b-ink/5"
+                    }`}
+                  >
+                    <SettingsIcon class="size-3.5" />
+                    General
+                  </A>
+                  <A
+                    href={`/applications/${applicationId()}/environments`}
+                    class={`flex items-center gap-1.5 px-4 py-2 text-[0.65rem] font-bold uppercase tracking-widest transition-all duration-200 ${
+                      getActiveTab() === "environments"
+                        ? "border-b-2 border-b-accent bg-b-accent/5 text-b-accent"
+                        : "text-b-ink/50 hover:text-b-ink hover:bg-b-ink/5"
+                    }`}
+                  >
+                    <EnvironmentIcon class="size-3.5" />
+                    Environments
+                  </A>
+                  <A
+                    href={`/applications/${applicationId()}/providers`}
+                    class={`flex items-center gap-1.5 px-4 py-2 text-[0.65rem] font-bold uppercase tracking-widest transition-all duration-200 ${
+                      getActiveTab() === "providers"
+                        ? "border-b-2 border-b-accent bg-b-accent/5 text-b-accent"
+                        : "text-b-ink/50 hover:text-b-ink hover:bg-b-ink/5"
+                    }`}
+                  >
+                    <ProviderIcon class="size-3.5" />
+                    Providers
+                  </A>
+                  <A
                     href={`/applications/${applicationId()}/rpcs`}
                     class={`flex items-center gap-1.5 px-4 py-2 text-[0.65rem] font-bold uppercase tracking-widest transition-all duration-200 ${
                       getActiveTab() === "rpcs"
@@ -117,28 +143,6 @@ const ApplicationLayoutContent: ParentComponent = (props) => {
                     <StructureIcon class="size-3.5" />
                     Structures
                   </A>
-                  <A
-                    href={`/applications/${applicationId()}/general`}
-                    class={`flex items-center gap-1.5 px-4 py-2 text-[0.65rem] font-bold uppercase tracking-widest transition-all duration-200 ${
-                      getActiveTab() === "general"
-                        ? "border-b-2 border-b-accent bg-b-accent/5 text-b-accent"
-                        : "text-b-ink/50 hover:text-b-ink hover:bg-b-ink/5"
-                    }`}
-                  >
-                    <SettingsIcon class="size-3.5" />
-                    General
-                  </A>
-                  <A
-                    href={`/applications/${applicationId()}/providers`}
-                    class={`flex items-center gap-1.5 px-4 py-2 text-[0.65rem] font-bold uppercase tracking-widest transition-all duration-200 ${
-                      getActiveTab() === "providers"
-                        ? "border-b-2 border-b-accent bg-b-accent/5 text-b-accent"
-                        : "text-b-ink/50 hover:text-b-ink hover:bg-b-ink/5"
-                    }`}
-                  >
-                    <ProviderIcon class="size-3.5" />
-                    Providers
-                  </A>
                 </div>
 
                 {/* Environment selector - only shown on RPCs tab */}
@@ -157,23 +161,44 @@ const ApplicationLayoutContent: ParentComponent = (props) => {
                         Error
                       </p>
                     </Show>
-                    <Show when={environment.environmentsState() === "ready" && environment.environments().length > 0}>
+                    <Show
+                      when={
+                        environment.environmentsState() === "ready" &&
+                        environment.environments().length > 0
+                      }
+                    >
                       <select
                         id="environment-select"
-                        value={environment.selectedEnvironment()}
-                        onChange={(e) => environment.setSelectedEnvironment(e.currentTarget.value || undefined)}
+                        value={environment.selectedEnvironmentId()}
+                        onChange={(e) =>
+                          environment.setSelectedEnvironmentId(
+                            e.currentTarget.value || undefined,
+                          )
+                        }
                         class="h-9 w-48 appearance-none border border-b-border bg-b-field px-3 pr-8 text-[0.65rem] font-bold uppercase tracking-widest text-b-ink outline-none focus-visible:border-b-accent/50 focus-visible:ring-2 focus-visible:ring-b-accent/20 hover:border-b-border-hover transition-all duration-200 cursor-pointer"
                       >
                         <For each={environment.environments()}>
                           {(env) => (
-                            <option value={env} class="bg-b-field">
-                              {env}
+                            <option value={env.id} class="bg-b-field">
+                              {env.name}
                             </option>
                           )}
                         </For>
                       </select>
                       <div class="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2">
                         <ChevronDownIcon class="size-4 text-b-ink/50" />
+                      </div>
+                    </Show>
+                    <Show
+                      when={
+                        environment.environmentsState() === "ready" &&
+                        environment.environments().length === 0
+                      }
+                    >
+                      <div class="flex h-9 items-center border border-b-border bg-b-field px-3 w-48">
+                        <span class="text-[0.65rem] font-bold uppercase tracking-widest text-b-ink/50">
+                          No environments
+                        </span>
                       </div>
                     </Show>
                   </div>
@@ -194,13 +219,7 @@ const ApplicationLayoutContent: ParentComponent = (props) => {
 };
 
 const ApplicationLayout: ParentComponent = (props) => {
-  return (
-    <EnvironmentProvider>
-      <ApplicationLayoutContent>
-        {props.children}
-      </ApplicationLayoutContent>
-    </EnvironmentProvider>
-  );
+  return <ApplicationLayoutContent>{props.children}</ApplicationLayoutContent>;
 };
 
 export default ApplicationLayout;

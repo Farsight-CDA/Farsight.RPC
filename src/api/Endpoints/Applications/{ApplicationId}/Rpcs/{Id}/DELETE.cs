@@ -9,19 +9,19 @@ public sealed class DELETE(AppDbContext dbContext) : Endpoint<DELETE.Request>
 {
     public sealed record Request(
         [property: RouteParam] Guid ApplicationId,
-        [property: RouteParam] Guid Id
+        [property: RouteParam] Guid RpcId
     );
 
     public override void Configure()
     {
-        Delete("/api/Applications/{ApplicationId}/Rpcs/{Id}");
+        Delete("/api/Applications/{ApplicationId}/Rpcs/{RpcId}");
         Roles(AuthRoles.ADMIN);
     }
 
     public override async Task HandleAsync(Request req, CancellationToken ct)
     {
         int deletedRows = await dbContext.Rpcs
-            .Where(rpc => rpc.ApplicationId == req.ApplicationId && rpc.Id == req.Id)
+            .Where(rpc => rpc.ApplicationId == req.ApplicationId && rpc.Id == req.RpcId)
             .ExecuteDeleteAsync(ct);
 
         if(deletedRows == 0)

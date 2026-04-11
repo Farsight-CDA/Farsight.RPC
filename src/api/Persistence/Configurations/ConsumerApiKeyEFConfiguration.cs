@@ -9,11 +9,11 @@ internal sealed class ConsumerApiKeyEFConfiguration : IEntityTypeConfiguration<C
     public void Configure(EntityTypeBuilder<ConsumerApiKey> entity)
     {
         entity.HasKey(x => x.Id);
-        entity.HasIndex(x => new { x.ApplicationId, x.Environment });
+        entity.HasIndex(x => new { x.ApplicationId, x.EnvironmentId });
 
         entity.Property(x => x.Id);
 
-        entity.Property(x => x.Environment);
+        entity.Property(x => x.EnvironmentId);
         entity.Property(x => x.ApplicationId);
         entity.Property(x => x.Key);
         entity.Property(x => x.LastUsedAt);

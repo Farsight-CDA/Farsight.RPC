@@ -8,6 +8,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
 {
     public const string NAME_CASE_INSENSITIVE_COLLATION = "name_case_insensitive";
 
+    public DbSet<ApplicationEnvironment> ApplicationEnvironments => Set<ApplicationEnvironment>();
     public DbSet<ConsumerApplication> ConsumerApplications => Set<ConsumerApplication>();
     public DbSet<ConsumerApiKey> ConsumerApiKeys => Set<ConsumerApiKey>();
     public DbSet<RpcProvider> RpcProviders => Set<RpcProvider>();

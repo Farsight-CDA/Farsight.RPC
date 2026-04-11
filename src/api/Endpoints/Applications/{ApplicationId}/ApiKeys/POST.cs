@@ -1,7 +1,6 @@
 using Farsight.Rpc.Api.Auth;
 using Farsight.Rpc.Api.Persistence;
 using Farsight.Rpc.Api.Persistence.Entities;
-using Farsight.Rpc.Types;
 using FastEndpoints;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
@@ -13,18 +12,16 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request>
 {
     public sealed record Request(
         [property: RouteParam] Guid ApplicationId,
-        HostEnvironment? Environment
+        Guid EnvironmentId
     );
 
     public sealed class Validator : Validator<Request>
     {
         public Validator()
         {
-            RuleFor(x => x.Environment)
-                .NotNull()
-                .WithMessage("Environment is required.")
-                .IsInEnum()
-                .WithMessage("Environment is invalid.");
+            RuleFor(x => x.EnvironmentId)
+                .Must(static environmentId => environmentId != Guid.Empty)
+                .WithMessage("Environment is required.");
         }
     }
 
@@ -41,11 +38,16 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request>
             ThrowError("Application not found.", 404);
         }
 
+        if(!await dbContext.ApplicationEnvironments.AnyAsync(environment => environment.ApplicationId == req.ApplicationId && environment.Id == req.EnvironmentId, ct))
+        {
+            ThrowError("Environment not found.", 404);
+        }
+
         var apiKey = new ConsumerApiKey
         {
             Id = Guid.NewGuid(),
             ApplicationId = req.ApplicationId,
-            Environment = req.Environment!.Value,
+            EnvironmentId = req.EnvironmentId,
             Key = Convert.ToHexString(RandomNumberGenerator.GetBytes(32)).ToLowerInvariant(),
         };
 

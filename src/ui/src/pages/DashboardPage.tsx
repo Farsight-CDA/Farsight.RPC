@@ -348,10 +348,7 @@ Create
               <div class="flex flex-col gap-3">
                 <div>
                   <p class="text-xs font-bold uppercase tracking-widest text-b-ink/70">
-                    Supported Structures
-                  </p>
-                  <p class="mt-1 text-xs font-semibold uppercase tracking-wider text-b-ink/40">
-                    Optional. Select the RPC layouts this application should support.
+                    Supported Structures (Optional)
                   </p>
                 </div>
 

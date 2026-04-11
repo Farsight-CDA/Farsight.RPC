@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Farsight.Rpc.Api.Persistence.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260409190803_Initial")]
+    [Migration("20260411131700_Initial")]
     partial class Initial
     {
         /// <inheritdoc />
@@ -26,6 +26,28 @@ namespace Farsight.Rpc.Api.Persistence.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("Farsight.Rpc.Api.Persistence.Entities.ApplicationEnvironment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ApplicationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .UseCollation("name_case_insensitive");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ApplicationId", "Name")
+                        .IsUnique();
+
+                    b.ToTable("ApplicationEnvironments", (string)null);
+                });
+
             modelBuilder.Entity("Farsight.Rpc.Api.Persistence.Entities.ConsumerApiKey", b =>
                 {
                     b.Property<Guid>("Id")
@@ -35,16 +57,21 @@ namespace Farsight.Rpc.Api.Persistence.Migrations
                     b.Property<Guid>("ApplicationId")
                         .HasColumnType("uuid");
 
-                    b.Property<int>("Environment")
-                        .HasColumnType("integer");
+                    b.Property<Guid>("EnvironmentId")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("Key")
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<DateTimeOffset?>("LastUsedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("ApplicationId", "Environment");
+                    b.HasIndex("EnvironmentId");
+
+                    b.HasIndex("ApplicationId", "EnvironmentId");
 
                     b.ToTable("ConsumerApiKeys", (string)null);
                 });
@@ -59,6 +86,10 @@ namespace Farsight.Rpc.Api.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("text")
                         .UseCollation("name_case_insensitive");
+
+                    b.Property<string[]>("Structures")
+                        .IsRequired()
+                        .HasColumnType("text[]");
 
                     b.HasKey("Id");
 
@@ -86,8 +117,8 @@ namespace Farsight.Rpc.Api.Persistence.Migrations
                         .HasMaxLength(30)
                         .HasColumnType("character varying(30)");
 
-                    b.Property<int>("Environment")
-                        .HasColumnType("integer");
+                    b.Property<Guid>("EnvironmentId")
+                        .HasColumnType("uuid");
 
                     b.Property<Guid>("ProviderId")
                         .HasColumnType("uuid");
@@ -99,9 +130,11 @@ namespace Farsight.Rpc.Api.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("EnvironmentId");
+
                     b.HasIndex("ProviderId");
 
-                    b.HasIndex("ApplicationId", "Environment");
+                    b.HasIndex("ApplicationId", "EnvironmentId");
 
                     b.ToTable("Rpcs", (string)null);
 
@@ -165,6 +198,17 @@ namespace Farsight.Rpc.Api.Persistence.Migrations
                     b.HasDiscriminator().HasValue("Tracing");
                 });
 
+            modelBuilder.Entity("Farsight.Rpc.Api.Persistence.Entities.ApplicationEnvironment", b =>
+                {
+                    b.HasOne("Farsight.Rpc.Api.Persistence.Entities.ConsumerApplication", "Application")
+                        .WithMany("Environments")
+                        .HasForeignKey("ApplicationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Application");
+                });
+
             modelBuilder.Entity("Farsight.Rpc.Api.Persistence.Entities.ConsumerApiKey", b =>
                 {
                     b.HasOne("Farsight.Rpc.Api.Persistence.Entities.ConsumerApplication", "Application")
@@ -173,7 +217,15 @@ namespace Farsight.Rpc.Api.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("Farsight.Rpc.Api.Persistence.Entities.ApplicationEnvironment", "Environment")
+                        .WithMany("ApiKeys")
+                        .HasForeignKey("EnvironmentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.Navigation("Application");
+
+                    b.Navigation("Environment");
                 });
 
             modelBuilder.Entity("Farsight.Rpc.Api.Persistence.Entities.Rpc.RpcEndpoint", b =>
@@ -181,6 +233,12 @@ namespace Farsight.Rpc.Api.Persistence.Migrations
                     b.HasOne("Farsight.Rpc.Api.Persistence.Entities.ConsumerApplication", "Application")
                         .WithMany("Rpcs")
                         .HasForeignKey("ApplicationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Farsight.Rpc.Api.Persistence.Entities.ApplicationEnvironment", "Environment")
+                        .WithMany("Rpcs")
+                        .HasForeignKey("EnvironmentId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -192,12 +250,23 @@ namespace Farsight.Rpc.Api.Persistence.Migrations
 
                     b.Navigation("Application");
 
+                    b.Navigation("Environment");
+
                     b.Navigation("Provider");
+                });
+
+            modelBuilder.Entity("Farsight.Rpc.Api.Persistence.Entities.ApplicationEnvironment", b =>
+                {
+                    b.Navigation("ApiKeys");
+
+                    b.Navigation("Rpcs");
                 });
 
             modelBuilder.Entity("Farsight.Rpc.Api.Persistence.Entities.ConsumerApplication", b =>
                 {
                     b.Navigation("ApiKeys");
+
+                    b.Navigation("Environments");
 
                     b.Navigation("Rpcs");
                 });

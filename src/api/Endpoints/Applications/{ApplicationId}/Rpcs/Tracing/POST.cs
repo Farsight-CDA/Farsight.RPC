@@ -14,7 +14,7 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request>
 {
     public sealed record Request(
         [property: RouteParam] Guid ApplicationId,
-        HostEnvironment? Environment,
+        Guid EnvironmentId,
         string Chain,
         Uri Address,
         Guid ProviderId,
@@ -25,11 +25,9 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request>
     {
         public Validator(ChainService chainService)
         {
-            RuleFor(x => x.Environment)
-                .NotNull()
-                .WithMessage("Environment is required.")
-                .IsInEnum()
-                .WithMessage("Environment is invalid.");
+            RuleFor(x => x.EnvironmentId)
+                .Must(static environmentId => environmentId != Guid.Empty)
+                .WithMessage("Environment is required.");
 
             RuleFor(x => x.Chain)
                 .ApplyChainValidation(chainService);
@@ -62,6 +60,11 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request>
             ThrowError("Application not found.", 404);
         }
 
+        if(!await dbContext.ApplicationEnvironments.AnyAsync(environment => environment.ApplicationId == req.ApplicationId && environment.Id == req.EnvironmentId, ct))
+        {
+            ThrowError("Environment not found.", 404);
+        }
+
         if(!await dbContext.RpcProviders.AnyAsync(provider => provider.Id == req.ProviderId, ct))
         {
             ThrowError("RPC provider not found.", 404);
@@ -71,7 +74,7 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request>
         {
             Id = Guid.NewGuid(),
             ApplicationId = req.ApplicationId,
-            Environment = req.Environment!.Value,
+            EnvironmentId = req.EnvironmentId,
             Chain = req.Chain,
             Address = req.Address,
             ProviderId = req.ProviderId,

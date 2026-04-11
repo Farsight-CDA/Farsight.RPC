@@ -1,24 +1,29 @@
 import { useParams } from "@solidjs/router";
 import {
+  Show,
   createContext,
   createEffect,
   createMemo,
   createSignal,
   untrack,
   useContext,
-  Show,
   type Accessor,
   type ParentProps,
+  type Setter,
 } from "solid-js";
 import LoadingSpinner from "../components/LoadingSpinner";
 import { useAuth } from "./auth";
-import { useReferenceData } from "./reference-data";
 
 type LoadState = "idle" | "pending" | "refreshing" | "ready" | "errored";
 
+export type ApplicationEnvironmentSummary = {
+  id: string;
+  name: string;
+};
+
 export type ConsumerApiKeySummary = {
   id: string;
-  environment: string;
+  environmentId: string;
   key: string;
   lastUsedAt?: string;
 };
@@ -26,7 +31,7 @@ export type ConsumerApiKeySummary = {
 export type ApplicationRpc = {
   id: string;
   type: "Realtime" | "Archive" | "Tracing";
-  environment: string;
+  environmentId: string;
   chain: string;
   address: string;
   providerId: string;
@@ -40,6 +45,7 @@ export type ApplicationRpc = {
 type ApplicationDetail = {
   id: string;
   name: string;
+  environments: ApplicationEnvironmentSummary[];
   apiKeys: ConsumerApiKeySummary[];
   structures: string[];
 };
@@ -52,12 +58,16 @@ type ListController<T> = {
 
 type ApplicationDataContextValue = {
   applicationId: Accessor<string | undefined>;
+  environments: ListController<ApplicationEnvironmentSummary>;
+  selectedEnvironmentId: Accessor<string | undefined>;
+  setSelectedEnvironmentId: Setter<string | undefined>;
   apiKeys: ListController<ConsumerApiKeySummary>;
   rpcs: ListController<ApplicationRpc>;
   rpcsByEnvironment: Accessor<Record<string, ApplicationRpc[]>>;
   structures: ListController<string>;
   refreshDetail: () => Promise<void>;
   refreshApiKeys: () => Promise<void>;
+  refreshEnvironments: () => Promise<void>;
   refreshStructures: () => Promise<void>;
   refreshRpcs: () => Promise<void>;
   refresh: () => Promise<void>;
@@ -98,13 +108,17 @@ async function fetchApplicationDetail(
 
 export function ApplicationDataProvider(props: ParentProps) {
   const auth = useAuth();
-  const referenceData = useReferenceData();
   const params = useParams();
   const applicationId = () => params.applicationId;
 
-  const environments = referenceData.hostEnvironments.data;
-  const environmentsState = referenceData.hostEnvironments.state;
-  const environmentsError = referenceData.hostEnvironments.error;
+  const [environments, setEnvironments] = createSignal<
+    ApplicationEnvironmentSummary[]
+  >([]);
+  const [environmentsState, setEnvironmentsState] =
+    createSignal<LoadState>("idle");
+  const [environmentsError, setEnvironmentsError] = createSignal<Error | null>(
+    null,
+  );
 
   const [apiKeys, setApiKeys] = createSignal<ConsumerApiKeySummary[]>([]);
   const [apiKeysState, setApiKeysState] = createSignal<LoadState>("idle");
@@ -125,7 +139,15 @@ export function ApplicationDataProvider(props: ParentProps) {
   let activeRpcsLoad: Promise<void> | null = null;
   let activeRpcsLoadKey: string | null = null;
 
+  const [selectedEnvironmentId, setSelectedEnvironmentId] = createSignal<
+    string | undefined
+  >(undefined);
+
   const clearDetail = () => {
+    setSelectedEnvironmentId(undefined);
+    setEnvironments([]);
+    setEnvironmentsState("idle");
+    setEnvironmentsError(null);
     setApiKeys([]);
     setApiKeysState("idle");
     setApiKeysError(null);
@@ -161,6 +183,10 @@ export function ApplicationDataProvider(props: ParentProps) {
     }
 
     const isRefresh = loadedDetailKey() === requestKey;
+    setEnvironmentsState(
+      environments().length > 0 && isRefresh ? "refreshing" : "pending",
+    );
+    setEnvironmentsError(null);
     setApiKeysState(
       apiKeys().length > 0 && isRefresh ? "refreshing" : "pending",
     );
@@ -174,6 +200,8 @@ export function ApplicationDataProvider(props: ParentProps) {
     activeDetailLoad = (async () => {
       try {
         const detail = await fetchApplicationDetail(id, token);
+        setEnvironments(detail.environments);
+        setEnvironmentsState("ready");
         setApiKeys(detail.apiKeys);
         setApiKeysState("ready");
         setStructures(detail.structures);
@@ -184,6 +212,8 @@ export function ApplicationDataProvider(props: ParentProps) {
           error instanceof Error
             ? error
             : new Error("Failed to load application");
+        setEnvironmentsError(err);
+        setEnvironmentsState("errored");
         setApiKeysError(err);
         setApiKeysState("errored");
         setStructuresError(err);
@@ -200,6 +230,7 @@ export function ApplicationDataProvider(props: ParentProps) {
   };
 
   const refreshApiKeys = refreshDetail;
+  const refreshEnvironments = refreshDetail;
   const refreshStructures = refreshDetail;
 
   const refreshRpcs = async () => {
@@ -226,8 +257,10 @@ export function ApplicationDataProvider(props: ParentProps) {
       return;
     }
 
-    const envs = environments();
-    const requestKey = `${token}:${id}:${envs.join("|")}`;
+    const availableEnvironments = environments();
+    const requestKey = `${token}:${id}:${availableEnvironments
+      .map((environment) => environment.id)
+      .join("|")}`;
     if (activeRpcsLoad && activeRpcsLoadKey === requestKey) {
       return activeRpcsLoad;
     }
@@ -236,13 +269,20 @@ export function ApplicationDataProvider(props: ParentProps) {
     setRpcsState(rpcs().length > 0 && isRefresh ? "refreshing" : "pending");
     setRpcsError(null);
 
+    if (availableEnvironments.length === 0) {
+      setRpcs([]);
+      setRpcsState("ready");
+      setLoadedRpcsKey(requestKey);
+      return;
+    }
+
     activeRpcsLoadKey = requestKey;
     activeRpcsLoad = (async () => {
       try {
         const rpcGroups = await Promise.all(
-          envs.map((environment) =>
+          availableEnvironments.map((environment) =>
             fetchApplicationList<ApplicationRpc>(
-              `/api/Applications/${id}/Rpcs/${encodeURIComponent(environment)}`,
+              `/api/Applications/${id}/Rpcs/${encodeURIComponent(environment.id)}`,
               token,
               "Failed to load RPCs",
             ),
@@ -275,6 +315,27 @@ export function ApplicationDataProvider(props: ParentProps) {
   createEffect(() => {
     const token = auth.token;
     const id = applicationId();
+    const envs = environments();
+    const selected = selectedEnvironmentId();
+    const detailKey = loadedDetailKey();
+
+    if (!token || !id || detailKey !== `${token}:${id}`) {
+      return;
+    }
+
+    if (envs.length > 0 && !envs.some((item) => item.id === selected)) {
+      setSelectedEnvironmentId(envs[0].id);
+      return;
+    }
+
+    if (envs.length === 0 && selected) {
+      setSelectedEnvironmentId(undefined);
+    }
+  });
+
+  createEffect(() => {
+    const token = auth.token;
+    const id = applicationId();
 
     if (!token || !id) {
       clear();
@@ -292,7 +353,7 @@ export function ApplicationDataProvider(props: ParentProps) {
     const id = applicationId();
     const envState = environmentsState();
     const envError = environmentsError();
-    const envs = environments();
+    const environmentIds = environments().map((environment) => environment.id);
 
     if (!token || !id) {
       clearRpcs();
@@ -313,7 +374,7 @@ export function ApplicationDataProvider(props: ParentProps) {
       return;
     }
 
-    const requestKey = `${token}:${id}:${envs.join("|")}`;
+    const requestKey = `${token}:${id}:${environmentIds.join("|")}`;
     if (loadedRpcsKey() !== requestKey) {
       void untrack(refreshRpcs);
     }
@@ -322,10 +383,10 @@ export function ApplicationDataProvider(props: ParentProps) {
   const rpcsByEnvironment = createMemo(() => {
     const grouped: Record<string, ApplicationRpc[]> = {};
     for (const rpc of rpcs()) {
-      if (!grouped[rpc.environment]) {
-        grouped[rpc.environment] = [];
+      if (!grouped[rpc.environmentId]) {
+        grouped[rpc.environmentId] = [];
       }
-      grouped[rpc.environment].push(rpc);
+      grouped[rpc.environmentId].push(rpc);
     }
     return grouped;
   });
@@ -336,11 +397,22 @@ export function ApplicationDataProvider(props: ParentProps) {
     if (!token || !id) {
       return false;
     }
-    return apiKeysState() === "pending" && apiKeys().length === 0;
+    return (
+      environmentsState() === "pending" &&
+      apiKeysState() === "pending" &&
+      structuresState() === "pending"
+    );
   });
 
   const value: ApplicationDataContextValue = {
     applicationId,
+    environments: {
+      data: environments,
+      state: environmentsState,
+      error: environmentsError,
+    },
+    selectedEnvironmentId,
+    setSelectedEnvironmentId,
     apiKeys: {
       data: apiKeys,
       state: apiKeysState,
@@ -359,6 +431,7 @@ export function ApplicationDataProvider(props: ParentProps) {
     },
     refreshDetail,
     refreshApiKeys,
+    refreshEnvironments,
     refreshStructures,
     refreshRpcs,
     refresh,

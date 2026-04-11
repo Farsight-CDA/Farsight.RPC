@@ -23,20 +23,24 @@ internal sealed class ConsumerApplicationEFConfiguration : IEntityTypeConfigurat
         entity.Property(x => x.Name)
             .UseCollation(AppDbContext.NAME_CASE_INSENSITIVE_COLLATION);
 
-        entity.HasMany(x => x.ApiKeys)
-            .WithOne(x => x.Application)
-            .HasForeignKey(x => x.ApplicationId);
-
-        entity.HasMany(x => x.Rpcs)
-            .WithOne(x => x.Application)
-            .HasForeignKey(x => x.ApplicationId);
-
         entity.Property(x => x.Structures)
             .HasConversion(
                 values => values.Select(value => value.ToString()).ToArray(),
                 values => values.Select(Enum.Parse<RpcStructureType>).ToArray(),
                 _structuresComparer)
             .HasColumnType("text[]");
+
+        entity.HasMany(x => x.ApiKeys)
+            .WithOne(x => x.Application)
+            .HasForeignKey(x => x.ApplicationId);
+
+        entity.HasMany(x => x.Environments)
+            .WithOne(x => x.Application)
+            .HasForeignKey(x => x.ApplicationId);
+
+        entity.HasMany(x => x.Rpcs)
+            .WithOne(x => x.Application)
+            .HasForeignKey(x => x.ApplicationId);
 
         entity.ToTable("ConsumerApplications");
     }

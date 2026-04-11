@@ -1,20 +1,19 @@
 using Farsight.Rpc.Api.Auth;
 using Farsight.Rpc.Api.Persistence;
 using Farsight.Rpc.Api.Validation;
-using Farsight.Rpc.Types;
 using FastEndpoints;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 
-namespace Farsight.Rpc.Api.Endpoints.Applications;
+namespace Farsight.Rpc.Api.Endpoints.Applications.Environments;
 
 public sealed class PUT(AppDbContext dbContext) : Endpoint<PUT.Request>
 {
     public sealed record Request(
         [property: RouteParam] Guid ApplicationId,
-        string Name,
-        RpcStructureType[]? Structures
+        [property: RouteParam] Guid EnvironmentId,
+        string Name
     );
 
     public sealed class Validator : Validator<Request>
@@ -22,40 +21,31 @@ public sealed class PUT(AppDbContext dbContext) : Endpoint<PUT.Request>
         public Validator()
         {
             RuleFor(x => x.Name).ApplyNameValidation();
-
-            RuleForEach(x => x.Structures)
-                .IsInEnum()
-                .WithMessage("Invalid structure value.");
         }
     }
 
     public override void Configure()
     {
-        Put("/api/Applications/{ApplicationId}");
+        Put("/api/Applications/{ApplicationId}/Environments/{EnvironmentId}");
         Roles(AuthRoles.ADMIN);
     }
 
     public override async Task HandleAsync(Request req, CancellationToken ct)
     {
-        var application = await dbContext.ConsumerApplications
-            .SingleOrDefaultAsync(a => a.Id == req.ApplicationId, ct);
+        var environment = await dbContext.ApplicationEnvironments
+            .SingleOrDefaultAsync(environment => environment.ApplicationId == req.ApplicationId && environment.Id == req.EnvironmentId, ct);
 
-        if(application is null)
+        if(environment is null)
         {
-            ThrowError("Application not found.", 404);
+            ThrowError("Environment not found.", 404);
         }
 
-        if(await dbContext.ConsumerApplications.AnyAsync(a => a.Id != req.ApplicationId && a.Name == req.Name, ct))
+        if(await dbContext.ApplicationEnvironments.AnyAsync(existingEnvironment => existingEnvironment.ApplicationId == req.ApplicationId && existingEnvironment.Id != req.EnvironmentId && existingEnvironment.Name == req.Name, ct))
         {
-            ThrowError("An application with this name already exists.", 409);
+            ThrowError("An environment with this name already exists.", 409);
         }
 
-        application.Name = req.Name;
-
-        if(req.Structures is not null)
-        {
-            application.Structures = [.. req.Structures.Distinct()];
-        }
+        environment.Name = req.Name;
 
         try
         {
@@ -63,8 +53,9 @@ public sealed class PUT(AppDbContext dbContext) : Endpoint<PUT.Request>
         }
         catch(DbUpdateException ex) when(ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation })
         {
-            ThrowError("An application with this name already exists.", 409);
+            ThrowError("An environment with this name already exists.", 409);
         }
+
         await Send.NoContentAsync(ct);
     }
 }

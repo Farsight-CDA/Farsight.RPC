@@ -10,12 +10,13 @@ internal sealed class RpcEFConfiguration : IEntityTypeConfiguration<RpcEndpoint>
     public void Configure(EntityTypeBuilder<RpcEndpoint> entity)
     {
         entity.HasKey(x => x.Id);
-        entity.HasIndex(x => new { x.ApplicationId, x.Environment });
+        entity.HasIndex(x => new { x.ApplicationId, x.EnvironmentId });
         entity.HasIndex(x => x.ProviderId);
+        entity.HasIndex(x => x.EnvironmentId);
 
         entity.Property(x => x.Id);
 
-        entity.Property(x => x.Environment);
+        entity.Property(x => x.EnvironmentId);
         entity.Property(x => x.Chain)
             .HasMaxLength(30);
 

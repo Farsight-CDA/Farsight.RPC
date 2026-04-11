@@ -34,7 +34,6 @@ export type ReferenceDataSnapshot = {
   applications: ApplicationSummary[];
   rpcProviders: RpcProviderSummary[];
   chains: string[];
-  hostEnvironments: string[];
   rpcStructures: RpcStructureDefinition[];
 };
 
@@ -48,7 +47,6 @@ type ReferenceDataContextValue = {
   applications: ListController<ApplicationSummary>;
   rpcProviders: ListController<RpcProviderSummary>;
   chains: ListController<string>;
-  hostEnvironments: ListController<string>;
   rpcStructures: ListController<RpcStructureDefinition>;
   isReferenceDataReady: Accessor<boolean>;
   load: (token?: string | null) => Promise<void>;
@@ -78,7 +76,7 @@ async function fetchReferenceList<T>(
 export async function preloadReferenceData(
   token: string,
 ): Promise<ReferenceDataSnapshot> {
-  const [applications, rpcProviders, chains, hostEnvironments, rpcStructures] =
+  const [applications, rpcProviders, chains, rpcStructures] =
     await Promise.all([
       fetchReferenceList<ApplicationSummary>(
         "/api/Applications",
@@ -91,11 +89,6 @@ export async function preloadReferenceData(
         "Failed to load RPC providers",
       ),
       fetchReferenceList<string>("/api/Chains", token, "Failed to load chains"),
-      fetchReferenceList<string>(
-        "/api/HostEnvironments",
-        token,
-        "Failed to load environments",
-      ),
       fetchReferenceList<RpcStructureDefinition>(
         "/api/RpcStructures",
         token,
@@ -107,7 +100,6 @@ export async function preloadReferenceData(
     applications,
     rpcProviders,
     chains,
-    hostEnvironments,
     rpcStructures,
   };
 }
@@ -150,14 +142,6 @@ export function ReferenceDataProvider(props: ReferenceDataProviderProps) {
   );
   const [chainsError, setChainsError] = createSignal<Error | null>(null);
 
-  const [hostEnvironments, setHostEnvironments] = createSignal(
-    initialData?.hostEnvironments ?? [],
-  );
-  const [hostEnvironmentsState, setHostEnvironmentsState] =
-    createSignal<LoadState>(initialData ? "ready" : "idle");
-  const [hostEnvironmentsError, setHostEnvironmentsError] =
-    createSignal<Error | null>(null);
-
   const [rpcStructures, setRpcStructures] = createSignal<RpcStructureDefinition[]>(
     initialData?.rpcStructures ?? [],
   );
@@ -182,9 +166,6 @@ export function ReferenceDataProvider(props: ReferenceDataProviderProps) {
     setChains([]);
     setChainsState("idle");
     setChainsError(null);
-    setHostEnvironments([]);
-    setHostEnvironmentsState("idle");
-    setHostEnvironmentsError(null);
     setRpcStructures([]);
     setRpcStructuresState("idle");
     setRpcStructuresError(null);
@@ -211,10 +192,6 @@ export function ReferenceDataProvider(props: ReferenceDataProviderProps) {
     setRpcProvidersError(null);
     setChainsState(chains().length > 0 && isRefresh ? "refreshing" : "pending");
     setChainsError(null);
-    setHostEnvironmentsState(
-      hostEnvironments().length > 0 && isRefresh ? "refreshing" : "pending",
-    );
-    setHostEnvironmentsError(null);
     setRpcStructuresState(
       rpcStructures().length > 0 && isRefresh ? "refreshing" : "pending",
     );
@@ -226,7 +203,6 @@ export function ReferenceDataProvider(props: ReferenceDataProviderProps) {
         applicationsResult,
         rpcProvidersResult,
         chainsResult,
-        hostEnvironmentsResult,
         rpcStructuresResult,
       ] = await Promise.allSettled([
         fetchReferenceList<ApplicationSummary>(
@@ -243,11 +219,6 @@ export function ReferenceDataProvider(props: ReferenceDataProviderProps) {
           "/api/Chains",
           token,
           "Failed to load chains",
-        ),
-        fetchReferenceList<string>(
-          "/api/HostEnvironments",
-          token,
-          "Failed to load environments",
         ),
         fetchReferenceList<RpcStructureDefinition>(
           "/api/RpcStructures",
@@ -290,18 +261,6 @@ export function ReferenceDataProvider(props: ReferenceDataProviderProps) {
             : new Error("Failed to load chains"),
         );
         setChainsState("errored");
-      }
-
-      if (hostEnvironmentsResult.status === "fulfilled") {
-        setHostEnvironments(hostEnvironmentsResult.value);
-        setHostEnvironmentsState("ready");
-      } else {
-        setHostEnvironmentsError(
-          hostEnvironmentsResult.reason instanceof Error
-            ? hostEnvironmentsResult.reason
-            : new Error("Failed to load environments"),
-        );
-        setHostEnvironmentsState("errored");
       }
 
       if (rpcStructuresResult.status === "fulfilled") {
@@ -428,11 +387,6 @@ export function ReferenceDataProvider(props: ReferenceDataProviderProps) {
       data: chains,
       state: chainsState,
       error: chainsError,
-    },
-    hostEnvironments: {
-      data: hostEnvironments,
-      state: hostEnvironmentsState,
-      error: hostEnvironmentsError,
     },
     rpcStructures: {
       data: rpcStructures,

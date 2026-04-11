@@ -11,7 +11,7 @@ public sealed class PUT(AppDbContext dbContext) : Endpoint<PUT.Request>
 {
     public sealed record Request(
         [property: RouteParam] Guid ApplicationId,
-        [property: RouteParam] Guid Id,
+        [property: RouteParam] Guid RpcId,
         Uri Address,
         Guid ProviderId,
         ulong IndexerStepSize,
@@ -46,7 +46,7 @@ public sealed class PUT(AppDbContext dbContext) : Endpoint<PUT.Request>
 
     public override void Configure()
     {
-        Put("/api/Applications/{ApplicationId}/Rpcs/Archive/{Id}");
+        Put("/api/Applications/{ApplicationId}/Rpcs/Archive/{RpcId}");
         Roles(AuthRoles.ADMIN);
     }
 
@@ -58,7 +58,7 @@ public sealed class PUT(AppDbContext dbContext) : Endpoint<PUT.Request>
         }
 
         int updatedRows = await dbContext.ArchiveRpcs
-            .Where(rpc => rpc.ApplicationId == req.ApplicationId && rpc.Id == req.Id)
+            .Where(rpc => rpc.ApplicationId == req.ApplicationId && rpc.Id == req.RpcId)
             .ExecuteUpdateAsync(setters => setters
                 .SetProperty(rpc => rpc.Address, req.Address)
                 .SetProperty(rpc => rpc.ProviderId, req.ProviderId)

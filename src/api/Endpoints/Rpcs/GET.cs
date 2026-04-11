@@ -42,7 +42,7 @@ public sealed class GET(AppDbContext dbContext) : Endpoint<GET.Request, ApiKeyRp
 
         var rpcs = await dbContext.Rpcs
             .AsNoTracking()
-            .Where(rpc => rpc.ApplicationId == key!.ApplicationId && rpc.Environment == key.Environment)
+            .Where(rpc => rpc.ApplicationId == key.ApplicationId && rpc.EnvironmentId == key.EnvironmentId)
             .OrderBy(rpc => rpc.Chain)
             .ThenBy(rpc => EF.Property<string>(rpc, "RpcType"))
             .ThenBy(rpc => rpc.Id)

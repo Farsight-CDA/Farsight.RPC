@@ -116,6 +116,12 @@ export default function ApplicationRpcsPage() {
   const appStructures = applicationData.structures.data;
 
   const environment = useEnvironment();
+  const selectedEnvironment = createMemo(
+    () =>
+      environment
+        .environments()
+        .find((item) => item.id === environment.selectedEnvironmentId()) ?? null,
+  );
   const [filterText, setFilterText] = createSignal("");
   const [activeChain, setActiveChain] = createSignal<string | null>(null);
   const [onlyChainsWithRpcs, setOnlyChainsWithRpcs] = createSignal(false);
@@ -180,15 +186,15 @@ export default function ApplicationRpcsPage() {
 
   const getChainRpcs = (chain: string, environment: string) => {
     return rpcs().filter(
-      (rpc) => rpc.chain === chain && rpc.environment === environment,
+      (rpc) => rpc.chain === chain && rpc.environmentId === environment,
     );
   };
 
   const chainRpcCounts = createMemo(() => {
-    const env = environment.selectedEnvironment() || "";
+    const env = environment.selectedEnvironmentId() || "";
     const counts: Record<string, number> = {};
     for (const rpc of rpcs()) {
-      if (rpc.environment === env) {
+      if (rpc.environmentId === env) {
         counts[rpc.chain] = (counts[rpc.chain] ?? 0) + 1;
       }
     }
@@ -223,7 +229,7 @@ export default function ApplicationRpcsPage() {
 
   const activeChainRpcs = createMemo(() => {
     const chain = activeChain();
-    const env = environment.selectedEnvironment() || "";
+    const env = environment.selectedEnvironmentId() || "";
     if (!chain) return [];
     return getChainRpcs(chain, env);
   });
@@ -232,7 +238,7 @@ export default function ApplicationRpcsPage() {
 
   const getChainTypeCounts = (chain: string, env: string): Record<string, number> => {
     const chainRpcs = rpcs().filter(
-      (rpc) => rpc.chain === chain && rpc.environment === env,
+      (rpc) => rpc.chain === chain && rpc.environmentId === env,
     );
     const counts: Record<string, number> = {};
     for (const rpc of chainRpcs) {
@@ -259,7 +265,7 @@ export default function ApplicationRpcsPage() {
   };
 
   const chainStructureStatuses = createMemo(() => {
-    const env = environment.selectedEnvironment() || "";
+    const env = environment.selectedEnvironmentId() || "";
     const supported = appStructures();
     const definitions = rpcStructures();
     const statuses: Record<string, ChainStructureStatus> = {};
@@ -288,7 +294,7 @@ export default function ApplicationRpcsPage() {
 
   const activeChainMatchedStructure = createMemo(() => {
     const chain = activeChain();
-    const env = environment.selectedEnvironment() || "";
+    const env = environment.selectedEnvironmentId() || "";
     if (!chain) return null;
 
     const supported = appStructures();
@@ -306,7 +312,7 @@ export default function ApplicationRpcsPage() {
 
   const activeChainMismatchInfo = createMemo(() => {
     const chain = activeChain();
-    const env = environment.selectedEnvironment() || "";
+    const env = environment.selectedEnvironmentId() || "";
     if (!chain) return null;
 
     const supported = appStructures();
@@ -484,7 +490,7 @@ export default function ApplicationRpcsPage() {
     e.preventDefault();
     const token = auth.token;
     const app = applicationId();
-    const env = environment.selectedEnvironment();
+    const env = environment.selectedEnvironmentId();
     const providerId = newRpcProviderId();
     const chain = selectedChainForRpc();
     const rpcType = newRpcType();
@@ -507,7 +513,7 @@ export default function ApplicationRpcsPage() {
     }
 
     const body: Record<string, number | string> = {
-      environment: env,
+      environmentId: env,
       chain,
       address,
       providerId,
@@ -716,6 +722,23 @@ export default function ApplicationRpcsPage() {
           when={
             !chainsError() &&
             !rpcsError() &&
+            environment.environmentsState() === "ready" &&
+            environment.environments().length === 0
+          }
+        >
+          <div class="flex flex-col items-center justify-center gap-4 border border-dashed border-b-border/50 bg-b-field/30 py-16">
+            <EmptyStateIcon class="size-12 text-b-ink/20" />
+            <p class="text-center text-sm font-semibold uppercase tracking-wider text-b-ink/50">
+              Add an environment before configuring RPCs.
+            </p>
+          </div>
+        </Show>
+
+        <Show
+          when={
+            !chainsError() &&
+            !rpcsError() &&
+            environment.environments().length > 0 &&
             (chainsState() === "ready" || chainsState() === "refreshing") &&
             (rpcsState() === "ready" || rpcsState() === "refreshing")
           }
@@ -821,7 +844,7 @@ export default function ApplicationRpcsPage() {
                       </h2>
                       <p class="mt-1 text-[0.65rem] font-bold uppercase tracking-widest text-b-ink/45">
                         {activeChainRpcs().length} RPC
-                        {activeChainRpcs().length !== 1 ? "s" : ""} · {environment.selectedEnvironment()}
+                        {activeChainRpcs().length !== 1 ? "s" : ""} · {selectedEnvironment()?.name}
                       </p>
                     </div>
                     <button
@@ -830,7 +853,13 @@ export default function ApplicationRpcsPage() {
                         const ch = activeChain();
                         if (ch) openCreateRpcModal(ch);
                       }}
-                      disabled={providersState() === "pending" || createRpcLoading() || deleteRpcLoading() || editRpcLoading()}
+                      disabled={
+                        providersState() === "pending" ||
+                        createRpcLoading() ||
+                        deleteRpcLoading() ||
+                        editRpcLoading() ||
+                        !selectedEnvironment()
+                      }
                       class="btn btn-sm btn-interactive btn-disabled btn-primary shrink-0 self-start sm:self-center"
                     >
                       <PlusIcon class="size-4" />
@@ -970,6 +999,7 @@ export default function ApplicationRpcsPage() {
           when={
             !chainsError() &&
             !rpcsError() &&
+            environment.environments().length > 0 &&
             (chainsState() === "ready" || chainsState() === "refreshing") &&
             availableChains().length === 0
           }
@@ -986,6 +1016,7 @@ export default function ApplicationRpcsPage() {
           when={
             !chainsError() &&
             !rpcsError() &&
+            environment.environments().length > 0 &&
             (chainsState() === "ready" || chainsState() === "refreshing") &&
             availableChains().length > 0 &&
             filteredChains().length === 0
@@ -1023,7 +1054,7 @@ export default function ApplicationRpcsPage() {
               New RPC
             </h3>
             <p class="mb-6 text-xs font-bold uppercase tracking-widest text-b-ink/50">
-              {selectedChainForRpc()} / {environment.selectedEnvironment()}
+              {selectedChainForRpc()} / {selectedEnvironment()?.name}
             </p>
 
             <form onSubmit={handleCreateRpc} class="flex flex-col gap-6">

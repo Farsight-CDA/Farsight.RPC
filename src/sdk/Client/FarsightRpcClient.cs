@@ -16,8 +16,8 @@ internal sealed class FarsightRpcClient(IHttpClientFactory httpClientFactory, Fa
 
         switch(response.StatusCode)
         {
-            case HttpStatusCode.NotFound:
-                return GetRpcsResult.NotFound.Instance;
+            case HttpStatusCode.Forbidden:
+                return GetRpcsResult.InvalidApiKey.Instance;
             case HttpStatusCode.OK:
                 var result = await response.Content.ReadFromJsonAsync<ApiKeyRpcsDto>(_options.SerializerOptions, cancellationToken)
                     ?? throw new InvalidOperationException("Null response");

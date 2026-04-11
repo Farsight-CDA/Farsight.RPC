@@ -19,9 +19,9 @@ public partial interface IFarsightRpcClient
         /// <summary>
         /// Represents a response where the provided API key was not found.
         /// </summary>
-        public sealed record NotFound : GetRpcsResult
+        public sealed record InvalidApiKey : GetRpcsResult
         {
-            internal static NotFound Instance { get; } = new();
+            internal static InvalidApiKey Instance { get; } = new();
         }
     }
 

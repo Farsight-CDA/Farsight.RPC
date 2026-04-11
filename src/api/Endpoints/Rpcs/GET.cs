@@ -37,19 +37,14 @@ public sealed class GET(AppDbContext dbContext) : Endpoint<GET.Request, ApiKeyRp
 
         if(key is null)
         {
-            ThrowError("API key not found.", 404);
+            ThrowError("API key not found.", 403);
         }
 
-        string[]? activeChains = await dbContext.ApplicationEnvironments
+        string[] activeChains = await dbContext.ApplicationEnvironments
             .AsNoTracking()
             .Where(environment => environment.ApplicationId == key.ApplicationId && environment.Id == key.EnvironmentId)
             .Select(environment => environment.Chains)
-            .SingleOrDefaultAsync(ct);
-
-        if(activeChains is null)
-        {
-            ThrowError("Environment not found.", 404);
-        }
+            .SingleAsync(ct);
 
         var rpcs = await dbContext.Rpcs
             .AsNoTracking()

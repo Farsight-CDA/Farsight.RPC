@@ -1,4 +1,4 @@
-import { createEffect, createMemo, createSignal, Show } from "solid-js";
+import { createMemo, createSignal, Show } from "solid-js";
 import { useNavigate, useParams } from "@solidjs/router";
 import LoadingSpinner from "../components/LoadingSpinner";
 import PencilIcon from "../components/icons/PencilIcon";
@@ -44,27 +44,36 @@ export default function ApplicationGeneralPage() {
     () => applications().find((app) => app.id === applicationId()) ?? null,
   );
 
-  const [renameName, setRenameName] = createSignal("");
+  const [isEditingName, setIsEditingName] = createSignal(false);
+  const [editingName, setEditingName] = createSignal("");
   const [renameError, setRenameError] = createSignal<string | null>(null);
   const [renameLoading, setRenameLoading] = createSignal(false);
 
   const [deleteError, setDeleteError] = createSignal<string | null>(null);
   const [deleteLoading, setDeleteLoading] = createSignal(false);
 
-  createEffect(() => {
-    setRenameName(application()?.name ?? "");
-  });
+  const startEditingName = () => {
+    setRenameError(null);
+    setEditingName(application()?.name ?? "");
+    setIsEditingName(true);
+  };
 
-  const handleRename = async (e: SubmitEvent) => {
-    e.preventDefault();
+  const handleRename = async () => {
     const token = auth.token;
     const app = application();
     if (!token || !app) return;
 
-    const name = renameName();
+    const name = editingName();
     const validationError = validateName(name);
     if (validationError) {
       setRenameError(validationError);
+      return;
+    }
+
+    // Skip API call if name hasn't changed
+    if (app.name === name) {
+      setIsEditingName(false);
+      setEditingName("");
       return;
     }
 
@@ -84,6 +93,8 @@ export default function ApplicationGeneralPage() {
           await readErrorMessage(response, "Failed to rename application"),
         );
       }
+      setIsEditingName(false);
+      setEditingName("");
       await referenceData.refreshApplications();
     } catch (err) {
       setRenameError(
@@ -133,64 +144,84 @@ export default function ApplicationGeneralPage() {
               </div>
               <div>
                 <h2 class="font-['Anton',sans-serif] text-xl uppercase tracking-wide text-b-ink">
-                  Rename Application
+                  General Settings
                 </h2>
                 <p class="text-xs font-bold uppercase tracking-widest text-b-ink/50">
-                  Change the display name
+                  Manage application name and deletion
                 </p>
               </div>
             </div>
           </div>
 
           <div class="p-6">
-            <form onSubmit={handleRename} class="flex flex-col gap-4">
-              <div class="flex flex-col gap-2">
-                <label
-                  for="rename-app-name"
-                  class="mb-2 block text-xs font-bold uppercase tracking-widest text-b-ink/70"
-                >
-                  Application Name
-                </label>
-                <div class="flex flex-col gap-2 sm:flex-row sm:items-start">
-                  <div class="flex-1">
-                    <input
-                      id="rename-app-name"
-                      type="text"
-                      required
-                      pattern={nameValidationPattern}
-                      value={renameName()}
-                      onInput={(e) => {
-                        setRenameName(e.currentTarget.value);
-                        setRenameError(null);
-                      }}
-                      class="h-11 w-full border border-b-border bg-b-paper px-4 text-sm font-semibold text-b-ink placeholder:text-b-ink/25 outline-none focus-visible:border-b-accent/50 focus-visible:ring-2 focus-visible:ring-b-accent/20 hover:border-b-border-hover transition-all duration-200"
-                      placeholder="MY APPLICATION"
-                      title={nameValidationHint}
-                      autocomplete="off"
-                    />
-                    <p class="mt-2 text-xs font-semibold uppercase tracking-wider text-b-ink/40">
-                      {nameValidationHint}
+            <Show
+              when={!isEditingName()}
+              fallback={
+                <div class="flex flex-col gap-3">
+                  <label class="text-xs font-bold uppercase tracking-widest text-b-ink/70">
+                    Application Name
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    pattern={nameValidationPattern}
+                    value={editingName()}
+                    onInput={(e) => {
+                      setEditingName(e.currentTarget.value);
+                      setRenameError(null);
+                    }}
+                    class="h-11 w-full border border-b-border bg-b-paper px-4 text-sm font-semibold text-b-ink placeholder:text-b-ink/25 outline-none focus-visible:border-b-accent/50 focus-visible:ring-2 focus-visible:ring-b-accent/20 hover:border-b-border-hover transition-all duration-200"
+                    placeholder="MY_APPLICATION"
+                    title={nameValidationHint}
+                    autocomplete="off"
+                  />
+                  <p class="text-xs font-semibold uppercase tracking-wider text-b-ink/40">
+                    {nameValidationHint}
+                  </p>
+                  <Show when={renameError()}>
+                    <p class="border border-red-500/40 bg-red-500/10 px-3 py-3 text-xs font-bold uppercase leading-snug text-red-400">
+                      {renameError()}
                     </p>
+                  </Show>
+                  <div class="flex flex-col gap-3 sm:flex-row sm:justify-end">
+                    <button
+                      type="button"
+                      onClick={() => void handleRename()}
+                      disabled={renameLoading()}
+                      class="btn btn-md btn-interactive btn-disabled btn-primary"
+                    >
+                      <Show when={renameLoading()}>
+                        <LoadingSpinner class="size-3.5 text-b-paper" />
+                      </Show>
+                      {renameLoading()
+                        ? "Saving…"
+                        : application()?.name === editingName()
+                          ? "Cancel"
+                          : "Save"}
+                    </button>
                   </div>
-                  <button
-                    type="submit"
-                    disabled={renameLoading()}
-                    class="btn btn-md btn-interactive btn-disabled btn-primary h-11"
-                  >
-                    <Show when={renameLoading()}>
-                      <LoadingSpinner class="size-3.5 text-b-paper" />
-                    </Show>
-                    {renameLoading() ? "Saving…" : "Rename"}
-                  </button>
                 </div>
+              }
+            >
+              <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p class="text-xs font-bold uppercase tracking-widest text-b-ink/50 mb-1">
+                    Application Name
+                  </p>
+                  <p class="font-['Anton',sans-serif] text-2xl uppercase tracking-wide text-b-ink">
+                    {application()?.name}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={startEditingName}
+                  disabled={renameLoading() || deleteLoading()}
+                  class="btn btn-md btn-interactive btn-disabled btn-secondary shrink-0"
+                >
+                  Rename
+                </button>
               </div>
-
-              <Show when={renameError()}>
-                <p class="border border-red-500/40 bg-red-500/10 px-3 py-3 text-xs font-bold uppercase leading-snug text-red-400">
-                  {renameError()}
-                </p>
-              </Show>
-            </form>
+            </Show>
           </div>
         </section>
 
@@ -213,7 +244,7 @@ export default function ApplicationGeneralPage() {
               <button
                 type="button"
                 onClick={() => setDeleteLoading(true)}
-                disabled={deleteLoading()}
+                disabled={deleteLoading() || isEditingName()}
                 class="btn btn-md btn-interactive btn-disabled btn-danger"
               >
                 <Show when={deleteLoading()}>

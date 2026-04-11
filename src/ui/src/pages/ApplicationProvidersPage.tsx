@@ -181,6 +181,14 @@ export default function ApplicationProvidersPage() {
       return;
     }
 
+    // Skip API call if name hasn't changed
+    const provider = providers().find((p) => p.id === providerId);
+    if (provider && provider.name === name) {
+      setEditingProviderId(null);
+      setEditingProviderName("");
+      return;
+    }
+
     setEditProviderError(null);
     setEditProviderLoading(true);
     try {
@@ -310,14 +318,6 @@ export default function ApplicationProvidersPage() {
                               <div class="flex flex-col gap-3 sm:flex-row sm:justify-end">
                                 <button
                                   type="button"
-                                  onClick={cancelEditingProvider}
-                                  disabled={editProviderLoading()}
-                                  class="btn btn-md btn-interactive btn-disabled btn-secondary"
-                                >
-                                  Cancel
-                                </button>
-                                <button
-                                  type="button"
                                   onClick={() =>
                                     void handleRenameProvider(provider.id)
                                   }
@@ -327,7 +327,11 @@ export default function ApplicationProvidersPage() {
                                   <Show when={editProviderLoading()}>
                                     <LoadingSpinner class="size-3.5 text-b-paper" />
                                   </Show>
-                                  {editProviderLoading() ? "Saving…" : "Save"}
+                                  {editProviderLoading()
+                                    ? "Saving…"
+                                    : provider.name === editingProviderName()
+                                      ? "Cancel"
+                                      : "Save"}
                                 </button>
                               </div>
                             </div>

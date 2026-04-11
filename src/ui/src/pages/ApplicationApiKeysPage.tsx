@@ -261,9 +261,6 @@ export default function ApplicationApiKeysPage() {
               }
             >
               <div class="mb-6">
-                <p class="mb-3 text-xs font-bold uppercase tracking-widest text-b-ink/50">
-                  Active Keys
-                </p>
                 <ul class="flex flex-col gap-4">
                   <For each={apiKeys()}>
                     {(k) => (

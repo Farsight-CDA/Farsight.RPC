@@ -3,6 +3,7 @@ import { useParams } from "@solidjs/router";
 import LoadingSpinner from "../components/LoadingSpinner";
 import EmptyStateIcon from "../components/icons/EmptyStateIcon";
 import EnvironmentIcon from "../components/icons/EnvironmentIcon";
+import RpcIcon from "../components/icons/RpcIcon";
 
 import { useAuth } from "../lib/auth";
 import {
@@ -50,6 +51,19 @@ export default function ApplicationEnvironmentsPage() {
 
   const environments = applicationData.environments.data;
   const environmentsState = applicationData.environments.state;
+  const rpcsByEnvironment = applicationData.rpcsByEnvironment;
+  const rpcsState = applicationData.rpcs.state;
+  const rpcsError = applicationData.rpcs.error;
+
+  const isInitialEnvironmentLoadPending = createMemo(
+    () => environmentsState() === "pending" || rpcsState() === "pending",
+  );
+
+  const getEnvironmentRpcCount = (environmentId: string) =>
+    rpcsByEnvironment()[environmentId]?.length ?? 0;
+
+  const getActiveChainCount = (environment: ApplicationEnvironmentSummary) =>
+    new Set(environment.chains ?? []).size;
 
   const [environmentModalOpen, setEnvironmentModalOpen] = createSignal(false);
   const [newEnvironmentName, setNewEnvironmentName] = createSignal("");
@@ -155,6 +169,14 @@ export default function ApplicationEnvironmentsPage() {
     const validationError = validateName(name);
     if (validationError) {
       setEditEnvironmentError(validationError);
+      return;
+    }
+
+    // Skip API call if name hasn't changed
+    const environment = environments().find((e) => e.id === environmentId);
+    if (environment && environment.name === name) {
+      setEditingEnvironmentId(null);
+      setEditingEnvironmentName("");
       return;
     }
 
@@ -273,11 +295,17 @@ export default function ApplicationEnvironmentsPage() {
           </div>
 
           <div class="p-6">
-            <Show when={environmentsState() === "pending"}>
+            <Show when={isInitialEnvironmentLoadPending()}>
               <div class="flex items-center justify-center gap-3 py-8 text-xs font-bold uppercase tracking-widest text-b-ink/80">
                 <LoadingSpinner class="size-4" />
                 Loading environments…
               </div>
+            </Show>
+
+            <Show when={rpcsError()}>
+              <p class="mb-4 border border-red-500/40 bg-red-500/10 px-3 py-3 text-xs font-bold uppercase leading-snug text-red-400">
+                {rpcsError()!.message}
+              </p>
             </Show>
 
             <Show when={environmentsState() === "refreshing"}>
@@ -295,6 +323,7 @@ export default function ApplicationEnvironmentsPage() {
 
             <Show
               when={
+                !isInitialEnvironmentLoadPending() &&
                 (environmentsState() === "ready" ||
                   environmentsState() === "refreshing") &&
                 environments().length > 0
@@ -336,14 +365,6 @@ export default function ApplicationEnvironmentsPage() {
                               <div class="flex flex-col gap-3 sm:flex-row sm:justify-end">
                                 <button
                                   type="button"
-                                  onClick={cancelEditingEnvironment}
-                                  disabled={editEnvironmentLoading()}
-                                  class="btn btn-md btn-interactive btn-disabled btn-secondary"
-                                >
-                                  Cancel
-                                </button>
-                                <button
-                                  type="button"
                                   onClick={() =>
                                     void handleRenameEnvironment(environment.id)
                                   }
@@ -355,7 +376,9 @@ export default function ApplicationEnvironmentsPage() {
                                   </Show>
                                   {editEnvironmentLoading()
                                     ? "Saving…"
-                                    : "Save"}
+                                    : environment.name === editingEnvironmentName()
+                                      ? "Cancel"
+                                      : "Save"}
                                 </button>
                               </div>
                             </div>
@@ -366,6 +389,23 @@ export default function ApplicationEnvironmentsPage() {
                               <p class="font-['Anton',sans-serif] text-xl uppercase tracking-wide text-b-ink">
                                 {environment.name}
                               </p>
+                              <div class="mt-2 flex flex-wrap items-center gap-4 text-xs font-semibold uppercase tracking-wider text-b-ink/50">
+                                <Show when={!rpcsError()}>
+                                  <span class="inline-flex items-center gap-1">
+                                    <RpcIcon class="size-3.5" />
+                                    {getEnvironmentRpcCount(environment.id)} RPC
+                                    {getEnvironmentRpcCount(environment.id) === 1
+                                      ? ""
+                                      : "s"}
+                                  </span>
+                                </Show>
+                                <span>
+                                  {getActiveChainCount(environment)} active chain
+                                  {getActiveChainCount(environment) === 1
+                                    ? ""
+                                    : "s"}
+                                </span>
+                              </div>
                             </div>
                             <div class="flex flex-col gap-3 sm:flex-row sm:justify-end">
                               <button
@@ -403,6 +443,7 @@ export default function ApplicationEnvironmentsPage() {
 
             <Show
               when={
+                !isInitialEnvironmentLoadPending() &&
                 (environmentsState() === "ready" ||
                   environmentsState() === "refreshing") &&
                 environments().length === 0

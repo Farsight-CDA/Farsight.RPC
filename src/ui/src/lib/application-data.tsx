@@ -36,6 +36,13 @@ export type ApplicationRpc = {
   indexerBlockOffset?: number;
 };
 
+type ApplicationDetail = {
+  id: string;
+  name: string;
+  apiKeys: ConsumerApiKeySummary[];
+  structures: string[];
+};
+
 type ListController<T> = {
   data: Accessor<T[]>;
   state: Accessor<LoadState>;
@@ -47,7 +54,10 @@ type ApplicationDataContextValue = {
   apiKeys: ListController<ConsumerApiKeySummary>;
   rpcs: ListController<ApplicationRpc>;
   rpcsByEnvironment: Accessor<Record<string, ApplicationRpc[]>>;
+  structures: ListController<string>;
+  refreshDetail: () => Promise<void>;
   refreshApiKeys: () => Promise<void>;
+  refreshStructures: () => Promise<void>;
   refreshRpcs: () => Promise<void>;
   refresh: () => Promise<void>;
 };
@@ -70,6 +80,21 @@ async function fetchApplicationList<T>(
   return response.json() as Promise<T[]>;
 }
 
+async function fetchApplicationDetail(
+  id: string,
+  token: string,
+): Promise<ApplicationDetail> {
+  const response = await fetch(`/api/Applications/${id}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to load application");
+  }
+
+  return response.json() as Promise<ApplicationDetail>;
+}
+
 export function ApplicationDataProvider(props: ParentProps) {
   const auth = useAuth();
   const referenceData = useReferenceData();
@@ -83,25 +108,30 @@ export function ApplicationDataProvider(props: ParentProps) {
   const [apiKeys, setApiKeys] = createSignal<ConsumerApiKeySummary[]>([]);
   const [apiKeysState, setApiKeysState] = createSignal<LoadState>("idle");
   const [apiKeysError, setApiKeysError] = createSignal<Error | null>(null);
-  const [loadedApiKeysKey, setLoadedApiKeysKey] = createSignal<string | null>(
-    null,
-  );
+
+  const [structures, setStructures] = createSignal<string[]>([]);
+  const [structuresState, setStructuresState] = createSignal<LoadState>("idle");
+  const [structuresError, setStructuresError] = createSignal<Error | null>(null);
+
+  const [loadedDetailKey, setLoadedDetailKey] = createSignal<string | null>(null);
+  let activeDetailLoad: Promise<void> | null = null;
+  let activeDetailLoadKey: string | null = null;
 
   const [rpcs, setRpcs] = createSignal<ApplicationRpc[]>([]);
   const [rpcsState, setRpcsState] = createSignal<LoadState>("idle");
   const [rpcsError, setRpcsError] = createSignal<Error | null>(null);
   const [loadedRpcsKey, setLoadedRpcsKey] = createSignal<string | null>(null);
-
-  let activeApiKeysLoad: Promise<void> | null = null;
-  let activeApiKeysLoadKey: string | null = null;
   let activeRpcsLoad: Promise<void> | null = null;
   let activeRpcsLoadKey: string | null = null;
 
-  const clearApiKeys = () => {
+  const clearDetail = () => {
     setApiKeys([]);
     setApiKeysState("idle");
     setApiKeysError(null);
-    setLoadedApiKeysKey(null);
+    setStructures([]);
+    setStructuresState("idle");
+    setStructuresError(null);
+    setLoadedDetailKey(null);
   };
 
   const clearRpcs = () => {
@@ -112,55 +142,64 @@ export function ApplicationDataProvider(props: ParentProps) {
   };
 
   const clear = () => {
-    clearApiKeys();
+    clearDetail();
     clearRpcs();
   };
 
-  const refreshApiKeys = async () => {
+  const refreshDetail = async () => {
     const token = auth.token;
     const id = applicationId();
     if (!token || !id) {
-      clearApiKeys();
+      clearDetail();
       return;
     }
 
     const requestKey = `${token}:${id}`;
-    if (activeApiKeysLoad && activeApiKeysLoadKey === requestKey) {
-      return activeApiKeysLoad;
+    if (activeDetailLoad && activeDetailLoadKey === requestKey) {
+      return activeDetailLoad;
     }
 
-    const isRefresh = loadedApiKeysKey() === requestKey;
+    const isRefresh = loadedDetailKey() === requestKey;
     setApiKeysState(
       apiKeys().length > 0 && isRefresh ? "refreshing" : "pending",
     );
     setApiKeysError(null);
+    setStructuresState(
+      structures().length > 0 && isRefresh ? "refreshing" : "pending",
+    );
+    setStructuresError(null);
 
-    activeApiKeysLoadKey = requestKey;
-    activeApiKeysLoad = (async () => {
+    activeDetailLoadKey = requestKey;
+    activeDetailLoad = (async () => {
       try {
-        const nextApiKeys = await fetchApplicationList<ConsumerApiKeySummary>(
-          `/api/Applications/${id}/ApiKeys`,
-          token,
-          "Failed to load API keys",
-        );
-        setApiKeys(nextApiKeys);
+        const detail = await fetchApplicationDetail(id, token);
+        setApiKeys(detail.apiKeys);
         setApiKeysState("ready");
-        setLoadedApiKeysKey(requestKey);
+        setStructures(detail.structures);
+        setStructuresState("ready");
+        setLoadedDetailKey(requestKey);
       } catch (error) {
-        setApiKeysError(
-          error instanceof Error ? error : new Error("Failed to load API keys"),
-        );
+        const err =
+          error instanceof Error
+            ? error
+            : new Error("Failed to load application");
+        setApiKeysError(err);
         setApiKeysState("errored");
+        setStructuresError(err);
+        setStructuresState("errored");
       }
     })();
 
     try {
-      await activeApiKeysLoad;
+      await activeDetailLoad;
     } finally {
-      activeApiKeysLoad = null;
-      activeApiKeysLoadKey = null;
+      activeDetailLoad = null;
+      activeDetailLoadKey = null;
     }
   };
+
+  const refreshApiKeys = refreshDetail;
+  const refreshStructures = refreshDetail;
 
   const refreshRpcs = async () => {
     const token = auth.token;
@@ -229,7 +268,7 @@ export function ApplicationDataProvider(props: ParentProps) {
   };
 
   const refresh = async () => {
-    await Promise.all([refreshApiKeys(), refreshRpcs()]);
+    await Promise.all([refreshDetail(), refreshRpcs()]);
   };
 
   createEffect(() => {
@@ -242,8 +281,8 @@ export function ApplicationDataProvider(props: ParentProps) {
     }
 
     const requestKey = `${token}:${id}`;
-    if (loadedApiKeysKey() !== requestKey) {
-      void untrack(refreshApiKeys);
+    if (loadedDetailKey() !== requestKey) {
+      void untrack(refreshDetail);
     }
   });
 
@@ -296,11 +335,11 @@ export function ApplicationDataProvider(props: ParentProps) {
     if (!token || !id) {
       return false;
     }
-    const keysPending =
+    const detailPending =
       apiKeysState() === "pending" && apiKeys().length === 0;
     const rpcsPending =
       rpcsState() === "pending" && rpcs().length === 0;
-    return keysPending || rpcsPending;
+    return detailPending || rpcsPending;
   });
 
   const value: ApplicationDataContextValue = {
@@ -316,7 +355,14 @@ export function ApplicationDataProvider(props: ParentProps) {
       error: rpcsError,
     },
     rpcsByEnvironment,
+    structures: {
+      data: structures,
+      state: structuresState,
+      error: structuresError,
+    },
+    refreshDetail,
     refreshApiKeys,
+    refreshStructures,
     refreshRpcs,
     refresh,
   };

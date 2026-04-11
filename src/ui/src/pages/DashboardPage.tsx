@@ -38,9 +38,11 @@ export default function DashboardPage() {
   const applications = referenceData.applications.data;
   const applicationsState = referenceData.applications.state;
   const applicationsError = referenceData.applications.error;
+  const rpcStructures = referenceData.rpcStructures.data;
 
   const [modalOpen, setModalOpen] = createSignal(false);
   const [newName, setNewName] = createSignal("");
+  const [newStructures, setNewStructures] = createSignal<string[]>([]);
   const [createError, setCreateError] = createSignal<string | null>(null);
   const [createLoading, setCreateLoading] = createSignal(false);
   const [searchQuery, setSearchQuery] = createSignal("");
@@ -48,12 +50,25 @@ export default function DashboardPage() {
   const openModal = () => {
     setCreateError(null);
     setNewName("");
+    setNewStructures([]);
     setModalOpen(true);
   };
 
   const closeModal = () => {
     if (createLoading()) return;
     setModalOpen(false);
+  };
+
+  const isStructureSelected = (structure: string) =>
+    newStructures().includes(structure);
+
+  const toggleStructure = (structure: string) => {
+    setNewStructures((current) =>
+      current.includes(structure)
+        ? current.filter((value) => value !== structure)
+        : [...current, structure],
+    );
+    setCreateError(null);
   };
 
   const handleCreate = async (e: SubmitEvent) => {
@@ -77,7 +92,7 @@ export default function DashboardPage() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ name }),
+        body: JSON.stringify({ name, structures: newStructures() }),
       });
       if (!response.ok) {
         throw new Error(
@@ -86,6 +101,7 @@ export default function DashboardPage() {
       }
       setModalOpen(false);
       setNewName("");
+      setNewStructures([]);
       await referenceData.refreshApplications();
     } catch (err) {
       setCreateError(
@@ -327,6 +343,83 @@ Create
                 <p class="text-xs font-semibold uppercase tracking-wider text-b-ink/40">
                   {nameValidationHint}
                 </p>
+              </div>
+
+              <div class="flex flex-col gap-3">
+                <div>
+                  <p class="text-xs font-bold uppercase tracking-widest text-b-ink/70">
+                    Supported Structures
+                  </p>
+                  <p class="mt-1 text-xs font-semibold uppercase tracking-wider text-b-ink/40">
+                    Optional. Select the RPC layouts this application should support.
+                  </p>
+                </div>
+
+                <div class="flex flex-col gap-3">
+                  <For each={rpcStructures()}>
+                    {(def) => {
+                      const typeEntries = () => Object.entries(def.requiredRpcTypes);
+                      return (
+                        <button
+                          type="button"
+                          disabled={createLoading()}
+                          onClick={() => toggleStructure(def.structure)}
+                          class={`flex items-center gap-4 border px-4 py-4 text-left transition-all duration-200 ${
+                            isStructureSelected(def.structure)
+                              ? "border-b-accent/50 bg-b-accent/10"
+                              : "border-b-border bg-b-paper/20 hover:border-b-border-hover"
+                          } ${createLoading() ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+                        >
+                          <div
+                            class={`flex size-5 shrink-0 items-center justify-center border transition-all duration-200 ${
+                              isStructureSelected(def.structure)
+                                ? "border-b-accent bg-b-accent"
+                                : "border-b-ink/30 bg-b-paper"
+                            }`}
+                          >
+                            <Show when={isStructureSelected(def.structure)}>
+                              <svg
+                                class="size-3 text-b-paper"
+                                viewBox="0 0 12 12"
+                                fill="none"
+                              >
+                                <path
+                                  d="M2 6l3 3 5-5"
+                                  stroke="currentColor"
+                                  stroke-width="2"
+                                  stroke-linecap="round"
+                                  stroke-linejoin="round"
+                                />
+                              </svg>
+                            </Show>
+                          </div>
+                          <div class="min-w-0 flex-1">
+                            <p class="font-['Anton',sans-serif] text-base uppercase tracking-wide text-b-ink">
+                              {def.structure}
+                            </p>
+                            <div class="mt-1 flex flex-wrap gap-2">
+                              <For each={typeEntries()}>
+                                {([type, count]) => (
+                                  <span
+                                    class={`inline-flex items-center border px-2 py-0.5 text-[0.6rem] font-bold uppercase tracking-wider ${
+                                      type === "Realtime"
+                                        ? "text-green-400 border-green-500/30 bg-green-500/10"
+                                        : type === "Archive"
+                                          ? "text-blue-400 border-blue-500/30 bg-blue-500/10"
+                                          : "text-purple-400 border-purple-500/30 bg-purple-500/10"
+                                    }`}
+                                  >
+                                    {count}x {type}
+                                  </span>
+                                )}
+                              </For>
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    }}
+                  </For>
+                </div>
               </div>
 
               <Show when={createError()}>

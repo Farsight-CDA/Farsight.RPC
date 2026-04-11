@@ -10,7 +10,7 @@ import ProviderIcon from "../components/icons/ProviderIcon";
 import PlusIcon from "../components/icons/PlusIcon";
 import ChevronDownIcon from "../components/icons/ChevronDownIcon";
 import { useAuth } from "../lib/auth";
-import { useReferenceData } from "../lib/reference-data";
+import { useReferenceData, type RpcStructureDefinition } from "../lib/reference-data";
 import { useApplicationData, type ApplicationRpc } from "../lib/application-data";
 import { useEnvironment } from "../lib/environment-context";
 
@@ -29,6 +29,52 @@ async function readErrorMessage(
     if (first) return first;
   } catch {}
   return fallback;
+}
+
+const rpcValidationTimeoutMs = 15_000;
+const rpcValidationTimedOutMessage = "RPC validation timed out.";
+
+async function validateRpcEndpoint(
+  token: string,
+  address: string,
+): Promise<{ ok: true; chainId: string } | { ok: false; message: string }> {
+  const controller = new AbortController();
+  const timeoutId = globalThis.setTimeout(
+    () => controller.abort(),
+    rpcValidationTimeoutMs,
+  );
+
+  try {
+    const response = await fetch("/api/Rpcs/Validate", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ address: address.trim() }),
+      signal: controller.signal,
+    });
+    if (!response.ok) {
+      return {
+        ok: false,
+        message: await readErrorMessage(response, "RPC validation failed"),
+      };
+    }
+    const data = (await response.json()) as { chainId?: number | string };
+    const chainId =
+      data.chainId === undefined || data.chainId === null
+        ? "unknown"
+        : String(data.chainId);
+    return { ok: true, chainId };
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      return { ok: false, message: rpcValidationTimedOutMessage };
+    }
+
+    throw error;
+  } finally {
+    globalThis.clearTimeout(timeoutId);
+  }
 }
 
 const addressHint = "Enter a valid HTTP, HTTPS, WS, or WSS URL.";
@@ -66,6 +112,9 @@ export default function ApplicationRpcsPage() {
   const rpcsState = applicationData.rpcs.state;
   const rpcsError = applicationData.rpcs.error;
 
+  const rpcStructures = referenceData.rpcStructures.data;
+  const appStructures = applicationData.structures.data;
+
   const environment = useEnvironment();
   const [filterText, setFilterText] = createSignal("");
   const [activeChain, setActiveChain] = createSignal<string | null>(null);
@@ -82,6 +131,14 @@ export default function ApplicationRpcsPage() {
   const [newRpcIndexerBlockOffset, setNewRpcIndexerBlockOffset] = createSignal("1");
   const [createRpcError, setCreateRpcError] = createSignal<string | null>(null);
   const [createRpcLoading, setCreateRpcLoading] = createSignal(false);
+  const [createRpcTestStatus, setCreateRpcTestStatus] = createSignal<
+    "untested" | "testing" | "passed" | "failed"
+  >("untested");
+  const [createRpcTestChainId, setCreateRpcTestChainId] = createSignal("");
+  const [createRpcTestError, setCreateRpcTestError] = createSignal<string | null>(
+    null,
+  );
+  const [createRpcSaveConfirm, setCreateRpcSaveConfirm] = createSignal(false);
 
   const [editRpcModalOpen, setEditRpcModalOpen] = createSignal(false);
   const [rpcToEdit, setRpcToEdit] = createSignal<ApplicationRpc | null>(null);
@@ -93,6 +150,14 @@ export default function ApplicationRpcsPage() {
   const [editRpcIndexerBlockOffset, setEditRpcIndexerBlockOffset] = createSignal("1");
   const [editRpcError, setEditRpcError] = createSignal<string | null>(null);
   const [editRpcLoading, setEditRpcLoading] = createSignal(false);
+  const [editRpcTestStatus, setEditRpcTestStatus] = createSignal<
+    "untested" | "testing" | "passed" | "failed"
+  >("untested");
+  const [editRpcTestChainId, setEditRpcTestChainId] = createSignal("");
+  const [editRpcTestError, setEditRpcTestError] = createSignal<string | null>(
+    null,
+  );
+  const [editRpcSaveConfirm, setEditRpcSaveConfirm] = createSignal(false);
 
   let newRpcAddressInput!: HTMLInputElement;
   let editRpcAddressInput!: HTMLInputElement;
@@ -163,8 +228,108 @@ export default function ApplicationRpcsPage() {
     return getChainRpcs(chain, env);
   });
 
+  type ChainStructureStatus = "none" | "valid" | "warning";
+
+  const getChainTypeCounts = (chain: string, env: string): Record<string, number> => {
+    const chainRpcs = rpcs().filter(
+      (rpc) => rpc.chain === chain && rpc.environment === env,
+    );
+    const counts: Record<string, number> = {};
+    for (const rpc of chainRpcs) {
+      counts[rpc.type] = (counts[rpc.type] ?? 0) + 1;
+    }
+    return counts;
+  };
+
+  const matchesStructure = (
+    typeCounts: Record<string, number>,
+    definition: RpcStructureDefinition,
+  ): boolean => {
+    const required = definition.requiredRpcTypes;
+    const requiredKeys = Object.keys(required);
+    const actualKeys = Object.keys(typeCounts);
+    if (requiredKeys.length !== actualKeys.length) return false;
+    for (const key of requiredKeys) {
+      if ((typeCounts[key] ?? 0) !== required[key]) return false;
+    }
+    for (const key of actualKeys) {
+      if (!(key in required)) return false;
+    }
+    return true;
+  };
+
+  const chainStructureStatuses = createMemo(() => {
+    const env = environment.selectedEnvironment() || "";
+    const supported = appStructures();
+    const definitions = rpcStructures();
+    const statuses: Record<string, ChainStructureStatus> = {};
+
+    if (supported.length === 0) return statuses;
+
+    const supportedDefs = definitions.filter((d) =>
+      supported.includes(d.structure),
+    );
+
+    for (const chain of availableChains()) {
+      const typeCounts = getChainTypeCounts(chain, env);
+      const hasRpcs = Object.keys(typeCounts).length > 0;
+      if (!hasRpcs) {
+        statuses[chain] = "none";
+        continue;
+      }
+      const matches = supportedDefs.some((def) =>
+        matchesStructure(typeCounts, def),
+      );
+      statuses[chain] = matches ? "valid" : "warning";
+    }
+
+    return statuses;
+  });
+
+  const activeChainMatchedStructure = createMemo(() => {
+    const chain = activeChain();
+    const env = environment.selectedEnvironment() || "";
+    if (!chain) return null;
+
+    const supported = appStructures();
+    const definitions = rpcStructures();
+    if (supported.length === 0) return null;
+
+    const typeCounts = getChainTypeCounts(chain, env);
+    if (Object.keys(typeCounts).length === 0) return null;
+
+    const supportedDefs = definitions.filter((d) =>
+      supported.includes(d.structure),
+    );
+    return supportedDefs.find((def) => matchesStructure(typeCounts, def)) ?? null;
+  });
+
+  const activeChainMismatchInfo = createMemo(() => {
+    const chain = activeChain();
+    const env = environment.selectedEnvironment() || "";
+    if (!chain) return null;
+
+    const supported = appStructures();
+    const definitions = rpcStructures();
+    if (supported.length === 0) return null;
+
+    const typeCounts = getChainTypeCounts(chain, env);
+    if (Object.keys(typeCounts).length === 0) return null;
+
+    const supportedDefs = definitions.filter((d) =>
+      supported.includes(d.structure),
+    );
+    if (supportedDefs.some((def) => matchesStructure(typeCounts, def))) return null;
+
+    return { typeCounts, supportedDefs };
+  });
+
   const openCreateRpcModal = (chain: string) => {
     setCreateRpcError(null);
+    setCreateRpcTestStatus("untested");
+    setCreateRpcTestChainId("");
+    setCreateRpcTestError(null);
+    setCreateRpcSaveConfirm(false);
     setSelectedChainForRpc(chain);
     setNewRpcType("Realtime");
     setNewRpcAddress("");
@@ -181,12 +346,20 @@ export default function ApplicationRpcsPage() {
 
   const closeCreateRpcModal = () => {
     if (createRpcLoading()) return;
+    setCreateRpcTestStatus("untested");
+    setCreateRpcTestChainId("");
+    setCreateRpcTestError(null);
+    setCreateRpcSaveConfirm(false);
     setCreateRpcModalOpen(false);
     setSelectedChainForRpc("");
   };
 
-  const openEditRpcModal = (rpc: ApplicationRpc) => {
+  const openEditRpcModal = async (rpc: ApplicationRpc) => {
     setEditRpcError(null);
+    setEditRpcTestStatus("untested");
+    setEditRpcTestChainId("");
+    setEditRpcTestError(null);
+    setEditRpcSaveConfirm(false);
     setRpcToEdit(rpc);
     setEditRpcAddress(rpc.address);
     setEditRpcProviderId(rpc.providerId);
@@ -209,12 +382,102 @@ export default function ApplicationRpcsPage() {
         : "1",
     );
     setEditRpcModalOpen(true);
+
+    if (isValidRpcAddress(rpc.address)) {
+      const token = auth.token;
+      if (token) {
+        setEditRpcTestStatus("testing");
+        try {
+          const result = await validateRpcEndpoint(token, rpc.address);
+          if (result.ok) {
+            setEditRpcTestStatus("passed");
+            setEditRpcTestChainId(result.chainId);
+          } else {
+            setEditRpcTestStatus("failed");
+            setEditRpcTestError(result.message);
+          }
+        } catch (err) {
+          setEditRpcTestStatus("failed");
+          setEditRpcTestError(
+            err instanceof Error ? err.message : "RPC validation failed",
+          );
+        }
+      }
+    }
   };
 
   const closeEditRpcModal = () => {
     if (editRpcLoading()) return;
+    setEditRpcTestStatus("untested");
+    setEditRpcTestChainId("");
+    setEditRpcTestError(null);
+    setEditRpcSaveConfirm(false);
     setEditRpcModalOpen(false);
     setRpcToEdit(null);
+  };
+
+  const runCreateRpcTest = async () => {
+    const token = auth.token;
+    if (!token) return;
+    const address = newRpcAddress().trim();
+    if (!isValidRpcAddress(address)) {
+      setCreateRpcError(addressHint);
+      newRpcAddressInput.setCustomValidity(addressHint);
+      newRpcAddressInput.reportValidity();
+      return;
+    }
+    setCreateRpcError(null);
+    setCreateRpcTestStatus("testing");
+    setCreateRpcTestChainId("");
+    setCreateRpcTestError(null);
+    setCreateRpcSaveConfirm(false);
+    try {
+      const result = await validateRpcEndpoint(token, address);
+      if (result.ok) {
+        setCreateRpcTestStatus("passed");
+        setCreateRpcTestChainId(result.chainId);
+      } else {
+        setCreateRpcTestStatus("failed");
+        setCreateRpcTestError(result.message);
+      }
+    } catch (err) {
+      setCreateRpcTestStatus("failed");
+      setCreateRpcTestError(
+        err instanceof Error ? err.message : "RPC validation failed",
+      );
+    }
+  };
+
+  const runEditRpcTest = async () => {
+    const token = auth.token;
+    if (!token) return;
+    const address = editRpcAddress().trim();
+    if (!isValidRpcAddress(address)) {
+      setEditRpcError(addressHint);
+      editRpcAddressInput.setCustomValidity(addressHint);
+      editRpcAddressInput.reportValidity();
+      return;
+    }
+    setEditRpcError(null);
+    setEditRpcTestStatus("testing");
+    setEditRpcTestChainId("");
+    setEditRpcTestError(null);
+    setEditRpcSaveConfirm(false);
+    try {
+      const result = await validateRpcEndpoint(token, address);
+      if (result.ok) {
+        setEditRpcTestStatus("passed");
+        setEditRpcTestChainId(result.chainId);
+      } else {
+        setEditRpcTestStatus("failed");
+        setEditRpcTestError(result.message);
+      }
+    } catch (err) {
+      setEditRpcTestStatus("failed");
+      setEditRpcTestError(
+        err instanceof Error ? err.message : "RPC validation failed",
+      );
+    }
   };
 
   const handleCreateRpc = async (e: SubmitEvent) => {
@@ -232,6 +495,14 @@ export default function ApplicationRpcsPage() {
       setCreateRpcError(addressHint);
       newRpcAddressInput.setCustomValidity(addressHint);
       newRpcAddressInput.reportValidity();
+      return;
+    }
+
+    if (createRpcTestStatus() === "untested" || createRpcTestStatus() === "testing") {
+      return;
+    }
+    if (createRpcTestStatus() === "failed" && !createRpcSaveConfirm()) {
+      setCreateRpcSaveConfirm(true);
       return;
     }
 
@@ -295,6 +566,14 @@ export default function ApplicationRpcsPage() {
       setEditRpcError(addressHint);
       editRpcAddressInput.setCustomValidity(addressHint);
       editRpcAddressInput.reportValidity();
+      return;
+    }
+
+    if (editRpcTestStatus() === "untested" || editRpcTestStatus() === "testing") {
+      return;
+    }
+    if (editRpcTestStatus() === "failed" && !editRpcSaveConfirm()) {
+      setEditRpcSaveConfirm(true);
       return;
     }
 
@@ -481,6 +760,7 @@ export default function ApplicationRpcsPage() {
                   {(chain) => {
                     const count = () => chainRpcCounts()[chain] ?? 0;
                     const isActive = () => activeChain() === chain;
+                    const structureStatus = () => chainStructureStatuses()[chain] ?? "none";
                     return (
                       <button
                         type="button"
@@ -491,9 +771,17 @@ export default function ApplicationRpcsPage() {
                             : "border-transparent bg-b-paper/15 text-b-ink/85 hover:border-b-border-hover hover:bg-b-paper/35"
                         }`}
                       >
-                        <span class="min-w-0 truncate font-['Anton',sans-serif] text-base uppercase tracking-wide">
-                          {chain}
-                        </span>
+                        <div class="flex min-w-0 items-center gap-2">
+                          <Show when={structureStatus() === "valid"}>
+                            <span class="flex size-2.5 shrink-0 rounded-full bg-green-400" title="Matches a supported structure" />
+                          </Show>
+                          <Show when={structureStatus() === "warning"}>
+                            <span class="flex size-2.5 shrink-0 rounded-full bg-amber-400" title="Does not match any supported structure" />
+                          </Show>
+                          <span class="min-w-0 truncate font-['Anton',sans-serif] text-base uppercase tracking-wide">
+                            {chain}
+                          </span>
+                        </div>
                         <span
                           class={`shrink-0 tabular-nums rounded px-2 py-0.5 text-[0.6rem] font-bold uppercase tracking-wider ${
                             count() > 0
@@ -549,6 +837,51 @@ export default function ApplicationRpcsPage() {
                       Add RPC
                     </button>
                   </div>
+                  <Show when={activeChainMatchedStructure()}>
+                    {(matched) => (
+                      <div class="mx-4 mt-4 flex items-center gap-2 border border-green-500/30 bg-green-500/10 px-3 py-2">
+                        <span class="flex size-2.5 shrink-0 rounded-full bg-green-400" />
+                        <p class="text-xs font-bold uppercase tracking-wider text-green-400">
+                          Matches {matched().structure}
+                        </p>
+                      </div>
+                    )}
+                  </Show>
+                  <Show when={activeChainMismatchInfo()}>
+                    {(info) => (
+                      <div class="mx-4 mt-4 border border-amber-500/30 bg-amber-500/10 px-3 py-3">
+                        <p class="text-xs font-bold uppercase tracking-wider text-amber-300">
+                          Does not match any supported structure
+                        </p>
+                        <div class="mt-2 flex flex-wrap items-center gap-1 text-[0.6rem] font-bold uppercase tracking-wider text-b-ink/50">
+                          <span>Has:</span>
+                          <For each={Object.entries(info().typeCounts)}>
+                            {([type, count]) => (
+                              <span class="border border-b-border bg-b-paper/20 px-1.5 py-0.5">
+                                {count}x {type}
+                              </span>
+                            )}
+                          </For>
+                        </div>
+                        <div class="mt-1.5 flex flex-col gap-1">
+                          <For each={info().supportedDefs}>
+                            {(def) => (
+                              <div class="flex flex-wrap items-center gap-1 text-[0.6rem] font-bold uppercase tracking-wider text-b-ink/40">
+                                <span>{def.structure} needs:</span>
+                                <For each={Object.entries(def.requiredRpcTypes)}>
+                                  {([type, count]) => (
+                                    <span class="border border-b-border/50 bg-b-paper/10 px-1.5 py-0.5">
+                                      {count}x {type}
+                                    </span>
+                                  )}
+                                </For>
+                              </div>
+                            )}
+                          </For>
+                        </div>
+                      </div>
+                    )}
+                  </Show>
                   <div class="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 [scrollbar-gutter:stable]">
                     <Show when={activeChainRpcs().length > 0}>
                       <div class="flex flex-col gap-3">
@@ -803,8 +1136,17 @@ export default function ApplicationRpcsPage() {
                     setNewRpcAddress(e.currentTarget.value);
                     validateRpcAddressInput(e.currentTarget);
                     if (createRpcError() === addressHint) setCreateRpcError(null);
+                    setCreateRpcTestStatus("untested");
+                    setCreateRpcTestChainId("");
+                    setCreateRpcTestError(null);
+                    setCreateRpcSaveConfirm(false);
                   }}
-                  onBlur={(e) => validateRpcAddressInput(e.currentTarget)}
+                  onBlur={(e) => {
+                    validateRpcAddressInput(e.currentTarget);
+                    if (isValidRpcAddress(newRpcAddress().trim())) {
+                      void runCreateRpcTest();
+                    }
+                  }}
                   class="h-11 w-full border border-b-border bg-b-paper px-4 text-sm font-semibold text-b-ink placeholder:text-b-ink/25 outline-none focus-visible:border-b-accent/50 focus-visible:ring-2 focus-visible:ring-b-accent/20 hover:border-b-border-hover transition-all duration-200"
                   placeholder="https://rpc.example.com"
                   title={addressHint}
@@ -813,6 +1155,22 @@ export default function ApplicationRpcsPage() {
                 <p class="text-xs font-semibold uppercase tracking-wider text-b-ink/40">
                   {addressHint}
                 </p>
+                <Show when={createRpcTestStatus() === "testing"}>
+                  <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-b-ink/50">
+                    <LoadingSpinner class="size-3.5" />
+                    <span>Testing endpoint…</span>
+                  </div>
+                </Show>
+                <Show when={createRpcTestStatus() === "passed"}>
+                  <p class="text-xs font-semibold uppercase tracking-wider text-green-400">
+                    Reachable · chain id {createRpcTestChainId()}
+                  </p>
+                </Show>
+                <Show when={createRpcTestStatus() === "failed"}>
+                  <p class="text-xs font-semibold uppercase tracking-wider text-amber-300">
+                    {createRpcTestError() ?? "RPC validation failed"}
+                  </p>
+                </Show>
               </div>
 
               <Show when={newRpcType() === "Tracing"}>
@@ -908,13 +1266,30 @@ export default function ApplicationRpcsPage() {
                 </button>
                 <button
                   type="submit"
-                  disabled={createRpcLoading() || !newRpcProviderId()}
-                  class="btn btn-md btn-interactive btn-disabled btn-primary"
+                  disabled={
+                    createRpcLoading() ||
+                    !newRpcProviderId() ||
+                    createRpcTestStatus() === "untested" ||
+                    createRpcTestStatus() === "testing"
+                  }
+                  class={`btn btn-md btn-interactive btn-disabled ${
+                    createRpcTestStatus() === "failed" && !createRpcSaveConfirm()
+                      ? "btn-warning"
+                      : createRpcTestStatus() === "failed" && createRpcSaveConfirm()
+                        ? "btn-danger"
+                        : "btn-primary"
+                  }`}
                 >
                   <Show when={createRpcLoading()}>
                     <LoadingSpinner class="size-3.5 text-b-paper" />
                   </Show>
-                  {createRpcLoading() ? "Creating…" : "Create RPC"}
+                  {createRpcLoading()
+                    ? "Creating…"
+                    : createRpcTestStatus() === "failed" && !createRpcSaveConfirm()
+                      ? "Test Failed - Click to Save Anyway"
+                      : createRpcTestStatus() === "failed" && createRpcSaveConfirm()
+                        ? "Confirm Save (Test Failed)"
+                        : "Create RPC"}
                 </button>
               </div>
             </form>
@@ -1020,8 +1395,17 @@ export default function ApplicationRpcsPage() {
                     setEditRpcAddress(e.currentTarget.value);
                     validateRpcAddressInput(e.currentTarget);
                     if (editRpcError() === addressHint) setEditRpcError(null);
+                    setEditRpcTestStatus("untested");
+                    setEditRpcTestChainId("");
+                    setEditRpcTestError(null);
+                    setEditRpcSaveConfirm(false);
                   }}
-                  onBlur={(e) => validateRpcAddressInput(e.currentTarget)}
+                  onBlur={(e) => {
+                    validateRpcAddressInput(e.currentTarget);
+                    if (isValidRpcAddress(editRpcAddress().trim())) {
+                      void runEditRpcTest();
+                    }
+                  }}
                   class="h-11 w-full border border-b-border bg-b-paper px-4 text-sm font-semibold text-b-ink placeholder:text-b-ink/25 outline-none focus-visible:border-b-accent/50 focus-visible:ring-2 focus-visible:ring-b-accent/20 hover:border-b-border-hover transition-all duration-200"
                   placeholder="https://rpc.example.com"
                   title={addressHint}
@@ -1030,6 +1414,22 @@ export default function ApplicationRpcsPage() {
                 <p class="text-xs font-semibold uppercase tracking-wider text-b-ink/40">
                   {addressHint}
                 </p>
+                <Show when={editRpcTestStatus() === "testing"}>
+                  <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-b-ink/50">
+                    <LoadingSpinner class="size-3.5" />
+                    <span>Testing endpoint…</span>
+                  </div>
+                </Show>
+                <Show when={editRpcTestStatus() === "passed"}>
+                  <p class="text-xs font-semibold uppercase tracking-wider text-green-400">
+                    Reachable · chain id {editRpcTestChainId()}
+                  </p>
+                </Show>
+                <Show when={editRpcTestStatus() === "failed"}>
+                  <p class="text-xs font-semibold uppercase tracking-wider text-amber-300">
+                    {editRpcTestError() ?? "RPC validation failed"}
+                  </p>
+                </Show>
               </div>
 
               <Show when={rpcToEdit()?.type === "Tracing"}>
@@ -1125,13 +1525,29 @@ export default function ApplicationRpcsPage() {
                 </button>
                 <button
                   type="submit"
-                  disabled={editRpcLoading()}
-                  class="btn btn-md btn-interactive btn-disabled btn-primary"
+                  disabled={
+                    editRpcLoading() ||
+                    editRpcTestStatus() === "untested" ||
+                    editRpcTestStatus() === "testing"
+                  }
+                  class={`btn btn-md btn-interactive btn-disabled ${
+                    editRpcTestStatus() === "failed" && !editRpcSaveConfirm()
+                      ? "btn-warning"
+                      : editRpcTestStatus() === "failed" && editRpcSaveConfirm()
+                        ? "btn-danger"
+                        : "btn-primary"
+                  }`}
                 >
                   <Show when={editRpcLoading()}>
                     <LoadingSpinner class="size-3.5 text-b-paper" />
                   </Show>
-                  {editRpcLoading() ? "Saving…" : "Save Changes"}
+                  {editRpcLoading()
+                    ? "Saving…"
+                    : editRpcTestStatus() === "failed" && !editRpcSaveConfirm()
+                      ? "Test Failed - Click to Save Anyway"
+                      : editRpcTestStatus() === "failed" && editRpcSaveConfirm()
+                        ? "Confirm Save (Test Failed)"
+                        : "Save Changes"}
                 </button>
               </div>
             </form>

@@ -1,6 +1,7 @@
 using Farsight.Rpc.Api.Auth;
 using Farsight.Rpc.Api.Persistence;
 using Farsight.Rpc.Api.Validation;
+using Farsight.Rpc.Types;
 using FastEndpoints;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
@@ -12,7 +13,8 @@ public sealed class PUT(AppDbContext dbContext) : Endpoint<PUT.Request>
 {
     public sealed record Request(
         [property: RouteParam] Guid Id,
-        string Name
+        string Name,
+        RpcStructureType[]? Structures
     );
 
     public sealed class Validator : Validator<Request>
@@ -20,6 +22,10 @@ public sealed class PUT(AppDbContext dbContext) : Endpoint<PUT.Request>
         public Validator()
         {
             RuleFor(x => x.Name).ApplyNameValidation();
+
+            RuleForEach(x => x.Structures)
+                .IsInEnum()
+                .WithMessage("Invalid structure value.");
         }
     }
 
@@ -45,6 +51,11 @@ public sealed class PUT(AppDbContext dbContext) : Endpoint<PUT.Request>
         }
 
         application.Name = req.Name;
+
+        if(req.Structures is not null)
+        {
+            application.Structures = [.. req.Structures.Distinct()];
+        }
 
         try
         {

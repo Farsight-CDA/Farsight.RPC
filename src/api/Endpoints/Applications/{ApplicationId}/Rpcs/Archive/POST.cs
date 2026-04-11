@@ -67,7 +67,7 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request>
             ThrowError("Application not found.", 404);
         }
 
-        var environmentChains = await dbContext.ApplicationEnvironments
+        string[]? environmentChains = await dbContext.ApplicationEnvironments
             .Where(environment => environment.ApplicationId == req.ApplicationId && environment.Id == req.EnvironmentId)
             .Select(environment => environment.Chains)
             .SingleOrDefaultAsync(ct);

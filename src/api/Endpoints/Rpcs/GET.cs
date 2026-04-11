@@ -40,7 +40,7 @@ public sealed class GET(AppDbContext dbContext) : Endpoint<GET.Request, ApiKeyRp
             ThrowError("API key not found.", 404);
         }
 
-        var activeChains = await dbContext.ApplicationEnvironments
+        string[]? activeChains = await dbContext.ApplicationEnvironments
             .AsNoTracking()
             .Where(environment => environment.ApplicationId == key.ApplicationId && environment.Id == key.EnvironmentId)
             .Select(environment => environment.Chains)

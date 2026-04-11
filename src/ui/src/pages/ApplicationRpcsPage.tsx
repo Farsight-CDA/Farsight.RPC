@@ -9,6 +9,8 @@ import EmptyStateIcon from "../components/icons/EmptyStateIcon";
 import ProviderIcon from "../components/icons/ProviderIcon";
 import PlusIcon from "../components/icons/PlusIcon";
 import ChevronDownIcon from "../components/icons/ChevronDownIcon";
+import CheckmarkIcon from "../components/icons/CheckmarkIcon";
+import WarningIcon from "../components/icons/WarningIcon";
 import { useAuth } from "../lib/auth";
 import { useReferenceData, type RpcStructureDefinition } from "../lib/reference-data";
 import { useApplicationData, type ApplicationRpc } from "../lib/application-data";
@@ -123,8 +125,8 @@ export default function ApplicationRpcsPage() {
   );
   const [filterText, setFilterText] = createSignal("");
   const [activeChain, setActiveChain] = createSignal<string | null>(null);
-  const [addChainModalOpen, setAddChainModalOpen] = createSignal(false);
-  const [newChainToAdd, setNewChainToAdd] = createSignal("");
+  const [isAddingChains, setIsAddingChains] = createSignal(false);
+  const [chainsToAdd, setChainsToAdd] = createSignal<Set<string>>(new Set());
   const [chainMutationError, setChainMutationError] = createSignal<string | null>(null);
   const [chainMutationLoading, setChainMutationLoading] = createSignal(false);
 
@@ -174,6 +176,10 @@ export default function ApplicationRpcsPage() {
   const [deleteRpcError, setDeleteRpcError] = createSignal<string | null>(null);
   const [deleteRpcLoading, setDeleteRpcLoading] = createSignal(false);
 
+  const [chainToDisable, setChainToDisable] = createSignal<string | null>(null);
+  const [disableChainError, setDisableChainError] = createSignal<string | null>(null);
+  const [disableChainLoading, setDisableChainLoading] = createSignal(false);
+
   createEffect(() => {
     const prods = providers();
     if (prods.length > 0 && !newRpcProviderId()) {
@@ -199,21 +205,20 @@ export default function ApplicationRpcsPage() {
     );
   };
 
-  const chainRpcCounts = createMemo(() => {
-    const env = environment.selectedEnvironmentId() || "";
-    const counts: Record<string, number> = {};
-    for (const rpc of rpcs()) {
-      if (rpc.environmentId === env) {
-        counts[rpc.chain] = (counts[rpc.chain] ?? 0) + 1;
-      }
-    }
-    return counts;
-  });
-
   const filteredChains = createMemo(() => {
     const allChains = availableChains();
     const filter = filterText().trim().toLowerCase();
     let list = allChains;
+    if (filter) {
+      list = list.filter((chain) => chain.toLowerCase().includes(filter));
+    }
+    return list;
+  });
+
+  const filteredInactiveChains = createMemo(() => {
+    const chains = inactiveChains();
+    const filter = filterText().trim().toLowerCase();
+    let list = chains;
     if (filter) {
       list = list.filter((chain) => chain.toLowerCase().includes(filter));
     }
@@ -292,6 +297,29 @@ export default function ApplicationRpcsPage() {
     return statuses;
   });
 
+  const chainMatchedStructures = createMemo(() => {
+    const env = environment.selectedEnvironmentId() || "";
+    const supported = appStructures();
+    const definitions = rpcStructures();
+    const matches: Record<string, string | null> = {};
+
+    if (supported.length === 0) return matches;
+
+    const supportedDefs = definitions.filter((d) =>
+      supported.includes(d.structure),
+    );
+
+    for (const chain of availableChains()) {
+      const typeCounts = getChainTypeCounts(chain, env);
+      const matchedDef = supportedDefs.find((def) =>
+        matchesStructure(typeCounts, def),
+      );
+      matches[chain] = matchedDef?.structure ?? null;
+    }
+
+    return matches;
+  });
+
   const activeChainMatchedStructure = createMemo(() => {
     const chain = activeChain();
     const env = environment.selectedEnvironmentId() || "";
@@ -328,34 +356,47 @@ export default function ApplicationRpcsPage() {
     return { typeCounts, supportedDefs };
   });
 
-  const openAddChainModal = () => {
+  const toggleAddChainsMode = () => {
     setChainMutationError(null);
-    setNewChainToAdd(inactiveChains()[0] ?? "");
-    setAddChainModalOpen(true);
+    setChainsToAdd(new Set<string>());
+    setIsAddingChains(!isAddingChains());
   };
 
-  const closeAddChainModal = () => {
+  const cancelAddChains = () => {
     if (chainMutationLoading()) return;
-    setAddChainModalOpen(false);
-    setNewChainToAdd("");
+    setIsAddingChains(false);
+    setChainsToAdd(new Set<string>());
   };
 
-  const handleAddChain = async (e: SubmitEvent) => {
-    e.preventDefault();
+  const toggleChainSelection = (chain: string) => {
+    const current = new Set<string>(chainsToAdd());
+    if (current.has(chain)) {
+      current.delete(chain);
+    } else {
+      current.add(chain);
+    }
+    setChainsToAdd(current);
+  };
+
+  const handleAddChains = async () => {
     const environmentId = environment.selectedEnvironmentId();
-    const chain = newChainToAdd();
-    if (!environmentId || !chain) return;
+    const chains = Array.from(chainsToAdd());
+    if (!environmentId || chains.length === 0) return;
 
     setChainMutationError(null);
     setChainMutationLoading(true);
     try {
-      await applicationData.addEnvironmentChain(environmentId, chain);
-      setAddChainModalOpen(false);
-      setNewChainToAdd("");
-      setActiveChain(chain);
+      // Add chains one by one
+      for (const chain of chains) {
+        await applicationData.addEnvironmentChain(environmentId, chain);
+      }
+      // Activate the first added chain
+      setActiveChain(chains[0]);
+      setIsAddingChains(false);
+      setChainsToAdd(new Set<string>());
     } catch (err) {
       setChainMutationError(
-        err instanceof Error ? err.message : "Failed to add chain",
+        err instanceof Error ? err.message : "Failed to add chains",
       );
     } finally {
       setChainMutationLoading(false);
@@ -365,24 +406,35 @@ export default function ApplicationRpcsPage() {
   const handleDisableChain = async (chain: string) => {
     const environmentId = environment.selectedEnvironmentId();
     if (!environmentId) return;
-    if (
-      !globalThis.confirm(
-        `Disable chain '${chain}' for ${selectedEnvironment()?.name}? Existing RPCs will be preserved.`,
-      )
-    ) {
+
+    // Check if chain has RPCs
+    const chainRpcs = getChainRpcs(chain, environmentId);
+    if (chainRpcs.length > 0) {
+      // Show confirmation modal if RPCs exist
+      setDisableChainError(null);
+      setChainToDisable(chain);
       return;
     }
 
+    // Disable directly if no RPCs
+    await performDisableChain(chain);
+  };
+
+  const performDisableChain = async (chain: string) => {
+    const environmentId = environment.selectedEnvironmentId();
+    if (!environmentId) return;
+
     setChainMutationError(null);
-    setChainMutationLoading(true);
+    setDisableChainLoading(true);
     try {
       await applicationData.removeEnvironmentChain(environmentId, chain);
+      setChainToDisable(null);
     } catch (err) {
       setChainMutationError(
         err instanceof Error ? err.message : "Failed to disable chain",
       );
     } finally {
-      setChainMutationLoading(false);
+      setDisableChainLoading(false);
     }
   };
 
@@ -812,10 +864,17 @@ export default function ApplicationRpcsPage() {
               <div class="shrink-0 space-y-3 border-b border-b-border p-4">
                 <div class="flex items-center justify-between gap-2">
                   <p class="text-xs font-bold uppercase tracking-[0.35em] text-b-accent">
-                    Chains
+                    <Show when={isAddingChains()} fallback="Chains">
+                      Add Chains
+                    </Show>
                   </p>
                   <span class="tabular-nums text-[0.65rem] font-bold uppercase tracking-widest text-b-ink/45">
-                    {filteredChains().length}/{availableChains().length}
+                    <Show
+                      when={isAddingChains()}
+                      fallback={`${filteredChains().length}/${availableChains().length}`}
+                    >
+                      {chainsToAdd().size}/{filteredInactiveChains().length}
+                    </Show>
                   </span>
                 </div>
                 <div class="relative">
@@ -832,57 +891,176 @@ export default function ApplicationRpcsPage() {
                 </div>
               </div>
               <div class="min-h-0 flex-1 overflow-y-auto overscroll-contain p-2 [scrollbar-gutter:stable]">
-                <button
-                  type="button"
-                  onClick={openAddChainModal}
-                  disabled={chainMutationLoading() || inactiveChains().length === 0}
-                  class="mb-1 flex w-full items-center justify-center gap-2 border border-dashed border-b-border/50 bg-b-paper/10 px-3 py-2.5 text-left transition-all duration-150 hover:border-b-accent/50 hover:bg-b-accent/5"
+                {/* Toggle Add Mode Button */}
+                <Show
+                  when={!isAddingChains()}
+                  fallback={
+                    <button
+                      type="button"
+                      onClick={cancelAddChains}
+                      disabled={chainMutationLoading()}
+                      class="mb-1 flex w-full items-center justify-center gap-2 border border-dashed border-b-border/50 bg-b-paper/10 px-3 py-2.5 text-left transition-all duration-150 hover:border-red-500/50 hover:bg-red-500/10"
+                    >
+                      <span class="text-xs font-bold uppercase tracking-wider text-b-ink/70">
+                        Cancel
+                      </span>
+                    </button>
+                  }
                 >
-                  <PlusIcon class="size-4 text-b-accent" />
-                  <span class="text-xs font-bold uppercase tracking-wider text-b-accent">
-                    Add Chain
-                  </span>
-                </button>
-                <For each={filteredChains()}>
-                  {(chain) => {
-                    const count = () => chainRpcCounts()[chain] ?? 0;
-                    const isActive = () => activeChain() === chain;
-                    const structureStatus = () => chainStructureStatuses()[chain] ?? "warning";
-                    return (
-                      <button
-                        type="button"
-                        onClick={() => setActiveChain(chain)}
-                        class={`mb-1 flex w-full items-center justify-between gap-2 border px-3 py-2.5 text-left transition-all duration-150 last:mb-0 ${
-                          isActive()
-                            ? "border-b-accent bg-b-accent/10 text-b-ink shadow-[inset_2px_0_0_0_var(--color-b-accent)]"
-                            : "border-transparent bg-b-paper/15 text-b-ink/85 hover:border-b-border-hover hover:bg-b-paper/35"
-                        }`}
-                      >
-                        <div class="flex min-w-0 items-center gap-2">
-                          <Show when={structureStatus() === "valid"}>
-                            <span class="flex size-2.5 shrink-0 rounded-full bg-green-400" title="Matches a supported structure" />
-                          </Show>
-                          <Show when={structureStatus() === "warning"}>
-                            <span class="flex size-2.5 shrink-0 rounded-full bg-amber-400" title="Does not match any supported structure" />
-                          </Show>
-                          <span class="min-w-0 truncate font-['Anton',sans-serif] text-base uppercase tracking-wide">
-                            {chain}
-                          </span>
-                        </div>
-                        <span
-                          class={`shrink-0 tabular-nums rounded px-2 py-0.5 text-[0.6rem] font-bold uppercase tracking-wider ${
-                            count() > 0
-                              ? "bg-b-accent/15 text-b-accent"
-                              : "bg-b-ink/10 text-b-ink/40"
+                  <button
+                    type="button"
+                    onClick={toggleAddChainsMode}
+                    disabled={chainMutationLoading() || inactiveChains().length === 0}
+                    class="mb-1 flex w-full items-center justify-center gap-2 border border-dashed border-b-border/50 bg-b-paper/10 px-3 py-2.5 text-left transition-all duration-150 hover:border-b-accent/50 hover:bg-b-accent/5 disabled:opacity-40"
+                  >
+                    <PlusIcon class="size-4 text-b-accent" />
+                    <span class="text-xs font-bold uppercase tracking-wider text-b-accent">
+                      Add Chain
+                    </span>
+                  </button>
+                </Show>
+
+                {/* Active Chains List */}
+                <Show when={!isAddingChains()}>
+                  <For each={filteredChains()}>
+                    {(chain) => {
+                      const isActive = () => activeChain() === chain;
+                      const structureStatus = () => chainStructureStatuses()[chain] ?? "warning";
+                      const isWarning = () => structureStatus() === "warning";
+                      const matchedStructure = () => chainMatchedStructures()[chain];
+                      return (
+                        <div
+                          role="button"
+                          tabindex="0"
+                          onClick={() => setActiveChain(chain)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              setActiveChain(chain);
+                            }
+                          }}
+                          class={`group mb-1 flex w-full cursor-pointer items-center justify-between border px-3 py-2.5 text-left transition-all duration-150 last:mb-0 ${
+                            isActive()
+                              ? isWarning()
+                                ? "border-red-500/50 bg-red-500/20 text-b-ink shadow-[inset_2px_0_0_0_var(--color-red-500)]"
+                                : "border-b-accent bg-b-accent/10 text-b-ink shadow-[inset_2px_0_0_0_var(--color-b-accent)]"
+                              : isWarning()
+                                ? "border-red-500/30 bg-red-500/10 text-b-ink/85 hover:border-red-500/50 hover:bg-red-500/20"
+                                : "border-transparent bg-b-paper/15 text-b-ink/85 hover:border-b-border-hover hover:bg-b-paper/35"
                           }`}
                         >
-                          {count()}
-                        </span>
-                      </button>
-                    );
-                  }}
-                </For>
+                          <div class="flex min-w-0 flex-1 items-center gap-2">
+                            <Show when={structureStatus() === "valid"}>
+                              <span title="Matches a supported structure">
+                                <CheckmarkIcon class="size-4 shrink-0 text-green-400" />
+                              </span>
+                            </Show>
+                            <Show when={structureStatus() === "warning"}>
+                              <span title="Does not match any supported structure">
+                                <WarningIcon class="size-4 shrink-0 text-red-400" />
+                              </span>
+                            </Show>
+                            <span class="min-w-0 truncate font-['Anton',sans-serif] text-base uppercase tracking-wide">
+                              {chain}
+                            </span>
+                            <Show when={matchedStructure()}>
+                              {(structure) => (
+                                <span class="ml-1 inline-flex shrink-0 items-center border border-green-500/30 bg-green-500/10 px-1.5 py-0.5 text-[0.6rem] font-bold uppercase tracking-wider text-green-400">
+                                  {structure()}
+                                </span>
+                              )}
+                            </Show>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              void handleDisableChain(chain);
+                            }}
+                            disabled={chainMutationLoading() || createRpcLoading() || deleteRpcLoading() || editRpcLoading()}
+                            class="ml-2 shrink-0 opacity-0 transition-opacity duration-150 hover:text-red-400 group-hover:opacity-100 focus:opacity-100 disabled:opacity-30"
+                            title={`Disable ${chain}`}
+                          >
+                            <TrashIcon class="size-4" />
+                          </button>
+                        </div>
+                      );
+                    }}
+                  </For>
+                </Show>
+
+                {/* Inactive Chains List (Add Mode) */}
+                <Show when={isAddingChains()}>
+                  <Show
+                    when={filteredInactiveChains().length > 0}
+                    fallback={
+                      <div class="border border-dashed border-b-border/50 bg-b-paper/10 px-3 py-4 text-center">
+                        <p class="text-xs font-semibold uppercase tracking-wider text-b-ink/50">
+                          No available chains to add
+                        </p>
+                      </div>
+                    }
+                  >
+                    <For each={filteredInactiveChains()}>
+                      {(chain) => {
+                        const isSelected = () => chainsToAdd().has(chain);
+                        return (
+                          <div
+                            role="button"
+                            tabindex="0"
+                            onClick={() => toggleChainSelection(chain)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" || e.key === " ") {
+                                e.preventDefault();
+                                toggleChainSelection(chain);
+                              }
+                            }}
+                            class={`group mb-1 flex w-full cursor-pointer items-center gap-3 border px-3 py-2.5 text-left transition-all duration-150 last:mb-0 ${
+                              isSelected()
+                                ? "border-b-accent bg-b-accent/10 text-b-ink shadow-[inset_2px_0_0_0_var(--color-b-accent)]"
+                                : "border-transparent bg-b-paper/15 text-b-ink/85 hover:border-b-border-hover hover:bg-b-paper/35"
+                            }`}
+                          >
+                            <div
+                              class={`flex size-4 shrink-0 items-center justify-center border transition-all duration-150 ${
+                                isSelected()
+                                  ? "border-b-accent bg-b-accent"
+                                  : "border-b-border bg-b-paper"
+                              }`}
+                            >
+                              <Show when={isSelected()}>
+                                <CheckmarkIcon class="size-3 text-b-paper" />
+                              </Show>
+                            </div>
+                            <span class="min-w-0 truncate font-['Anton',sans-serif] text-base uppercase tracking-wide">
+                              {chain}
+                            </span>
+                          </div>
+                        );
+                      }}
+                    </For>
+                  </Show>
+                </Show>
               </div>
+
+              {/* Add Selected Button */}
+              <Show when={isAddingChains()}>
+                <div class="shrink-0 border-t border-b-border p-2">
+                  <button
+                    type="button"
+                    onClick={handleAddChains}
+                    disabled={chainMutationLoading() || chainsToAdd().size === 0}
+                    class="flex w-full items-center justify-center gap-2 border border-b-accent bg-b-accent px-3 py-2.5 text-left transition-all duration-150 hover:bg-b-accent-hover disabled:opacity-40"
+                  >
+                    <Show when={chainMutationLoading()}>
+                      <LoadingSpinner class="size-3.5 text-b-paper" />
+                    </Show>
+                    <span class="text-xs font-bold uppercase tracking-wider text-b-paper">
+                      {chainMutationLoading() ? "Adding…" : `Add Selected (${chainsToAdd().size})`}
+                    </span>
+                  </button>
+                </div>
+              </Show>
             </aside>
 
             <section class="flex min-h-[min(24rem,55vh)] min-w-0 flex-1 flex-col overflow-hidden border border-b-border bg-b-field lg:min-h-[calc(100vh-13rem)]">
@@ -900,7 +1078,7 @@ export default function ApplicationRpcsPage() {
                           </p>
                           <button
                             type="button"
-                            onClick={openAddChainModal}
+                            onClick={toggleAddChainsMode}
                             disabled={chainMutationLoading() || inactiveChains().length === 0}
                             class="btn btn-md btn-interactive btn-disabled btn-primary"
                           >
@@ -938,8 +1116,18 @@ export default function ApplicationRpcsPage() {
                       <p class="text-[0.65rem] font-bold uppercase tracking-[0.35em] text-b-accent">
                         Chain
                       </p>
-                      <h2 class="truncate font-['Anton',sans-serif] text-2xl uppercase tracking-wide text-b-ink">
+                      <h2 class="flex items-center gap-2 truncate font-['Anton',sans-serif] text-2xl uppercase tracking-wide text-b-ink">
                         {activeChain()}
+                        <Show when={chainStructureStatuses()[activeChain()!] === "valid"}>
+                          <span title="Matches a supported structure">
+                            <CheckmarkIcon class="size-5 shrink-0 text-green-400" />
+                          </span>
+                        </Show>
+                        <Show when={chainStructureStatuses()[activeChain()!] === "warning"}>
+                          <span title="Does not match any supported structure">
+                            <WarningIcon class="size-5 shrink-0 text-red-400" />
+                          </span>
+                        </Show>
                       </h2>
                       <p class="mt-1 text-[0.65rem] font-bold uppercase tracking-widest text-b-ink/45">
                         {activeChainRpcs().length} RPC
@@ -947,25 +1135,6 @@ export default function ApplicationRpcsPage() {
                       </p>
                     </div>
                     <div class="flex shrink-0 flex-col gap-2 self-start sm:self-center">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const chain = activeChain();
-                          if (chain) {
-                            void handleDisableChain(chain);
-                          }
-                        }}
-                        disabled={
-                          chainMutationLoading() ||
-                          createRpcLoading() ||
-                          deleteRpcLoading() ||
-                          editRpcLoading()
-                        }
-                        class="btn btn-sm btn-interactive btn-disabled btn-danger"
-                      >
-                        <TrashIcon class="size-4" />
-                        Disable Chain
-                      </button>
                       <button
                         type="button"
                         onClick={() => {
@@ -989,7 +1158,7 @@ export default function ApplicationRpcsPage() {
                   <Show when={activeChainMatchedStructure()}>
                     {(matched) => (
                       <div class="mx-4 mt-4 flex items-center gap-2 border border-green-500/30 bg-green-500/10 px-3 py-2">
-                        <span class="flex size-2.5 shrink-0 rounded-full bg-green-400" />
+                        <CheckmarkIcon class="size-4 shrink-0 text-green-400" />
                         <p class="text-xs font-bold uppercase tracking-wider text-green-400">
                           Matches {matched().structure}
                         </p>
@@ -998,10 +1167,12 @@ export default function ApplicationRpcsPage() {
                   </Show>
                   <Show when={activeChainMismatchInfo()}>
                     {(info) => (
-                      <div class="mx-4 mt-4 border border-amber-500/30 bg-amber-500/10 px-3 py-3">
-                        <p class="text-xs font-bold uppercase tracking-wider text-amber-300">
-                          Does not match any supported structure
-                        </p>
+                      <div class="mx-4 mt-4 flex items-start gap-2 border border-red-500/30 bg-red-500/10 px-3 py-3">
+                        <WarningIcon class="size-4 shrink-0 text-red-400 mt-0.5" />
+                        <div class="flex-1">
+                          <p class="text-xs font-bold uppercase tracking-wider text-red-400">
+                            Does not match any supported structure
+                          </p>
                         <Show
                           when={Object.entries(info().typeCounts).length > 0}
                           fallback={
@@ -1036,6 +1207,7 @@ export default function ApplicationRpcsPage() {
                               </div>
                             )}
                           </For>
+                        </div>
                         </div>
                       </div>
                     )}
@@ -1125,98 +1297,6 @@ export default function ApplicationRpcsPage() {
         </Show>
 
       </div>
-
-      <Show when={addChainModalOpen()}>
-        <div
-          class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm px-4 py-8"
-          role="presentation"
-          onClick={closeAddChainModal}
-        >
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="add-chain-title"
-            class="w-full max-w-md border border-b-border bg-b-field p-8 shadow-[0_25px_50px_rgba(0,0,0,0.5)]"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <p class="mb-2 text-xs font-bold uppercase tracking-[0.35em] text-b-accent">
-              Configure
-            </p>
-            <h3
-              id="add-chain-title"
-              class="mb-2 font-['Anton',sans-serif] text-4xl uppercase leading-none tracking-wide text-b-ink"
-            >
-              Add Chain
-            </h3>
-            <p class="mb-6 text-xs font-bold uppercase tracking-widest text-b-ink/50">
-              {selectedEnvironment()?.name}
-            </p>
-
-            <form onSubmit={handleAddChain} class="flex flex-col gap-6">
-              <Show
-                when={inactiveChains().length > 0}
-                fallback={
-                  <div class="border border-dashed border-b-border/50 bg-b-paper/20 px-4 py-4 text-xs font-bold uppercase tracking-widest text-b-ink/50">
-                    All registered chains are already enabled for this environment.
-                  </div>
-                }
-              >
-                <div class="flex flex-col gap-2">
-                  <label
-                    for="chain-to-add"
-                    class="text-xs font-bold uppercase tracking-widest text-b-ink/70"
-                  >
-                    Chain
-                  </label>
-                  <div class="relative">
-                    <select
-                      id="chain-to-add"
-                      value={newChainToAdd()}
-                      onChange={(e) => setNewChainToAdd(e.currentTarget.value)}
-                      class="h-11 w-full appearance-none border border-b-border bg-b-field px-4 pr-10 text-sm font-bold uppercase tracking-widest text-b-ink outline-none focus-visible:border-b-accent/50 focus-visible:ring-2 focus-visible:ring-b-accent/20 hover:border-b-border-hover transition-all duration-200 cursor-pointer"
-                    >
-                      <For each={inactiveChains()}>
-                        {(chain) => (
-                          <option value={chain} class="bg-b-field">
-                            {chain}
-                          </option>
-                        )}
-                      </For>
-                    </select>
-                    <div class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2">
-                      <ChevronDownIcon class="size-5 text-b-ink/50" />
-                    </div>
-                  </div>
-                  <p class="text-xs font-semibold uppercase tracking-wider text-b-ink/40">
-                    Disabling a chain later will hide it without deleting its RPCs.
-                  </p>
-                </div>
-              </Show>
-
-              <div class="flex flex-col gap-3 sm:flex-row sm:justify-end">
-                <button
-                  type="button"
-                  onClick={closeAddChainModal}
-                  disabled={chainMutationLoading()}
-                  class="btn btn-md btn-interactive btn-disabled btn-secondary"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={chainMutationLoading() || inactiveChains().length === 0 || !newChainToAdd()}
-                  class="btn btn-md btn-interactive btn-disabled btn-primary"
-                >
-                  <Show when={chainMutationLoading()}>
-                    <LoadingSpinner class="size-3.5 text-b-paper" />
-                  </Show>
-                  {chainMutationLoading() ? "Adding…" : "Add Chain"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      </Show>
 
       <Show when={createRpcModalOpen()}>
         <div
@@ -1829,6 +1909,73 @@ export default function ApplicationRpcsPage() {
                   <LoadingSpinner class="size-3.5" />
                 </Show>
                 {deleteRpcLoading() ? "Deleting…" : "Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      </Show>
+
+      <Show when={chainToDisable()}>
+        <div
+          class="fixed inset-0 z-[55] flex items-center justify-center bg-black/80 backdrop-blur-sm px-4 py-8"
+          role="presentation"
+          onClick={() => !disableChainLoading() && setChainToDisable(null)}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="disable-chain-title"
+            class="w-full max-w-md border border-amber-500/30 bg-b-field p-8 shadow-[0_25px_50px_rgba(0,0,0,0.5)]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p class="mb-2 text-xs font-bold uppercase tracking-[0.35em] text-amber-400">
+              Confirm Disable
+            </p>
+            <h3
+              id="disable-chain-title"
+              class="mb-4 font-['Anton',sans-serif] text-4xl uppercase leading-none tracking-wide text-b-ink"
+            >
+              Disable Chain
+            </h3>
+            <p class="mb-4 text-sm font-semibold text-b-ink/70">
+              Disable chain{" "}
+              <span class="font-bold text-amber-400">{chainToDisable()}</span>
+              {" "}for {selectedEnvironment()?.name}?
+            </p>
+            <div class="mb-6 border border-amber-500/20 bg-amber-500/10 px-3 py-3">
+              <p class="text-xs font-semibold text-amber-300/80">
+                Existing RPCs will be preserved and can be restored by re-enabling the chain.
+              </p>
+            </div>
+
+            <Show when={disableChainError()}>
+              <p class="mb-6 border border-red-500/40 bg-red-500/10 px-3 py-3 text-xs font-bold uppercase leading-snug text-red-400">
+                {disableChainError()}
+              </p>
+            </Show>
+
+            <div class="flex flex-col gap-3 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={() => setChainToDisable(null)}
+                disabled={disableChainLoading()}
+                class="btn btn-md btn-interactive btn-disabled btn-secondary"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const chain = chainToDisable();
+                  if (chain) void performDisableChain(chain);
+                }}
+                disabled={disableChainLoading()}
+                class="btn btn-md btn-interactive btn-disabled btn-warning"
+              >
+                <Show when={disableChainLoading()}>
+                  <LoadingSpinner class="size-3.5" />
+                </Show>
+                {disableChainLoading() ? "Disabling…" : "Disable Chain"}
               </button>
             </div>
           </div>

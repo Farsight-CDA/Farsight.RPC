@@ -300,12 +300,6 @@ export default function ApplicationEnvironmentsPage() {
                 environments().length > 0
               }
             >
-              <div class="mb-4 flex items-start justify-end gap-4">
-                <span class="text-xs font-bold uppercase tracking-widest text-b-ink/40">
-                  {environments().length}
-                </span>
-              </div>
-
               <div class="flex flex-col gap-3">
                 <For each={environments()}>
                   {(environment) => {

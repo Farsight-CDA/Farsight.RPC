@@ -8,6 +8,8 @@ namespace Farsight.Rpc.Api.Endpoints.Rpcs.Validate;
 
 public sealed class POST : Endpoint<POST.Request, POST.Response>
 {
+    private static readonly TimeSpan _validationTimeout = TimeSpan.FromSeconds(3);
+
     public sealed record Request(Uri Address);
 
     public new sealed record Response(ulong ChainId);
@@ -29,8 +31,8 @@ public sealed class POST : Endpoint<POST.Request, POST.Response>
 
     public override async Task HandleAsync(Request req, CancellationToken ct)
     {
-        using var timeoutCancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(ct);
-        timeoutCancellationTokenSource.CancelAfter(TimeSpan.FromSeconds(15));
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        cts.CancelAfter(_validationTimeout);
 
         try
         {
@@ -38,8 +40,7 @@ public sealed class POST : Endpoint<POST.Request, POST.Response>
                 ? EtherClientBuilder.CreateForWebsocket(req.Address).BuildReadClient()
                 : EtherClientBuilder.CreateForHttpRpc(req.Address).BuildReadClient();
 
-            ulong chainId = await client.InitializeAsync(IQuery.GetChainId(), timeoutCancellationTokenSource.Token);
-
+            ulong chainId = await client.InitializeAsync(IQuery.GetChainId(), cts.Token);
             await Send.OkAsync(new Response(chainId), ct);
         }
         catch(OperationCanceledException) when(!ct.IsCancellationRequested)

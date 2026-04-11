@@ -16,7 +16,7 @@ public sealed class POST(ChainService chainService) : Endpoint<POST.Request, POS
 
     public sealed record Request(Uri Address, string Chain, RpcType? RpcType);
 
-    public new sealed record Response(ulong ChainId);
+    public new sealed record Response(ulong ChainId, TracingMode? TracingMode);
 
     public sealed class Validator : Validator<Request>
     {
@@ -61,7 +61,12 @@ public sealed class POST(ChainService chainService) : Endpoint<POST.Request, POS
                 ThrowError($"RPC for {req.Chain} returned chain id {actualChainId}, expected {expectedChainId}.", 400);
             }
 
-            await Send.OkAsync(new Response(actualChainId), ct);
+            // TODO: Replace mock with actual tracing mode probing
+            TracingMode? detectedTracingMode = req.RpcType == RpcType.Tracing
+                ? Types.TracingMode.Debug
+                : null;
+
+            await Send.OkAsync(new Response(actualChainId, detectedTracingMode), ct);
         }
         catch(OperationCanceledException) when(!ct.IsCancellationRequested)
         {

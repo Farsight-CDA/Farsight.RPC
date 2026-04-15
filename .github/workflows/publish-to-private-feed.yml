@@ -26,7 +26,7 @@ jobs:
         id: version
         shell: bash
         run: |
-          project_path="src/sdk/Farsight.Rpc.Sdk.csproj"
+          project_path="sdk/csharp/Farsight.Rpc.Sdk.csproj"
           version="$(dotnet msbuild "$project_path" -nologo -getProperty:Version)"
 
           if [[ -z "$version" ]]; then
@@ -50,7 +50,7 @@ jobs:
         run: dotnet build Farsight.Rpc.slnx --configuration Release --no-restore -warnaserror
 
       - name: Pack SDK package
-        run: dotnet pack src/sdk/Farsight.Rpc.Sdk.csproj --configuration Release --no-restore --output ./nupkgs -p:Version=${{ steps.version.outputs.version }}
+        run: dotnet pack sdk/csharp/Farsight.Rpc.Sdk.csproj --configuration Release --no-restore --output ./nupkgs -p:Version=${{ steps.version.outputs.version }}
 
       - name: Publish to farsight-packages
         env:

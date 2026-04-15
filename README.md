@@ -10,13 +10,15 @@
 |--------|------|
 | **`src/api`** | ASP.NET Core service (FastEndpoints), PostgreSQL via EF Core, JWT auth for admin flows |
 | **`src/types`** | Shared JSON/DTO contracts (`RpcEndpointDto`, providers, headers) |
-| **`src/sdk`** | Read-only .NET client that calls `GET /api/Rpcs` with your API key |
+| **`sdk/csharp`** | Read-only .NET client that calls `GET /api/Rpcs` with your API key |
 | **`src/ui`** | SolidJS + Vite + Tailwind admin front end |
 | **`docker/`** | Dockerfiles for API and UI |
 
-## SDK (`Farsight.Rpc.Sdk`)
+## SDKs
 
-The SDK registers a typed `IFarsightRpcClient` that returns RPC endpoints grouped by chain plus provider metadata (name, rate limit). Configure base URL and API key once; call `GetRpcsAsync` when you need fresh configuration.
+The SDKs return RPC endpoints grouped by chain plus provider metadata (name, rate limit). Configure base URL and API key once, then call the client when you need fresh configuration.
+
+### C# (`Farsight.Rpc.Sdk`)
 
 ```csharp
 builder.AddFarsightRpc(options =>

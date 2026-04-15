@@ -1,0 +1,81 @@
+name: Publish TypeScript SDK to npm
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - .github/workflows/publish-typescript-sdk-to-npm.yml
+      - sdk/typescript/**
+      - version.props
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Resolve package metadata from shared version
+        id: package
+        shell: bash
+        run: |
+          package_version="$(node -e 'const fs = require("fs"); const xml = fs.readFileSync("version.props", "utf8"); const match = xml.match(/<Version>([^<]+)<\/Version>/); if(!match) { process.exit(1); } process.stdout.write(match[1]);')"
+          package_name="$(npm pkg get name --json | tr -d '"')"
+
+          if [[ -z "$package_name" || -z "$package_version" ]]; then
+            echo "Could not resolve package name or shared version"
+            exit 1
+          fi
+
+          npm pkg set version="$package_version"
+
+          echo "name=$package_name" >> "$GITHUB_OUTPUT"
+          echo "version=$package_version" >> "$GITHUB_OUTPUT"
+        working-directory: sdk/typescript
+
+      - name: Install package dependencies
+        run: npm install
+        working-directory: sdk/typescript
+
+      - name: Type-check package
+        run: npm run typecheck
+        working-directory: sdk/typescript
+
+      - name: Build package
+        run: npm run build
+        working-directory: sdk/typescript
+
+      - name: Check whether version already exists on npm
+        id: npm
+        shell: bash
+        run: |
+          if npm view "${{ steps.package.outputs.name }}@${{ steps.package.outputs.version }}" version >/dev/null 2>&1; then
+            echo "should_publish=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "should_publish=true" >> "$GITHUB_OUTPUT"
+
+      - name: Publish package to npm
+        if: steps.npm.outputs.should_publish == 'true'
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --access public
+        working-directory: sdk/typescript
+
+      - name: Skip publish when version already exists
+        if: steps.npm.outputs.should_publish != 'true'
+        run: |
+          echo "Package ${{ steps.package.outputs.name }}@${{ steps.package.outputs.version }} already exists on npm. Skipping publish."

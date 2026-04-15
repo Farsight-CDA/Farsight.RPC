@@ -1,6 +1,6 @@
 {
   "name": "@farsight-cda/rpc-sdk",
-  "version": "1.0.0",
+  "version": "0.0.0",
   "description": "SDK for reading Farsight RPC provider configuration.",
   "type": "module",
   "main": "./dist/index.js",

@@ -11,6 +11,7 @@
 | **`src/api`** | ASP.NET Core service (FastEndpoints), PostgreSQL via EF Core, JWT auth for admin flows |
 | **`src/types`** | Shared JSON/DTO contracts (`RpcEndpointDto`, providers, headers) |
 | **`sdk/csharp`** | Read-only .NET client that calls `GET /api/Rpcs` with your API key |
+| **`sdk/typescript`** | Read-only TypeScript client that calls `GET /api/Rpcs` with your API key |
 | **`src/ui`** | SolidJS + Vite + Tailwind admin front end |
 | **`docker/`** | Dockerfiles for API and UI |
 
@@ -37,8 +38,28 @@ if (result is IFarsightRpcClient.GetRpcsResult.Success ok)
 }
 ```
 
-More detail and edge cases live in [`src/sdk/README.md`](src/sdk/README.md).
+More detail and edge cases live in [`sdk/csharp/README.md`](sdk/csharp/README.md).
+
+### TypeScript (`@farsight-cda/rpc-sdk`)
+
+```ts
+import { FarsightRpcClient } from "@farsight-cda/rpc-sdk";
+
+const client = new FarsightRpcClient({
+  apiUrl: "https://your-farsight-rpc-host/",
+  apiKey: "your-environment-scoped-api-key",
+});
+
+const result = await client.getRpcs();
+
+if(result.kind === "success") {
+  // result.rpcs: chain name -> endpoints (Realtime / Archive / Tracing)
+  // result.providers: referenced providers
+}
+```
+
+More detail and edge cases live in [`sdk/typescript/README.md`](sdk/typescript/README.md).
 
 ---
 
-*Version is driven by `version.props` (currently 1.0.0).*
+*The .NET SDK version is driven by `version.props` (currently 1.0.0). The TypeScript package is currently aligned to the same version.*

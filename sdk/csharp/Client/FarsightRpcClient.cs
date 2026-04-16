@@ -5,7 +5,7 @@ using static Farsight.Rpc.Sdk.Client.IFarsightRpcClient;
 
 namespace Farsight.Rpc.Sdk.Client;
 
-internal sealed class FarsightRpcClient(IHttpClientFactory httpClientFactory, FarsightRpcOptions options) : IFarsightRpcClient
+public sealed class FarsightRpcClient(IHttpClientFactory httpClientFactory, FarsightRpcOptions options) : IFarsightRpcClient
 {
     private readonly IHttpClientFactory _httpClientFactory = httpClientFactory;
     private readonly FarsightRpcOptions _options = options;

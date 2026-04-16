@@ -1,5 +1,4 @@
 using Farsight.Rpc.Sdk.Client;
-using Farsight.Rpc.Types;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 namespace Farsight.Rpc.Sdk;
@@ -30,18 +29,15 @@ public static class DependencyInjection
             var clientBuilder = builder.Services.AddHttpClient(HTTP_CLIENT_NAME, (sp, client) =>
             {
                 var options = sp.GetRequiredService<RegistrationOptions>().Options;
-                client.BaseAddress = options.ApiUrl;
-
-                if(!String.IsNullOrWhiteSpace(options.ApiKey))
-                {
-                    client.DefaultRequestHeaders.Add(ApiKeyHeaders.API_KEY, options.ApiKey);
-                }
+                FarsightRpcClient.ConfigureClient(client, options);
             });
 
             configureClient?.Invoke(clientBuilder);
 
-            builder.Services.AddSingleton<IFarsightRpcClient>(sp =>
-                ActivatorUtilities.CreateInstance<FarsightRpcClient>(sp, sp.GetRequiredService<RegistrationOptions>().Options));
+            builder.Services.AddSingleton<IFarsightRpcClient>(sp => new FarsightRpcClient(
+                sp.GetRequiredService<IHttpClientFactory>(),
+                sp.GetRequiredService<RegistrationOptions>().Options
+            ));
 
             return builder;
         }

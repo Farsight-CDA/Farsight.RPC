@@ -5,10 +5,27 @@ using static Farsight.Rpc.Sdk.Client.IFarsightRpcClient;
 
 namespace Farsight.Rpc.Sdk.Client;
 
-public sealed class FarsightRpcClient(IHttpClientFactory httpClientFactory, FarsightRpcOptions options) : IFarsightRpcClient
+public sealed class FarsightRpcClient : IFarsightRpcClient
 {
-    private readonly IHttpClientFactory _httpClientFactory = httpClientFactory;
-    private readonly FarsightRpcOptions _options = options;
+    private readonly IHttpClientFactory? _httpClientFactory;
+    private readonly HttpClient? _httpClient;
+    private readonly FarsightRpcOptions _options;
+
+    internal FarsightRpcClient(IHttpClientFactory httpClientFactory, FarsightRpcOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(httpClientFactory);
+        ArgumentNullException.ThrowIfNull(options);
+        _httpClientFactory = httpClientFactory;
+        _options = options;
+    }
+
+    public FarsightRpcClient(FarsightRpcOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        _httpClient = new HttpClient();
+        ConfigureClient(_httpClient, options);
+        _options = options;
+    }
 
     public async Task<GetRpcsResult> GetRpcsAsync(CancellationToken cancellationToken = default)
     {
@@ -28,5 +45,16 @@ public sealed class FarsightRpcClient(IHttpClientFactory httpClientFactory, Fars
         }
     }
 
-    private HttpClient CreateClient() => _httpClientFactory.CreateClient(DependencyInjection.HTTP_CLIENT_NAME);
+    private HttpClient CreateClient()
+        => _httpClientFactory?.CreateClient(DependencyInjection.HTTP_CLIENT_NAME) ?? _httpClient!;
+
+    internal static void ConfigureClient(HttpClient client, FarsightRpcOptions options)
+    {
+        client.BaseAddress = options.ApiUrl;
+
+        if(!String.IsNullOrWhiteSpace(options.ApiKey))
+        {
+            client.DefaultRequestHeaders.Add(ApiKeyHeaders.API_KEY, options.ApiKey);
+        }
+    }
 }

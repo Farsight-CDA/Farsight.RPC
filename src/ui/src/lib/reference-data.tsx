@@ -27,6 +27,7 @@ export type RpcProviderSummary = {
 
 export type RpcStructureDefinition = {
   structure: string;
+  displayName: string;
   requiredRpcTypes: Record<string, number>;
 };
 

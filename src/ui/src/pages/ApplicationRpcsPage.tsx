@@ -359,7 +359,7 @@ export default function ApplicationRpcsPage() {
     const env = environment.selectedEnvironmentId() || "";
     const supported = appStructures();
     const definitions = rpcStructures();
-    const matches: Record<string, string | null> = {};
+    const matches: Record<string, RpcStructureDefinition | null> = {};
 
     if (supported.length === 0) return matches;
 
@@ -372,7 +372,7 @@ export default function ApplicationRpcsPage() {
       const matchedDef = supportedDefs.find((def) =>
         matchesStructure(typeCounts, def),
       );
-      matches[chain] = matchedDef?.structure ?? null;
+      matches[chain] = matchedDef ?? null;
     }
 
     return matches;
@@ -1118,7 +1118,7 @@ export default function ApplicationRpcsPage() {
                             <Show when={matchedStructure()}>
                               {(structure) => (
                                 <span class="ml-1 inline-flex shrink-0 items-center border border-green-500/30 bg-green-500/10 px-1.5 py-0.5 text-[0.6rem] font-bold uppercase tracking-wider text-green-400">
-                                  {structure()}
+                                  {structure().displayName}
                                 </span>
                               )}
                             </Show>
@@ -1334,7 +1334,7 @@ export default function ApplicationRpcsPage() {
                       <div class="mx-4 mt-4 flex items-center gap-2 border border-green-500/30 bg-green-500/10 px-3 py-2">
                         <CheckmarkIcon class="size-4 shrink-0 text-green-400" />
                         <p class="text-xs font-bold uppercase tracking-wider text-green-400">
-                          Matches {matched().structure}
+                          Matches {matched().displayName}
                         </p>
                       </div>
                     )}
@@ -1370,7 +1370,7 @@ export default function ApplicationRpcsPage() {
                             <For each={info().supportedDefs}>
                               {(def) => (
                                 <div class="flex flex-wrap items-center gap-1 text-[0.6rem] font-bold uppercase tracking-wider text-b-ink/40">
-                                  <span>{def.structure} needs:</span>
+                                  <span>{def.displayName} needs:</span>
                                   <For
                                     each={Object.entries(def.requiredRpcTypes)}
                                   >

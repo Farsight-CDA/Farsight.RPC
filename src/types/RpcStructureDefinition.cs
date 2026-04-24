@@ -4,6 +4,7 @@ namespace Farsight.Rpc.Types;
 
 public sealed record RpcStructureDefinition(
     RpcStructureType Structure,
+    string DisplayName,
     Dictionary<RpcType, int> RequiredRpcTypes
 )
 {
@@ -11,10 +12,12 @@ public sealed record RpcStructureDefinition(
     {
         [RpcStructureType.RealtimeOnly] = new RpcStructureDefinition(
             RpcStructureType.RealtimeOnly,
+            "RT",
             new Dictionary<RpcType, int> { [RpcType.Realtime] = 1 }
         ),
         [RpcStructureType.RealtimeArchive] = new RpcStructureDefinition(
             RpcStructureType.RealtimeArchive,
+            "RT+AR",
             new Dictionary<RpcType, int>
             {
                 [RpcType.Realtime] = 1,
@@ -23,6 +26,7 @@ public sealed record RpcStructureDefinition(
         ),
         [RpcStructureType.RealtimeArchiveTracing] = new RpcStructureDefinition(
             RpcStructureType.RealtimeArchiveTracing,
+            "RT+AR+TR",
             new Dictionary<RpcType, int>
             {
                 [RpcType.Realtime] = 1,

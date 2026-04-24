@@ -8,6 +8,7 @@ public sealed class GET : EndpointWithoutRequest<GET.RpcStructureResponse[]>
 {
     public sealed record RpcStructureResponse(
         RpcStructureType Structure,
+        string DisplayName,
         Dictionary<RpcType, int> RequiredRpcTypes
     );
 
@@ -20,7 +21,7 @@ public sealed class GET : EndpointWithoutRequest<GET.RpcStructureResponse[]>
     public override async Task HandleAsync(CancellationToken ct)
     {
         var definitions = RpcStructureDefinition.All.Values
-            .Select(d => new RpcStructureResponse(d.Structure, d.RequiredRpcTypes))
+            .Select(d => new RpcStructureResponse(d.Structure, d.DisplayName, d.RequiredRpcTypes))
             .ToArray();
 
         await Send.OkAsync(definitions, ct);

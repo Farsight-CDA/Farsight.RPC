@@ -416,7 +416,7 @@ export default function DashboardPage() {
                           </div>
                           <div class="min-w-0 flex-1">
                             <p class="font-['Anton',sans-serif] text-base uppercase tracking-wide text-b-ink">
-                              {def.structure}
+                              {def.displayName}
                             </p>
                             <div class="mt-1 flex flex-wrap gap-2">
                               <For each={typeEntries()}>

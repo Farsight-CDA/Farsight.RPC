@@ -9,12 +9,20 @@ public sealed record RpcStructureDefinition(
 {
     public static FrozenDictionary<RpcStructureType, RpcStructureDefinition> All { get; } = new Dictionary<RpcStructureType, RpcStructureDefinition>()
     {
-        [RpcStructureType.Basic] = new RpcStructureDefinition(
-            RpcStructureType.Basic,
+        [RpcStructureType.RealtimeOnly] = new RpcStructureDefinition(
+            RpcStructureType.RealtimeOnly,
             new Dictionary<RpcType, int> { [RpcType.Realtime] = 1 }
         ),
-        [RpcStructureType.RoleSplit] = new RpcStructureDefinition(
-            RpcStructureType.RoleSplit,
+        [RpcStructureType.RealtimeArchive] = new RpcStructureDefinition(
+            RpcStructureType.RealtimeArchive,
+            new Dictionary<RpcType, int>
+            {
+                [RpcType.Realtime] = 1,
+                [RpcType.Archive] = 1
+            }
+        ),
+        [RpcStructureType.RealtimeArchiveTracing] = new RpcStructureDefinition(
+            RpcStructureType.RealtimeArchiveTracing,
             new Dictionary<RpcType, int>
             {
                 [RpcType.Realtime] = 1,

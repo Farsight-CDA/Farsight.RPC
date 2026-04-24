@@ -1,11 +1,10 @@
-using Microsoft.EntityFrameworkCore.Migrations;
+﻿using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
 namespace Farsight.Rpc.Api.Persistence.Migrations;
 
 /// <inheritdoc />
-[Migration("20260424120000_RenameRpcStructures")]
 public partial class RenameRpcStructures : Migration
 {
     /// <inheritdoc />

@@ -10,6 +10,8 @@ export type {
   GetRpcsResult,
   GetRpcsSuccessResult,
   RealtimeRpcEndpoint,
+  RpcErrorAction,
+  RpcErrorGroup,
   RpcEndpoint,
   RpcEndpointBase,
   RpcProvider,

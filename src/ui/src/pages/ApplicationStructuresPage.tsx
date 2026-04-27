@@ -1,5 +1,6 @@
 import { createMemo, createSignal, For, Show } from "solid-js";
 import { useParams } from "@solidjs/router";
+import CheckmarkIcon from "../components/icons/CheckmarkIcon";
 import LoadingSpinner from "../components/LoadingSpinner";
 import StructureIcon from "../components/icons/StructureIcon";
 import { useAuth } from "../lib/auth";
@@ -127,19 +128,7 @@ export default function ApplicationStructuresPage() {
                     }`}
                   >
                     <Show when={isStructureSelected(def.structure)}>
-                      <svg
-                        class="size-3 text-b-paper"
-                        viewBox="0 0 12 12"
-                        fill="none"
-                      >
-                        <path
-                          d="M2 6l3 3 5-5"
-                          stroke="currentColor"
-                          stroke-width="2"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        />
-                      </svg>
+                      <CheckmarkIcon class="size-3 text-b-paper" />
                     </Show>
                   </div>
                   <div class="min-w-0 flex-1">

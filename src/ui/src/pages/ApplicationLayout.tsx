@@ -63,7 +63,7 @@ const ApplicationLayoutContent: ParentComponent = (props) => {
               {/* Name row with breadcrumb and app name */}
               <div class="flex items-center gap-2">
                 <button
-                  onClick={() => navigate("/")}
+                  onClick={() => navigate("/applications")}
                   class="group flex items-center gap-1.5 text-[0.65rem] font-bold uppercase tracking-widest text-b-ink/50 transition-colors hover:text-b-accent"
                 >
                   <ArrowLeftIcon class="size-3.5 transition-transform group-hover:-translate-x-1" />

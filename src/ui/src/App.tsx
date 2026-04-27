@@ -8,6 +8,7 @@ import { AuthProvider, type AuthState } from "./lib/auth";
 import RequireAuth from "./components/RequireAuth";
 import LoginPage from "./pages/LoginPage";
 import DashboardPage from "./pages/DashboardPage";
+import ApplicationNewPage from "./pages/ApplicationNewPage";
 import ApplicationLayout from "./pages/ApplicationLayout";
 import ApplicationRpcsPage from "./pages/ApplicationRpcsPage";
 import ApplicationApiKeysPage from "./pages/ApplicationApiKeysPage";
@@ -20,6 +21,12 @@ import {
   type ReferenceDataSnapshot,
 } from "./lib/reference-data";
 import { ApplicationDataProvider } from "./lib/application-data";
+import ErrorGroupsPage from "./pages/ErrorGroupsPage";
+import ErrorGroupNewPage from "./pages/ErrorGroupNewPage";
+import ErrorGroupLayout from "./pages/ErrorGroupLayout";
+import ErrorGroupGeneralPage from "./pages/ErrorGroupGeneralPage";
+import ErrorGroupMatchedPage from "./pages/ErrorGroupMatchedPage";
+import HomePage from "./pages/HomePage";
 
 function ApplicationShell(props: RouteSectionProps) {
   return (
@@ -27,6 +34,14 @@ function ApplicationShell(props: RouteSectionProps) {
       <ApplicationDataProvider>
         <ApplicationLayout>{props.children}</ApplicationLayout>
       </ApplicationDataProvider>
+    </RequireAuth>
+  );
+}
+
+function ErrorGroupShell(props: RouteSectionProps) {
+  return (
+    <RequireAuth>
+      <ErrorGroupLayout>{props.children}</ErrorGroupLayout>
     </RequireAuth>
   );
 }
@@ -49,10 +64,47 @@ export default function App(props: AppProps) {
             path="/"
             component={() => (
               <RequireAuth>
+                <HomePage />
+              </RequireAuth>
+            )}
+          />
+          <Route
+            path="/applications"
+            component={() => (
+              <RequireAuth>
                 <DashboardPage />
               </RequireAuth>
             )}
           />
+          <Route
+            path="/applications/new"
+            component={() => (
+              <RequireAuth>
+                <ApplicationNewPage />
+              </RequireAuth>
+            )}
+          />
+          <Route
+            path="/errors"
+            component={() => (
+              <RequireAuth>
+                <ErrorGroupsPage />
+              </RequireAuth>
+            )}
+          />
+          <Route
+            path="/errors/new"
+            component={() => (
+              <RequireAuth>
+                <ErrorGroupNewPage />
+              </RequireAuth>
+            )}
+          />
+          <Route path="/errors/:groupId" component={ErrorGroupShell}>
+            <Route path="/" component={ErrorGroupGeneralPage} />
+            <Route path="/general" component={ErrorGroupGeneralPage} />
+            <Route path="/matched" component={ErrorGroupMatchedPage} />
+          </Route>
           <Route
             path="/applications/:applicationId"
             component={ApplicationShell}

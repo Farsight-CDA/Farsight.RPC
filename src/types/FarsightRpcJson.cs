@@ -12,6 +12,7 @@ public static class FarsightRpcJson
         options.Converters.Add(new JsonStringEnumConverter<TracingMode>());
         options.Converters.Add(new JsonStringEnumConverter<RpcType>());
         options.Converters.Add(new JsonStringEnumConverter<RpcStructureType>());
+        options.Converters.Add(new JsonStringEnumConverter<RpcErrorAction>());
         return options;
     }
 }

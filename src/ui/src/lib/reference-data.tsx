@@ -31,11 +31,19 @@ export type RpcStructureDefinition = {
   requiredRpcTypes: Record<string, number>;
 };
 
+export type RpcErrorGroupSummary = {
+  id: string;
+  name: string;
+  action: string;
+  errors: string[];
+};
+
 export type ReferenceDataSnapshot = {
   applications: ApplicationSummary[];
   rpcProviders: RpcProviderSummary[];
   chains: string[];
   rpcStructures: RpcStructureDefinition[];
+  errorGroups: RpcErrorGroupSummary[];
 };
 
 type ListController<T> = {
@@ -49,10 +57,12 @@ type ReferenceDataContextValue = {
   rpcProviders: ListController<RpcProviderSummary>;
   chains: ListController<string>;
   rpcStructures: ListController<RpcStructureDefinition>;
+  errorGroups: ListController<RpcErrorGroupSummary>;
   isReferenceDataReady: Accessor<boolean>;
   load: (token?: string | null) => Promise<void>;
   refreshApplications: () => Promise<void>;
   refreshRpcProviders: () => Promise<void>;
+  refreshErrorGroups: () => Promise<void>;
   removeApplication: (applicationId: string) => void;
 };
 
@@ -77,8 +87,8 @@ async function fetchReferenceList<T>(
 export async function preloadReferenceData(
   token: string,
 ): Promise<ReferenceDataSnapshot> {
-  const [applications, rpcProviders, chains, rpcStructures] = await Promise.all(
-    [
+  const [applications, rpcProviders, chains, rpcStructures, errorGroups] =
+    await Promise.all([
       fetchReferenceList<ApplicationSummary>(
         "/api/Applications",
         token,
@@ -95,14 +105,19 @@ export async function preloadReferenceData(
         token,
         "Failed to load RPC structures",
       ),
-    ],
-  );
+      fetchReferenceList<RpcErrorGroupSummary>(
+        "/api/RpcErrorGroups",
+        token,
+        "Failed to load error groups",
+      ),
+    ]);
 
   return {
     applications,
     rpcProviders,
     chains,
     rpcStructures,
+    errorGroups,
   };
 }
 
@@ -153,6 +168,16 @@ export function ReferenceDataProvider(props: ReferenceDataProviderProps) {
   const [rpcStructuresError, setRpcStructuresError] =
     createSignal<Error | null>(null);
 
+  const [errorGroups, setErrorGroups] = createSignal(
+    initialData?.errorGroups ?? [],
+  );
+  const [errorGroupsState, setErrorGroupsState] = createSignal<LoadState>(
+    initialData ? "ready" : "idle",
+  );
+  const [errorGroupsError, setErrorGroupsError] = createSignal<Error | null>(
+    null,
+  );
+
   let activeLoad: Promise<void> | null = null;
   let activeLoadToken: string | null = null;
 
@@ -170,6 +195,9 @@ export function ReferenceDataProvider(props: ReferenceDataProviderProps) {
     setRpcStructures([]);
     setRpcStructuresState("idle");
     setRpcStructuresError(null);
+    setErrorGroups([]);
+    setErrorGroupsState("idle");
+    setErrorGroupsError(null);
   };
 
   const load = async (token = auth.token) => {
@@ -197,6 +225,10 @@ export function ReferenceDataProvider(props: ReferenceDataProviderProps) {
       rpcStructures().length > 0 && isRefresh ? "refreshing" : "pending",
     );
     setRpcStructuresError(null);
+    setErrorGroupsState(
+      errorGroups().length > 0 && isRefresh ? "refreshing" : "pending",
+    );
+    setErrorGroupsError(null);
 
     activeLoadToken = token;
     activeLoad = (async () => {
@@ -205,6 +237,7 @@ export function ReferenceDataProvider(props: ReferenceDataProviderProps) {
         rpcProvidersResult,
         chainsResult,
         rpcStructuresResult,
+        errorGroupsResult,
       ] = await Promise.allSettled([
         fetchReferenceList<ApplicationSummary>(
           "/api/Applications",
@@ -225,6 +258,11 @@ export function ReferenceDataProvider(props: ReferenceDataProviderProps) {
           "/api/RpcStructures",
           token,
           "Failed to load RPC structures",
+        ),
+        fetchReferenceList<RpcErrorGroupSummary>(
+          "/api/RpcErrorGroups",
+          token,
+          "Failed to load error groups",
         ),
       ]);
 
@@ -274,6 +312,18 @@ export function ReferenceDataProvider(props: ReferenceDataProviderProps) {
             : new Error("Failed to load RPC structures"),
         );
         setRpcStructuresState("errored");
+      }
+
+      if (errorGroupsResult.status === "fulfilled") {
+        setErrorGroups(errorGroupsResult.value);
+        setErrorGroupsState("ready");
+      } else {
+        setErrorGroupsError(
+          errorGroupsResult.reason instanceof Error
+            ? errorGroupsResult.reason
+            : new Error("Failed to load error groups"),
+        );
+        setErrorGroupsState("errored");
       }
 
       setLoadedToken(token);
@@ -345,6 +395,35 @@ export function ReferenceDataProvider(props: ReferenceDataProviderProps) {
     }
   };
 
+  const refreshErrorGroups = async () => {
+    const token = auth.token;
+    if (!token) {
+      clear();
+      return;
+    }
+
+    setErrorGroupsState(errorGroups().length > 0 ? "refreshing" : "pending");
+    setErrorGroupsError(null);
+
+    try {
+      const next = await fetchReferenceList<RpcErrorGroupSummary>(
+        "/api/RpcErrorGroups",
+        token,
+        "Failed to load error groups",
+      );
+      setErrorGroups(next);
+      setErrorGroupsState("ready");
+      setLoadedToken(token);
+    } catch (error) {
+      setErrorGroupsError(
+        error instanceof Error
+          ? error
+          : new Error("Failed to load error groups"),
+      );
+      setErrorGroupsState("errored");
+    }
+  };
+
   const removeApplication = (applicationId: string) => {
     setApplications((current) =>
       current.filter((app) => app.id !== applicationId),
@@ -394,10 +473,16 @@ export function ReferenceDataProvider(props: ReferenceDataProviderProps) {
       state: rpcStructuresState,
       error: rpcStructuresError,
     },
+    errorGroups: {
+      data: errorGroups,
+      state: errorGroupsState,
+      error: errorGroupsError,
+    },
     isReferenceDataReady,
     load,
     refreshApplications,
     refreshRpcProviders,
+    refreshErrorGroups,
     removeApplication,
   };
 

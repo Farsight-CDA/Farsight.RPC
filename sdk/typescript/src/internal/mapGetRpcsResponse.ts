@@ -1,5 +1,6 @@
 import type {
   GetRpcsSuccessResult,
+  RpcErrorGroup,
   RpcEndpoint,
   RpcProvider,
   RpcType,
@@ -9,6 +10,7 @@ import {
   asArray,
   asRecord,
   readNumber,
+  readRpcErrorAction,
   readRpcType,
   readString,
   readTracingMode,
@@ -17,6 +19,14 @@ import {
 type RawGetRpcsResponse = {
   Rpcs: Record<string, RawRpcEndpoint[]>;
   Providers: RawRpcProvider[];
+  ErrorGroups: RawRpcErrorGroup[];
+};
+
+type RawRpcErrorGroup = {
+  Id: string;
+  Name: string;
+  Action: string;
+  Errors: string[];
 };
 
 type RawRpcProvider = {
@@ -53,6 +63,7 @@ export function mapGetRpcsResponse(payload: unknown): GetRpcsSuccessResult {
   const response = asRecord(payload, "Expected the API response to be an object.") as Partial<RawGetRpcsResponse>;
   const rawRpcs = asRecord(response.Rpcs, "Expected response.Rpcs to be an object.");
   const providers = asArray(response.Providers, "Expected response.Providers to be an array.").map(mapProvider);
+  const errorGroups = asArray(response.ErrorGroups, "Expected response.ErrorGroups to be an array.").map(mapErrorGroup);
 
   const rpcs = Object.fromEntries(
     Object.entries(rawRpcs).map(([chain, value]) => [
@@ -65,6 +76,20 @@ export function mapGetRpcsResponse(payload: unknown): GetRpcsSuccessResult {
     kind: "success",
     rpcs,
     providers,
+    errorGroups,
+  };
+}
+
+function mapErrorGroup(payload: unknown): RpcErrorGroup {
+  const errorGroup = asRecord(payload, "Expected an error group object.") as Partial<RawRpcErrorGroup>;
+
+  return {
+    id: readString(errorGroup.Id, "Expected errorGroup.Id to be a string."),
+    name: readString(errorGroup.Name, "Expected errorGroup.Name to be a string."),
+    action: readRpcErrorAction(errorGroup.Action),
+    errors: asArray(errorGroup.Errors, "Expected errorGroup.Errors to be an array.").map((value) =>
+      readString(value, "Expected errorGroup.Errors item to be a string."),
+    ),
   };
 }
 

@@ -1,4 +1,4 @@
-import type { RpcType, TracingMode } from "../types.js";
+import type { RpcErrorAction, RpcType, TracingMode } from "../types.js";
 
 export function readRpcType(value: unknown): RpcType {
   switch(value) {
@@ -18,6 +18,17 @@ export function readTracingMode(value: unknown): TracingMode {
       return value;
     default:
       throw new TypeError("Expected endpoint.TracingMode to be Debug or Trace.");
+  }
+}
+
+export function readRpcErrorAction(value: unknown): RpcErrorAction {
+  switch(value) {
+    case "Transient":
+    case "SoftOverwhelmed":
+    case "HardOverwhelmed":
+      return value;
+    default:
+      throw new TypeError("Expected errorGroup.Action to be Transient, SoftOverwhelmed, or HardOverwhelmed.");
   }
 }
 

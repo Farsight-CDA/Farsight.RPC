@@ -38,7 +38,7 @@ public sealed class FarsightRpcClient : IFarsightRpcClient
             case HttpStatusCode.OK:
                 var result = await response.Content.ReadFromJsonAsync(FarsightRpcJsonContext.Default.ApiKeyRpcsDto, cancellationToken)
                     ?? throw new InvalidOperationException("Null response");
-                return new GetRpcsResult.Success(result.Rpcs, result.Providers);
+                return new GetRpcsResult.Success(result.Rpcs, result.Providers, result.ErrorGroups);
             default:
                 response.EnsureSuccessStatusCode();
                 throw new InvalidOperationException();

@@ -1,10 +1,18 @@
 export type RpcType = "Realtime" | "Archive" | "Tracing";
 export type TracingMode = "Debug" | "Trace";
+export type RpcErrorAction = "Transient" | "SoftOverwhelmed" | "HardOverwhelmed";
 
 export interface RpcProvider {
   id: string;
   name: string;
   rateLimit: number;
+}
+
+export interface RpcErrorGroup {
+  id: string;
+  name: string;
+  action: RpcErrorAction;
+  errors: string[];
 }
 
 export interface RpcEndpointBase {
@@ -34,6 +42,7 @@ export interface GetRpcsSuccessResult {
   kind: "success";
   rpcs: Record<string, RpcEndpoint[]>;
   providers: RpcProvider[];
+  errorGroups: RpcErrorGroup[];
 }
 
 export interface GetRpcsInvalidApiKeyResult {

@@ -70,13 +70,20 @@ public sealed class GET(AppDbContext dbContext) : Endpoint<GET.Request, ApiKeyRp
             ))
             .ToArrayAsync(ct);
 
+        var errorGroups = await dbContext.RpcErrorGroups
+            .AsNoTracking()
+            .OrderBy(group => group.Name)
+            .Select(group => new RpcErrorGroupDto(group.Id, group.Name, group.Action, group.Errors))
+            .ToArrayAsync(ct);
+
         key.LastUsedAt = DateTimeOffset.UtcNow;
         await dbContext.SaveChangesAsync(ct);
 
         await Send.OkAsync(new ApiKeyRpcsDto(
             rpcs.GroupBy(rpc => rpc.Chain)
                 .ToDictionary(group => group.Key, group => group.Select(MapRpc).ToArray()),
-            providers
+            providers,
+            errorGroups
         ), ct);
     }
 

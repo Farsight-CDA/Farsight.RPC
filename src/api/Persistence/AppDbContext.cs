@@ -11,6 +11,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     public DbSet<ApplicationEnvironment> ApplicationEnvironments => Set<ApplicationEnvironment>();
     public DbSet<ConsumerApplication> ConsumerApplications => Set<ConsumerApplication>();
     public DbSet<ConsumerApiKey> ConsumerApiKeys => Set<ConsumerApiKey>();
+    public DbSet<RpcErrorGroup> RpcErrorGroups => Set<RpcErrorGroup>();
     public DbSet<RpcProvider> RpcProviders => Set<RpcProvider>();
 
     public DbSet<RpcEndpoint> Rpcs => Set<RpcEndpoint>();

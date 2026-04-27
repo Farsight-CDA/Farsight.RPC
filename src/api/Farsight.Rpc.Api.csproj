@@ -9,7 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Farsight.Chains" Version="1.1.0-private.38.1" />
+    <PackageReference Include="Farsight.Chains" Version="1.1.0-private.40.1" />
     <PackageReference Include="FastEndpoints" Version="8.1.0" />
     <PackageReference Include="FastEndpoints.Security" Version="8.1.0" />
     <PackageReference Include="Farsight.Common" Version="0.9.7-private.34.1" />

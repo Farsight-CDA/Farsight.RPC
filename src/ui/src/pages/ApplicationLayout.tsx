@@ -69,7 +69,7 @@ const ApplicationLayoutContent: ParentComponent = (props) => {
                   <ArrowLeftIcon class="size-3.5 transition-transform group-hover:-translate-x-1" />
                   Applications
                 </button>
-                <h1 class="font-['Anton',sans-serif] text-3xl uppercase leading-none tracking-wide text-b-ink">
+                <h1 class="font-['Anton',sans-serif] text-3xl leading-none tracking-wide text-b-ink">
                   {application()?.name}
                 </h1>
               </div>
@@ -175,7 +175,7 @@ const ApplicationLayoutContent: ParentComponent = (props) => {
                             e.currentTarget.value || undefined,
                           )
                         }
-                        class="h-9 w-48 appearance-none border border-b-border bg-b-field px-3 pr-8 text-[0.65rem] font-bold uppercase tracking-widest text-b-ink outline-none focus-visible:border-b-accent/50 focus-visible:ring-2 focus-visible:ring-b-accent/20 hover:border-b-border-hover transition-all duration-200 cursor-pointer"
+                        class="h-9 w-48 appearance-none border border-b-border bg-b-field px-3 pr-8 text-[0.65rem] font-bold tracking-widest text-b-ink outline-none focus-visible:border-b-accent/50 focus-visible:ring-2 focus-visible:ring-b-accent/20 hover:border-b-border-hover transition-all duration-200 cursor-pointer"
                       >
                         <For each={environment.environments()}>
                           {(env) => (

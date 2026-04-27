@@ -282,7 +282,7 @@ export default function ApplicationApiKeysPage() {
                         <div class="flex flex-col gap-4 p-4 sm:flex-row sm:items-stretch sm:justify-between sm:gap-6">
                           <div class="min-w-0 flex-1 flex flex-col gap-3">
                             <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                              <span class="inline-flex items-center border border-b-accent/25 bg-b-accent/10 px-2 py-0.5 text-xs font-bold uppercase tracking-wider text-b-accent">
+                              <span class="inline-flex items-center border border-b-accent/25 bg-b-accent/10 px-2 py-0.5 text-xs font-bold tracking-wider text-b-accent">
                                 {getEnvironmentName(k.environmentId)}
                               </span>
                               <p class="text-xs font-semibold uppercase tracking-wider text-b-ink/40">
@@ -412,7 +412,7 @@ export default function ApplicationApiKeysPage() {
                           e.currentTarget.value || undefined,
                         )
                       }
-                      class="h-11 w-full appearance-none border border-b-border bg-b-field px-4 pr-10 text-sm font-bold uppercase tracking-widest text-b-ink outline-none focus-visible:border-b-accent/50 focus-visible:ring-2 focus-visible:ring-b-accent/20 hover:border-b-border-hover transition-all duration-200 cursor-pointer"
+                      class="h-11 w-full appearance-none border border-b-border bg-b-field px-4 pr-10 text-sm font-bold tracking-widest text-b-ink outline-none focus-visible:border-b-accent/50 focus-visible:ring-2 focus-visible:ring-b-accent/20 hover:border-b-border-hover transition-all duration-200 cursor-pointer"
                     >
                       <For each={environments()}>
                         {(env) => (

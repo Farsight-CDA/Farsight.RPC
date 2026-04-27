@@ -223,7 +223,7 @@ export default function ErrorGroupGeneralPage() {
                 <p class="text-xs font-bold uppercase tracking-widest text-b-ink/50 mb-1">
                   Name
                 </p>
-                <p class="font-['Anton',sans-serif] text-2xl uppercase tracking-wide text-b-ink">
+                <p class="font-['Anton',sans-serif] text-2xl tracking-wide text-b-ink">
                   {group().name}
                 </p>
               </div>
@@ -232,7 +232,7 @@ export default function ErrorGroupGeneralPage() {
                 <p class="text-xs font-bold uppercase tracking-widest text-b-ink/50 mb-1">
                   Action
                 </p>
-                <span class={`inline-flex items-center self-start border px-2 py-0.5 text-[0.7rem] font-bold uppercase tracking-wider ${actionBadgeClass(group().action)}`}>
+                <span class={`inline-flex items-center self-start border px-2 py-0.5 text-[0.7rem] font-bold tracking-wider ${actionBadgeClass(group().action)}`}>
                   {group().action}
                 </span>
               </div>

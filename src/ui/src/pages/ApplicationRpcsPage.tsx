@@ -1112,12 +1112,12 @@ export default function ApplicationRpcsPage() {
                                 <WarningIcon class="size-4 shrink-0 text-red-400" />
                               </span>
                             </Show>
-                            <span class="min-w-0 truncate font-['Anton',sans-serif] text-base uppercase tracking-wide">
+                            <span class="min-w-0 truncate font-['Anton',sans-serif] text-base tracking-wide">
                               {chain}
                             </span>
                             <Show when={matchedStructure()}>
                               {(structure) => (
-                                <span class="ml-1 inline-flex shrink-0 items-center border border-green-500/30 bg-green-500/10 px-1.5 py-0.5 text-[0.6rem] font-bold uppercase tracking-wider text-green-400">
+                                <span class="ml-1 inline-flex shrink-0 items-center border border-green-500/30 bg-green-500/10 px-1.5 py-0.5 text-[0.6rem] font-bold tracking-wider text-green-400">
                                   {structure().displayName}
                                 </span>
                               )}
@@ -1189,7 +1189,7 @@ export default function ApplicationRpcsPage() {
                                 <CheckmarkIcon class="size-3 text-b-paper" />
                               </Show>
                             </div>
-                            <span class="min-w-0 truncate font-['Anton',sans-serif] text-base uppercase tracking-wide">
+                            <span class="min-w-0 truncate font-['Anton',sans-serif] text-base tracking-wide">
                               {chain}
                             </span>
                           </div>
@@ -1280,7 +1280,7 @@ export default function ApplicationRpcsPage() {
                       <p class="text-[0.65rem] font-bold uppercase tracking-[0.35em] text-b-accent">
                         Chain
                       </p>
-                      <h2 class="flex items-center gap-2 truncate font-['Anton',sans-serif] text-2xl uppercase tracking-wide text-b-ink">
+                      <h2 class="flex items-center gap-2 truncate font-['Anton',sans-serif] text-2xl tracking-wide text-b-ink">
                         {activeChain()}
                         <Show
                           when={
@@ -1302,7 +1302,7 @@ export default function ApplicationRpcsPage() {
                           </span>
                         </Show>
                       </h2>
-                      <p class="mt-1 text-[0.65rem] font-bold uppercase tracking-widest text-b-ink/45">
+                      <p class="mt-1 text-[0.65rem] font-bold tracking-widest text-b-ink/45">
                         {activeChainRpcs().length} RPC
                         {activeChainRpcs().length !== 1 ? "s" : ""} ·{" "}
                         {selectedEnvironment()?.name}
@@ -1329,16 +1329,16 @@ export default function ApplicationRpcsPage() {
                       </button>
                     </div>
                   </div>
-                  <Show when={activeChainMatchedStructure()}>
-                    {(matched) => (
-                      <div class="mx-4 mt-4 flex items-center gap-2 border border-green-500/30 bg-green-500/10 px-3 py-2">
-                        <CheckmarkIcon class="size-4 shrink-0 text-green-400" />
-                        <p class="text-xs font-bold uppercase tracking-wider text-green-400">
-                          Matches {matched().displayName}
-                        </p>
-                      </div>
-                    )}
-                  </Show>
+                    <Show when={activeChainMatchedStructure()}>
+                      {(matched) => (
+                        <div class="mx-4 mt-4 flex items-center gap-2 border border-green-500/30 bg-green-500/10 px-3 py-2">
+                          <CheckmarkIcon class="size-4 shrink-0 text-green-400" />
+                          <p class="text-xs font-bold tracking-wider text-green-400">
+                            Matches {matched().displayName}
+                          </p>
+                        </div>
+                      )}
+                    </Show>
                   <Show when={activeChainMismatchInfo()}>
                     {(info) => (
                       <div class="mx-4 mt-4 flex items-start gap-2 border border-red-500/30 bg-red-500/10 px-3 py-3">
@@ -1369,7 +1369,7 @@ export default function ApplicationRpcsPage() {
                           <div class="mt-1.5 flex flex-col gap-1">
                             <For each={info().supportedDefs}>
                               {(def) => (
-                                <div class="flex flex-wrap items-center gap-1 text-[0.6rem] font-bold uppercase tracking-wider text-b-ink/40">
+                                <div class="flex flex-wrap items-center gap-1 text-[0.6rem] font-bold tracking-wider text-b-ink/40">
                                   <span>{def.displayName} needs:</span>
                                   <For
                                     each={Object.entries(def.requiredRpcTypes)}
@@ -1397,11 +1397,11 @@ export default function ApplicationRpcsPage() {
                               <div class="min-w-0 flex-1">
                                 <div class="flex flex-wrap items-center gap-2">
                                   <span
-                                    class={`inline-flex items-center border px-2 py-0.5 text-xs font-bold uppercase tracking-wider ${getTypeColor(rpc.type)}`}
+                                    class={`inline-flex items-center border px-2 py-0.5 text-xs font-bold tracking-wider ${getTypeColor(rpc.type)}`}
                                   >
                                     {rpc.type}
                                   </span>
-                                  <span class="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wider text-b-ink/50">
+                                  <span class="inline-flex items-center gap-1 text-xs font-semibold tracking-wider text-b-ink/50">
                                     <ProviderIcon class="size-3.5" />
                                     {getProviderName(rpc.providerId)}
                                   </span>
@@ -1508,7 +1508,7 @@ export default function ApplicationRpcsPage() {
             >
               New RPC
             </h3>
-            <p class="mb-6 text-xs font-bold uppercase tracking-widest text-b-ink/50">
+            <p class="mb-6 text-xs font-bold tracking-widest text-b-ink/50">
               {selectedChainForRpc()} / {selectedEnvironment()?.name}
             </p>
 
@@ -1574,7 +1574,7 @@ export default function ApplicationRpcsPage() {
                   </label>
                   <div class="flex h-11 items-center border border-b-border bg-b-field px-4">
                     <span
-                      class={`text-sm font-bold uppercase tracking-wider ${
+                      class={`text-sm font-bold tracking-wider ${
                         newRpcType() === "Realtime"
                           ? "text-green-400"
                           : newRpcType() === "Archive"
@@ -1684,7 +1684,7 @@ export default function ApplicationRpcsPage() {
                           setNewRpcProviderId(e.currentTarget.value);
                           setCreateProviderAutoInferred(false);
                         }}
-                        class={`h-11 w-full appearance-none border border-b-border bg-b-field px-4 pr-10 text-sm font-bold uppercase tracking-widest outline-none focus-visible:border-b-accent/50 focus-visible:ring-2 focus-visible:ring-b-accent/20 hover:border-b-border-hover transition-all duration-200 cursor-pointer ${
+                        class={`h-11 w-full appearance-none border border-b-border bg-b-field px-4 pr-10 text-sm font-bold tracking-widest outline-none focus-visible:border-b-accent/50 focus-visible:ring-2 focus-visible:ring-b-accent/20 hover:border-b-border-hover transition-all duration-200 cursor-pointer ${
                           newRpcProviderId()
                             ? "text-b-ink"
                             : "text-b-ink/40"
@@ -1751,7 +1751,7 @@ export default function ApplicationRpcsPage() {
                           );
                           setCreateTracingModeAutoInferred(false);
                         }}
-                        class={`h-11 w-full appearance-none border border-b-border bg-b-field px-4 pr-10 text-sm font-bold uppercase tracking-widest outline-none focus-visible:border-b-accent/50 focus-visible:ring-2 focus-visible:ring-b-accent/20 hover:border-b-border-hover transition-all duration-200 cursor-pointer ${
+                        class={`h-11 w-full appearance-none border border-b-border bg-b-field px-4 pr-10 text-sm font-bold tracking-widest outline-none focus-visible:border-b-accent/50 focus-visible:ring-2 focus-visible:ring-b-accent/20 hover:border-b-border-hover transition-all duration-200 cursor-pointer ${
                           newRpcTracingMode()
                             ? "text-b-ink"
                             : "text-b-ink/40"
@@ -1966,7 +1966,7 @@ export default function ApplicationRpcsPage() {
                 </label>
                 <div class="flex h-11 items-center border border-b-border bg-b-field px-4">
                   <span
-                    class={`text-sm font-bold uppercase tracking-wider ${
+                    class={`text-sm font-bold tracking-wider ${
                       rpcToEdit()?.type === "Realtime"
                         ? "text-green-400"
                         : rpcToEdit()?.type === "Archive"
@@ -2004,7 +2004,7 @@ export default function ApplicationRpcsPage() {
                         setEditRpcProviderId(e.currentTarget.value);
                         setEditProviderAutoInferred(false);
                       }}
-                      class="h-11 w-full appearance-none border border-b-border bg-b-field px-4 pr-10 text-sm font-bold uppercase tracking-widest text-b-ink outline-none focus-visible:border-b-accent/50 focus-visible:ring-2 focus-visible:ring-b-accent/20 hover:border-b-border-hover transition-all duration-200 cursor-pointer"
+                      class="h-11 w-full appearance-none border border-b-border bg-b-field px-4 pr-10 text-sm font-bold tracking-widest text-b-ink outline-none focus-visible:border-b-accent/50 focus-visible:ring-2 focus-visible:ring-b-accent/20 hover:border-b-border-hover transition-all duration-200 cursor-pointer"
                     >
                       <For each={providers()}>
                         {(provider) => (

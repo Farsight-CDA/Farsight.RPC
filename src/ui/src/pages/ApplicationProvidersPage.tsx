@@ -391,7 +391,7 @@ export default function ApplicationProvidersPage() {
                         >
                           <div class="min-w-0 flex-1">
                             <div class="flex items-center gap-2">
-                              <span class="font-['Anton',sans-serif] text-lg uppercase tracking-wide text-b-ink">
+                              <span class="font-['Anton',sans-serif] text-lg tracking-wide text-b-ink">
                                 {provider.name}
                               </span>
                             </div>

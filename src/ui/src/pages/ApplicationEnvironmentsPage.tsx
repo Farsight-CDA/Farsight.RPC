@@ -393,7 +393,7 @@ export default function ApplicationEnvironmentsPage() {
                         >
                           <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                             <div>
-                              <p class="font-['Anton',sans-serif] text-xl uppercase tracking-wide text-b-ink">
+                              <p class="font-['Anton',sans-serif] text-xl tracking-wide text-b-ink">
                                 {environment.name}
                               </p>
                               <div class="mt-2 flex flex-wrap items-center gap-4 text-xs font-semibold uppercase tracking-wider text-b-ink/50">

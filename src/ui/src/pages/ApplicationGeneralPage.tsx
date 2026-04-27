@@ -216,7 +216,7 @@ export default function ApplicationGeneralPage() {
                   <p class="text-xs font-bold uppercase tracking-widest text-b-ink/50 mb-1">
                     Application Name
                   </p>
-                  <p class="font-['Anton',sans-serif] text-2xl uppercase tracking-wide text-b-ink">
+                  <p class="font-['Anton',sans-serif] text-2xl tracking-wide text-b-ink">
                     {application()?.name}
                   </p>
                 </div>

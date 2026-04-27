@@ -130,7 +130,7 @@ export default function ErrorGroupsPage() {
 
                         {/* Group Name */}
                         <h3
-                          class="font-['Anton',sans-serif] text-xl uppercase tracking-wide text-b-ink group-hover:text-b-accent transition-colors duration-200 line-clamp-1"
+                          class="font-['Anton',sans-serif] text-xl tracking-wide text-b-ink group-hover:text-b-accent transition-colors duration-200 line-clamp-1"
                           title={group.name}
                         >
                           {group.name}
@@ -139,7 +139,7 @@ export default function ErrorGroupsPage() {
                         {/* Action Badge */}
                         <div class="absolute top-5 right-5">
                           <span
-                            class={`inline-flex items-center border px-3 py-1 text-[0.65rem] font-bold uppercase tracking-wider ${actionBadgeClass(
+                            class={`inline-flex items-center border px-3 py-1 text-[0.65rem] font-bold tracking-wider ${actionBadgeClass(
                               group.action,
                             )}`}
                           >

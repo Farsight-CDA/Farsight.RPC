@@ -125,7 +125,7 @@ export default function DashboardPage() {
 
                     {/* App Name */}
                     <h3
-                      class="font-['Anton',sans-serif] text-xl uppercase tracking-wide text-b-ink group-hover:text-b-accent transition-colors duration-200 line-clamp-1"
+                      class="font-['Anton',sans-serif] text-xl tracking-wide text-b-ink group-hover:text-b-accent transition-colors duration-200 line-clamp-1"
                       title={app.name}
                     >
                       {app.name}

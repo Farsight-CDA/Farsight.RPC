@@ -193,14 +193,14 @@ export default function ApplicationNewPage() {
                             </Show>
                           </div>
                           <div class="min-w-0 flex-1">
-                            <p class="font-['Anton',sans-serif] text-base uppercase tracking-wide text-b-ink">
+                            <p class="font-['Anton',sans-serif] text-base tracking-wide text-b-ink">
                               {def.displayName}
                             </p>
                             <div class="mt-1 flex flex-wrap gap-2">
                               <For each={typeEntries()}>
                                 {([type, count]) => (
                                   <span
-                                    class={`inline-flex items-center border px-2 py-0.5 text-[0.6rem] font-bold uppercase tracking-wider ${
+                                    class={`inline-flex items-center border px-2 py-0.5 text-[0.6rem] font-bold tracking-wider ${
                                       type === "Realtime"
                                         ? "text-green-400 border-green-500/30 bg-green-500/10"
                                         : type === "Archive"

@@ -70,7 +70,7 @@ const ErrorGroupLayout: ParentComponent = (props) => {
                     Error Groups
                   </A>
                 </div>
-                <h1 class="font-['Anton',sans-serif] text-3xl uppercase leading-none tracking-wide text-b-ink">
+                <h1 class="font-['Anton',sans-serif] text-3xl leading-none tracking-wide text-b-ink">
                   {group()!.name}
                 </h1>
                 <div class="flex items-center border-b border-b-border/50">

@@ -1,0 +1,21 @@
+{
+  "Name": "Stable",
+  "ChainId": 988,
+  "CanReorg": true,
+  "SupportsPriorityFees": true,
+  "SupportsGasRefunds": true,
+  "BlockGasLimitM": 100,
+  "NativeCurrency": {
+    "Name": "USDT0",
+    "Symbol": "USDT0",
+    "Decimals": 18,
+    "PythFeedId": "0x2b89b9dc8fdf9f34709a5b106b472f0f39bb6ca9ce04b0fd7f2e971688e2e53b",
+    "WrappedTokenAddress": null
+  },
+  "FlashCallerAddress": "0x31ab65b220487210bbde88b5b8fa1f9aaa77ae76",
+  "StablecoinAddresses": [
+    "0x779Ded0c9e1022225f8E0630b35a9b54bE713736"
+  ],
+  "Api3": null,
+  "Pyth": null
+}

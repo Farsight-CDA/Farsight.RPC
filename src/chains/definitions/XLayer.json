@@ -1,0 +1,22 @@
+{
+  "Name": "X-Layer",
+  "ChainId": 196,
+  "CanReorg": true,
+  "SupportsPriorityFees": true,
+  "SupportsGasRefunds": true,
+  "BlockGasLimitM": 210,
+  "NativeCurrency": {
+    "Name": "OKB",
+    "Symbol": "OKB",
+    "Decimals": 18,
+    "PythFeedId": "0xd6f83dfeaff95d596ddec26af2ee32f391c206a183b161b7980821860eeef2f5",
+    "WrappedTokenAddress": "0xe538905cf8410324e03A5A23C1c177a474D59b2b"
+  },
+  "FlashCallerAddress": "0x31ab65b220487210bbde88b5b8fa1f9aaa77ae76",
+  "StablecoinAddresses": [
+    "0x779ded0c9e1022225f8e0630b35a9b54be713736",
+    "0xde6539018b095353a40753dc54c91c68c9487d4e"
+  ],
+  "Api3": null,
+  "Pyth": null
+}

@@ -1,3 +1,4 @@
+using Farsight.Rpc.Api.Common;
 using Farsight.Rpc.Api.Configuration;
 using Farsight.Rpc.Api.Persistence;
 using Farsight.Rpc.Types;
@@ -6,6 +7,9 @@ using FastEndpoints.Security;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using OpenTelemetry.Logs;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
 using System.Net;
 
 namespace Farsight.Rpc.Api;
@@ -49,6 +53,47 @@ public static class App
             options.KnownIPNetworks.Clear();
             options.KnownProxies.Clear();
         });
+    }
+
+    public static void ConfigureInstrumentation(WebApplicationBuilder builder)
+    {
+        var instrumentationOptions = builder.Configuration.GetSection("Instrumentation").Get<InstrumentationConfiguration>()
+            ?? new InstrumentationConfiguration();
+
+        if(instrumentationOptions.EnableMetrics)
+        {
+            _ = builder.Services.AddOpenTelemetry()
+                .WithMetrics(x =>
+                    x
+                    .AddMeter(Diagnostics.METER_NAME)
+                    .AddMeter(EtherSharp.Common.Diagnostics.METER_NAME)
+                    .AddRuntimeInstrumentation()
+                    .AddProcessInstrumentation()
+                    .AddAspNetCoreInstrumentation()
+                    .AddPrometheusHttpListener(x => x.UriPrefixes = [instrumentationOptions.MetricsListenUrl])
+                );
+        }
+
+        if(instrumentationOptions.EnableLogs)
+        {
+            builder.Services.AddOpenTelemetry()
+                .WithLogging();
+
+            builder.Logging.AddOpenTelemetry(
+                options =>
+                {
+                    options.IncludeFormattedMessage = true;
+                    options.SetResourceBuilder(ResourceBuilder.CreateEmpty().AddService("SwapThing"));
+                    options.AddOtlpExporter(
+                        otlp =>
+                        {
+                            otlp.Endpoint = new Uri(instrumentationOptions.LogsOTLPUrl ?? throw new InvalidOperationException("Missing LogsOTLPUrl"));
+                            otlp.Protocol = OpenTelemetry.Exporter.OtlpExportProtocol.HttpProtobuf;
+                        }
+                    );
+                }
+            );
+        }
     }
 
     public static void ConfigureAuth(WebApplicationBuilder builder)
@@ -95,9 +140,6 @@ public static class App
         app.UseRouting();
         app.UseAuthentication();
         app.UseAuthorization();
-        app.UseFastEndpoints(x =>
-        {
-            FarsightRpcJson.ConfigureJsonConverters(x.Serializer.Options);
-        });
+        app.UseFastEndpoints(x => FarsightRpcJson.ConfigureJsonConverters(x.Serializer.Options));
     }
 }

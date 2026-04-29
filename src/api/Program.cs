@@ -3,6 +3,7 @@ using Farsight.Rpc.Api;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddApplication<Startup>();
+App.ConfigureHosting(builder);
 App.ConfigureServices(builder);
 App.ConfigureAuth(builder);
 

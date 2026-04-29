@@ -12,7 +12,7 @@ namespace Farsight.Rpc.Api;
 
 public static class App
 {
-    public static void ConfigureServices(WebApplicationBuilder builder)
+    public static void ConfigureHosting(WebApplicationBuilder builder)
     {
         var bindingConfiguration = builder.Configuration
             .GetRequiredSection("ApiBinding")
@@ -33,7 +33,10 @@ public static class App
 
             x.Listen(address, bindingConfiguration.Port);
         });
+    }
 
+    public static void ConfigureServices(WebApplicationBuilder builder)
+    {
         builder.Services.AddFastEndpoints();
         builder.Services.AddProblemDetails();
 

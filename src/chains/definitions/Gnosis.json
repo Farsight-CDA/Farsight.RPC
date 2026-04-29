@@ -1,0 +1,28 @@
+{
+  "Name": "Gnosis",
+  "ChainId": 100,
+  "CanReorg": true,
+  "SupportsPriorityFees": true,
+  "SupportsGasRefunds": true,
+  "BlockGasLimitM": 16,
+  "NativeCurrency": {
+    "Name": "xDAI",
+    "Symbol": "xDAI",
+    "Decimals": 18,
+    "PythFeedId": "0xb0948a5e5313200c632b51bb5ca32f6de0d36e9950a942d19751e833f70dabfd",
+    "WrappedTokenAddress": "0xe91d153e0b41518a2ce8dd3d7944fa863463a97d"
+  },
+  "FlashCallerAddress": "0x31ab65b220487210bbde88b5b8fa1f9aaa77ae76",
+  "StablecoinAddresses": [
+    "0x2a22f9c3b484c3629090feed35f17ff8f88f76f0",
+    "0xfc421ad3c883bf9e7c4f42de845c4e4405799e73",
+    "0xddafbb505ad214d7b80b1f830fccc89b60fb7a83",
+    "0xe91d153e0b41518a2ce8dd3d7944fa863463a97d"
+  ],
+  "Api3": {
+    "MarketV2Address": "0x3f5C77BB36a16118ccC9Ca83ddEe8A01b6C01811"
+  },
+  "Pyth": {
+    "PythAddress": "0x2880aB155794e7179c9eE2e38200202908C17B43"
+  }
+}

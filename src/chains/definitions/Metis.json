@@ -1,0 +1,22 @@
+{
+  "Name": "Metis",
+  "ChainId": 1088,
+  "CanReorg": true,
+  "SupportsPriorityFees": false,
+  "SupportsGasRefunds": true,
+  "BlockGasLimitM": 1100,
+  "NativeCurrency": {
+    "Name": "Metis",
+    "Symbol": "METIS",
+    "Decimals": 18,
+    "PythFeedId": "0xc22aa7943f65c9b1bb8d765bf4d5136590c48508f61912314f23bb730325b159",
+    "WrappedTokenAddress": "0x75cb093E4D61d2A2e65D8e0BBb01DE8d89b53481"
+  },
+  "FlashCallerAddress": "0x31ab65b220487210bbde88b5b8fa1f9aaa77ae76",
+  "StablecoinAddresses": [
+    "0xEA32A96608495e54156Ae48931A7c20f0dcc1a21",
+    "0xbB06DCA3AE6887fAbF931640f67cab3e3a16F4dC"
+  ],
+  "Api3": null,
+  "Pyth": null
+}

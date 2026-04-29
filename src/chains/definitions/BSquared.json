@@ -1,0 +1,22 @@
+{
+  "Name": "BSquared",
+  "ChainId": 223,
+  "CanReorg": true,
+  "SupportsPriorityFees": true,
+  "SupportsGasRefunds": true,
+  "BlockGasLimitM": 30,
+  "NativeCurrency": {
+    "Name": "Bitcoin",
+    "Symbol": "BTC",
+    "Decimals": 18,
+    "PythFeedId": "0xe62df6c8b4a85fe1a67db44dc12de5db330f7ac66b72dc658afedf0f4a415b43",
+    "WrappedTokenAddress": "0x4200000000000000000000000000000000000006"
+  },
+  "FlashCallerAddress": "0x31ab65b220487210bbde88b5b8fa1f9aaa77ae76",
+  "StablecoinAddresses": [
+    "0x681202351a488040Fa4FdCc24188AfB582c9DD62",
+    "0xE544e8a38aDD9B1ABF21922090445Ba93f74B9E5"
+  ],
+  "Api3": null,
+  "Pyth": null
+}

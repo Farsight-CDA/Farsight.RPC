@@ -1,0 +1,25 @@
+{
+  "Name": "CoreDAO",
+  "ChainId": 1116,
+  "CanReorg": true,
+  "SupportsPriorityFees": true,
+  "SupportsGasRefunds": true,
+  "BlockGasLimitM": 50,
+  "NativeCurrency": {
+    "Name": "Core",
+    "Symbol": "CORE",
+    "Decimals": 18,
+    "PythFeedId": "0x9b4503710cc8c53f75c30e6e4fda1a7064680ef2e0ee97acd2e3a7c37b3c830c",
+    "WrappedTokenAddress": "0x40375c92d9faf44d2f9db9bd9ba41a3317a2404f"
+  },
+  "FlashCallerAddress": "0x31ab65b220487210bbde88b5b8fa1f9aaa77ae76",
+  "StablecoinAddresses": [
+    "0x900101d06a7426441ae63e9ab3b9b0f63be145f1"
+  ],
+  "Api3": {
+    "MarketV2Address": "0x3f5C77BB36a16118ccC9Ca83ddEe8A01b6C01811"
+  },
+  "Pyth": {
+    "PythAddress": "0xA2aa501b19aff244D90cc15a4Cf739D2725B5729"
+  }
+}

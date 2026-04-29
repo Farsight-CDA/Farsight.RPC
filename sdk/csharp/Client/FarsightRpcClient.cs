@@ -1,3 +1,4 @@
+using Farsight.Chains;
 using Farsight.Rpc.Types;
 using System.Net;
 using System.Net.Http.Json;
@@ -38,7 +39,14 @@ public sealed class FarsightRpcClient : IFarsightRpcClient
             case HttpStatusCode.OK:
                 var result = await response.Content.ReadFromJsonAsync(FarsightRpcJsonContext.Default.ApiKeyRpcsDto, cancellationToken)
                     ?? throw new InvalidOperationException("Null response");
-                return new GetRpcsResult.Success(result.Rpcs, result.Providers, result.ErrorGroups);
+                var chainsByName = ChainRegistry.GetAllChains().ToDictionary(chain => chain.Name, StringComparer.Ordinal);
+                var rpcs = result.Rpcs.ToDictionary(
+                    group => chainsByName.TryGetValue(group.Key, out var chain)
+                        ? chain
+                        : throw new InvalidOperationException($"RPC response referenced unknown chain '{group.Key}'."),
+                    group => group.Value
+                );
+                return new GetRpcsResult.Success(rpcs, result.Providers, result.ErrorGroups);
             default:
                 response.EnsureSuccessStatusCode();
                 throw new InvalidOperationException();

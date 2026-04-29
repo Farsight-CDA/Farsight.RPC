@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<Version>1.1.0</Version>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<AssemblyName>Farsight.Chains</AssemblyName>
+		<RootNamespace>Farsight.Chains</RootNamespace>
+		<PackageId>Farsight.Chains</PackageId>
+		<Description>Standalone chain metadata for Farsight applications.</Description>
+		<Authors>Farsight</Authors>
+		<RepositoryUrl>https://github.com/Farsight-CDA/Farsight.Rpc</RepositoryUrl>
+		<GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+		<IncludeSymbols>true</IncludeSymbols>
+		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+		<IsAotCompatible>true</IsAotCompatible>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<EmbeddedResource Include="definitions/*.json" Visible="false" />
+		<None Include="README.md" Pack="true" PackagePath="/" Visible="false" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="EtherSharp" />
+	</ItemGroup>
+
+</Project>

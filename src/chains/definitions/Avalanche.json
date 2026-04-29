@@ -1,0 +1,26 @@
+{
+  "Name": "Avalanche",
+  "ChainId": 43114,
+  "CanReorg": true,
+  "SupportsPriorityFees": true,
+  "SupportsGasRefunds": true,
+  "BlockGasLimitM": 15,
+  "NativeCurrency": {
+    "Name": "Avalanche",
+    "Symbol": "AVAX",
+    "Decimals": 18,
+    "PythFeedId": "0x93da3352f9f1d105fdfe4971cfa80e9dd777bfc5d0f683ebb6e1294b92137bb7",
+    "WrappedTokenAddress": "0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7"
+  },
+  "FlashCallerAddress": "0x31ab65b220487210bbde88b5b8fa1f9aaa77ae76",
+  "StablecoinAddresses": [
+    "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E",
+    "0x9702230A8Ea53601f5cD2dc00fDBc13d4dF4A8c7"
+  ],
+  "Api3": {
+    "MarketV2Address": "0x3f5C77BB36a16118ccC9Ca83ddEe8A01b6C01811"
+  },
+  "Pyth": {
+    "PythAddress": "0x4305FB66699C3B2702D4d05CF36551390A4c69C6"
+  }
+}

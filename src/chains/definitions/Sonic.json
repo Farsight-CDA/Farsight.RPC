@@ -1,0 +1,27 @@
+{
+  "Name": "Sonic",
+  "ChainId": 146,
+  "CanReorg": true,
+  "SupportsPriorityFees": true,
+  "SupportsGasRefunds": true,
+  "BlockGasLimitM": 5000,
+  "NativeCurrency": {
+    "Name": "Sonic",
+    "Symbol": "S",
+    "Decimals": 18,
+    "PythFeedId": "0xf490b178d0c85683b7a0f2388b40af2e6f7c90cbe0f96b31f315f08d0e5a2d6d",
+    "WrappedTokenAddress": "0x039e2fB66102314Ce7b64Ce5Ce3E5183bc94aD38"
+  },
+  "FlashCallerAddress": "0x31ab65b220487210bbde88b5b8fa1f9aaa77ae76",
+    "StablecoinAddresses": [
+      "0x29219dd400f2bf60e5a23d13be72b486d4038894",
+      "0xd3DCe716f3eF535C5Ff8d041c1A41C3bd89b97aE",
+      "0x6047828dc181963ba44974801ff68e538da5eaf9"
+    ],
+  "Api3": {
+    "MarketV2Address": "0x3f5C77BB36a16118ccC9Ca83ddEe8A01b6C01811"
+  },
+  "Pyth": {
+    "PythAddress": "0x2880aB155794e7179c9eE2e38200202908C17B43"
+  }
+}

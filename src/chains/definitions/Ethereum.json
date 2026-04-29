@@ -1,0 +1,26 @@
+{
+  "Name": "Ethereum",
+  "ChainId": 1,
+  "CanReorg": true,
+  "SupportsPriorityFees": true,
+  "SupportsGasRefunds": true,
+  "BlockGasLimitM": 60,
+  "NativeCurrency": {
+    "Name": "Ether",
+    "Symbol": "ETH",
+    "Decimals": 18,
+    "PythFeedId": "0xff61491a931112ddf1bd8147cd1b641375f79f5825126d665480874634fd0ace",
+    "WrappedTokenAddress": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
+  },
+  "FlashCallerAddress": "0x31ab65b220487210bbde88b5b8fa1f9aaa77ae76",
+  "StablecoinAddresses": [
+    "0xdac17f958d2ee523a2206206994597c13d831ec7",
+    "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
+  ],
+  "Api3": {
+    "MarketV2Address": "0x3f5C77BB36a16118ccC9Ca83ddEe8A01b6C01811"
+  },
+  "Pyth": {
+    "PythAddress": "0x4305FB66699C3B2702D4d05CF36551390A4c69C6"
+  }
+}

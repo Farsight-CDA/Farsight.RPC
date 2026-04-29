@@ -1,0 +1,26 @@
+{
+  "Name": "Sei",
+  "ChainId": 1329,
+  "CanReorg": false,
+  "SupportsPriorityFees": false,
+  "SupportsGasRefunds": false,
+  "BlockGasLimitM": 12,
+  "NativeCurrency": {
+    "Name": "Sei",
+    "Symbol": "SEI",
+    "Decimals": 18,
+    "PythFeedId": "0x53614f1cb0c031d4af66c04cb9c756234adad0e1cee85303795091499a4084eb",
+    "WrappedTokenAddress": "0xE30feDd158A2e3b13e9badaeABaFc5516e95e8C7"
+  },
+  "FlashCallerAddress": "0x31ab65b220487210bbde88b5b8fa1f9aaa77ae76",
+  "StablecoinAddresses": [
+    "0xe15fC38F6D8c56aF07bbCBe3BAf5708A2Bf42392",
+    "0x9151434b16b9763660705744891fA906F660EcC5"
+  ],
+  "Api3": {
+    "MarketV2Address": "0x3f5C77BB36a16118ccC9Ca83ddEe8A01b6C01811"
+  },
+  "Pyth": {
+    "PythAddress": "0x2880aB155794e7179c9eE2e38200202908C17B43"
+  }
+}

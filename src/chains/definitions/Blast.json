@@ -1,0 +1,26 @@
+{
+  "Name": "Blast",
+  "ChainId": 81457,
+  "CanReorg": true,
+  "SupportsPriorityFees": true,
+  "SupportsGasRefunds": true,
+  "BlockGasLimitM": 30,
+  "NativeCurrency": {
+    "Name": "Ether",
+    "Symbol": "ETH",
+    "Decimals": 18,
+    "PythFeedId": "0xff61491a931112ddf1bd8147cd1b641375f79f5825126d665480874634fd0ace",
+    "WrappedTokenAddress": "0x4300000000000000000000000000000000000004"
+  },
+  "FlashCallerAddress": "0x31ab65b220487210bbde88b5b8fa1f9aaa77ae76",
+  "StablecoinAddresses": [
+    "0x4300000000000000000000000000000000000003",
+    "0x5d3a1ff2b6bab83b63cd9ad0787074081a52ef34"
+  ],
+  "Api3": {
+    "MarketV2Address": "0x3f5C77BB36a16118ccC9Ca83ddEe8A01b6C01811"
+  },
+  "Pyth": {
+    "PythAddress": "0xA2aa501b19aff244D90cc15a4Cf739D2725B5729"
+  }
+}

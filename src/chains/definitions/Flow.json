@@ -1,0 +1,25 @@
+{
+  "Name": "Flow",
+  "ChainId": 747,
+  "CanReorg": true,
+  "SupportsPriorityFees": true,
+  "SupportsGasRefunds": true,
+  "BlockGasLimitM": 120,
+  "NativeCurrency": {
+    "Name": "Flow",
+    "Symbol": "FLOW",
+    "Decimals": 18,
+    "PythFeedId": "0x2fb245b9a84554a0f15aa123cbb5f64cd263b59e9a87d80148cbffab50c69f30",
+    "WrappedTokenAddress": "0xd3bF53DAC106A0290B0483EcBC89d40FcC961f3e"
+  },
+  "FlashCallerAddress": "0x31ab65b220487210bbde88b5b8fa1f9aaa77ae76",
+  "StablecoinAddresses": [
+    "0x2aaBea2058b5aC2D339b163C6Ab6f2b6d53aabED",
+    "0x99af3eea856556646c98c8b9b2548fe815240750",
+    "0xf1815bd50389c46847f0bda824ec8da914045d14"
+  ],
+  "Api3": null,
+  "Pyth": {
+    "PythAddress": "0x2880aB155794e7179c9eE2e38200202908C17B43"
+  }
+}

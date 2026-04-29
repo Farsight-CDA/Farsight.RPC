@@ -1,0 +1,24 @@
+{
+  "Name": "Plasma",
+  "ChainId": 9745,
+  "CanReorg": true,
+  "SupportsPriorityFees": true,
+  "SupportsGasRefunds": true,
+  "BlockGasLimitM": 36,
+  "NativeCurrency": {
+    "Name": "Plasma",
+    "Symbol": "XPL",
+    "Decimals": 18,
+    "PythFeedId": "0x9873512f5cb33c77ad7a5af098d74812c62111166be395fd0941c8cedb9b00d4",
+    "WrappedTokenAddress": "0x6100e367285b01f48d07953803a2d8dca5d19873"
+  },
+  "FlashCallerAddress": "0x31ab65b220487210bbde88b5b8fa1f9aaa77ae76",
+  "StablecoinAddresses": [
+    "0xB8CE59FC3717ada4C02eaDF9682A9e934F625ebb",
+    "0x5d3a1Ff2b6BAb83b63cd9AD0787074081a52ef34"
+  ],
+  "Api3": null,
+  "Pyth": {
+    "PythAddress": "0x2880aB155794e7179c9eE2e38200202908C17B43"
+  }
+}

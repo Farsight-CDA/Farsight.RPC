@@ -1,0 +1,25 @@
+{
+  "Name": "Monad",
+  "ChainId": 143,
+  "CanReorg": false,
+  "SupportsPriorityFees": true,
+  "SupportsGasRefunds": true,
+  "BlockGasLimitM": 200,
+  "NativeCurrency": {
+    "Name": "MON",
+    "Symbol": "MON",
+    "Decimals": 18,
+    "PythFeedId": "0x31491744e2dbf6df7fcf4ac0820d18a609b49076d45066d3568424e62f686cd1",
+    "WrappedTokenAddress": "0x3bd359C1119dA7Da1D913D1C4D2B7c461115433A"
+  },
+  "FlashCallerAddress": "0x31ab65b220487210bbde88b5b8fa1f9aaa77ae76",
+  "StablecoinAddresses": [
+    "0x754704Bc059F8C67012fEd69BC8A327a5aafb603",
+    "0xe7cd86e13AC4309349F30B3435a9d337750fC82D",
+    "0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a"
+  ],
+  "Api3": null,
+  "Pyth": {
+    "PythAddress": "0x2880aB155794e7179c9eE2e38200202908C17B43"
+  }
+}

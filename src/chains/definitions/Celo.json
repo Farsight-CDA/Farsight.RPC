@@ -1,0 +1,25 @@
+{
+  "Name": "Celo",
+  "ChainId": 42220,
+  "CanReorg": true,
+  "SupportsPriorityFees": true,
+  "SupportsGasRefunds": true,
+  "BlockGasLimitM": 30,
+  "NativeCurrency": {
+    "Name": "CELO",
+    "Symbol": "CELO",
+    "Decimals": 18,
+    "PythFeedId": "0x7d669ddcdd23d9ef1fa9a9cc022ba055ec900e91c4cb960f3c20429d4447a411",
+    "WrappedTokenAddress": null
+  },
+  "FlashCallerAddress": "0x31ab65b220487210bbde88b5b8fa1f9aaa77ae76",
+  "StablecoinAddresses": [
+    "0x48065fbbe25f71c9282ddf5e1cd6d6a887483d5e",
+    "0xceba9300f2b948710d2653dd7b07f33a8b32118c",
+    "0x765de816845861e75a25fca122bb6898b8b1282a"
+  ],
+  "Api3": null,
+  "Pyth": {
+    "PythAddress": "0xff1a0f4744e8582DF1aE09D5611b887B6a12925C"
+  }
+}

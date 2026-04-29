@@ -1,0 +1,23 @@
+{
+  "Name": "Berachain",
+  "ChainId": 80094,
+  "CanReorg": true,
+  "SupportsPriorityFees": true,
+  "SupportsGasRefunds": true,
+  "BlockGasLimitM": 36,
+  "NativeCurrency": {
+    "Name": "BERA",
+    "Symbol": "BERA",
+    "Decimals": 18,
+    "PythFeedId": "0x962088abcfdbdb6e30db2e340c8cf887d9efb311b1f2f17b155a63dbb6d40265",
+    "WrappedTokenAddress": "0x6969696969696969696969696969696969696969"
+  },
+  "FlashCallerAddress": "0x31ab65b220487210bbde88b5b8fa1f9aaa77ae76",
+  "StablecoinAddresses": [
+    "0xFCBD14DC51f0A4d49d5E53C2E0950e0bC26d0Dce"
+  ],
+  "Api3": null,
+  "Pyth": {
+    "PythAddress": "0x2880aB155794e7179c9eE2e38200202908C17B43"
+  }
+}

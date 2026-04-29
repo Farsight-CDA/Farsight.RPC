@@ -1,0 +1,23 @@
+{
+  "Name": "Lisk",
+  "ChainId": 1135,
+  "CanReorg": true,
+  "SupportsPriorityFees": true,
+  "SupportsGasRefunds": true,
+  "BlockGasLimitM": 60,
+  "NativeCurrency": {
+    "Name": "Ether",
+    "Symbol": "ETH",
+    "Decimals": 18,
+    "PythFeedId": "0xff61491a931112ddf1bd8147cd1b641375f79f5825126d665480874634fd0ace",
+    "WrappedTokenAddress": "0x4200000000000000000000000000000000000006"
+  },
+  "FlashCallerAddress": "0x31ab65b220487210bbde88b5b8fa1f9aaa77ae76",
+  "StablecoinAddresses": [
+    "0x05D032ac25d322df992303dCa074EE7392C117b9",
+    "0xF242275d3a6527d877f2c927a82D9b057609cc71",
+    "0x43f2376d5d03553ae72f4a8093bbe9de4336eb08"
+  ],
+  "Api3": null,
+  "Pyth": null
+}

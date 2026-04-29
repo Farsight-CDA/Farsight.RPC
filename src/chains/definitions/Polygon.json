@@ -1,0 +1,26 @@
+{
+  "Name": "Polygon",
+  "ChainId": 137,
+  "CanReorg": true,
+  "SupportsPriorityFees": true,
+  "SupportsGasRefunds": true,
+  "BlockGasLimitM": 120,
+  "NativeCurrency": {
+    "Name": "POL",
+    "Symbol": "POL",
+    "Decimals": 18,
+    "PythFeedId": "0xffd11c5a1cfd42f80afb2df4d9f264c15f956d68153335374ec10722edd70472",
+    "WrappedTokenAddress": "0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270"
+  },
+  "FlashCallerAddress": "0x31ab65b220487210bbde88b5b8fa1f9aaa77ae76",
+  "StablecoinAddresses": [
+    "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
+    "0xc2132D05D31c914a87C6611C10748AEb04B58e8F"
+  ],
+  "Api3": {
+    "MarketV2Address": "0x3f5C77BB36a16118ccC9Ca83ddEe8A01b6C01811"
+  },
+  "Pyth": {
+    "PythAddress": "0xff1a0f4744e8582DF1aE09D5611b887B6a12925C"
+  }
+}

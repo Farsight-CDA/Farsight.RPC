@@ -1,0 +1,24 @@
+{
+  "Name": "CronosEVM",
+  "ChainId": 25,
+  "CanReorg": true,
+  "SupportsPriorityFees": true,
+  "SupportsGasRefunds": true,
+  "BlockGasLimitM": 60,
+  "NativeCurrency": {
+    "Name": "Cronos",
+    "Symbol": "CRO",
+    "Decimals": 18,
+    "PythFeedId": "0x23199c2bcb1303f667e733b9934db9eca5991e765b45f5ed18bc4b231415f2fe",
+    "WrappedTokenAddress": "0x5C7F8A570d578ED84E63fdFA7b1eE72dEae1AE23"
+  },
+  "FlashCallerAddress": "0x31ab65b220487210bbde88b5b8fa1f9aaa77ae76",
+  "StablecoinAddresses": [
+    "0x66e428c3f67a68878562e79a0234c1f83c208770",
+    "0xc21223249ca28397b4b6541dffaecc539bff0c59"
+  ],
+  "Api3": null,
+  "Pyth": {
+    "PythAddress": "0xE0d0e68297772Dd5a1f1D99897c581E2082dbA5B"
+  }
+}

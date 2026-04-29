@@ -1,0 +1,25 @@
+{
+  "Name": "Katana",
+  "ChainId": 747474,
+  "CanReorg": true,
+  "SupportsPriorityFees": true,
+  "SupportsGasRefunds": true,
+  "BlockGasLimitM": 120,
+  "NativeCurrency": {
+    "Name": "Ether",
+    "Symbol": "ETH",
+    "Decimals": 18,
+    "PythFeedId": "0xff61491a931112ddf1bd8147cd1b641375f79f5825126d665480874634fd0ace",
+    "WrappedTokenAddress": "0xEE7D8BCFb72bC1880D0Cf19822eB0A2e6577aB62"
+  },
+  "FlashCallerAddress": "0x31ab65b220487210bbde88b5b8fa1f9aaa77ae76",
+  "StablecoinAddresses": [
+    "0x203a662b0bd271a6ed5a60edfbd04bfce608fd36",
+    "0x00000000efe302beaa2b3e6e1b18d08d69a9012a",
+    "0x2dca96907fde857dd3d816880a0df407eeb2d2f2"
+  ],
+  "Api3": {
+    "MarketV2Address": "0x3625d7b7092d072D6A173fc17f00c1084BAb2122"
+  },
+  "Pyth": null
+}

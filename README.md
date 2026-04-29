@@ -33,7 +33,7 @@ var result = await client.GetRpcsAsync();
 
 if (result is IFarsightRpcClient.GetRpcsResult.Success ok)
 {
-    // ok.Rpcs: chain name → endpoints (Realtime / Archive / Tracing)
+    // ok.Rpcs: chain metadata -> endpoints (Realtime / Archive / Tracing)
     // ok.Providers: referenced providers
 }
 ```

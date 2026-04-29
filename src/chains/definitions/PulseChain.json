@@ -1,0 +1,23 @@
+{
+  "Name": "PulseChain",
+  "ChainId": 369,
+  "CanReorg": true,
+  "SupportsPriorityFees": true,
+  "SupportsGasRefunds": true,
+  "BlockGasLimitM": 30,
+  "NativeCurrency": {
+    "Name": "Pulse",
+    "Symbol": "PLS",
+    "Decimals": 18,
+    "PythFeedId": null,
+    "WrappedTokenAddress": "0xA1077a294dDE1B09bB078844df40758a5D0f9a27"
+  },
+  "FlashCallerAddress": "0x31ab65b220487210bbde88b5b8fa1f9aaa77ae76",
+  "StablecoinAddresses": [
+    "0x15D38573d2feeb82e7ad5187aB8c1D52810B1f07",
+    "0x0Cb6F5a34ad42ec934882A05265A7d5F59b51A2f",
+    "0xefD766cCb38EaF1dfd701853BFCe31359239F305"
+  ],
+  "Api3": null,
+  "Pyth": null
+}

@@ -1,0 +1,27 @@
+{
+  "Name": "BSC",
+  "ChainId": 56,
+  "CanReorg": true,
+  "SupportsPriorityFees": true,
+  "SupportsGasRefunds": true,
+  "BlockGasLimitM": 55,
+  "NativeCurrency": {
+    "Name": "BNB",
+    "Symbol": "BNB",
+    "Decimals": 18,
+    "PythFeedId": "0x2f95862b045670cd22bee3114c39763a4a08beeb663b145d283c31d7d1101c4f",
+    "WrappedTokenAddress": "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c"
+  },
+  "FlashCallerAddress": "0x31ab65b220487210bbde88b5b8fa1f9aaa77ae76",
+  "StablecoinAddresses": [
+    "0x55d398326f99059ff775485246999027b3197955",
+    "0xe9e7cea3dedca5984780bafc599bd69add087d56",
+    "0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d"
+  ],
+  "Api3": {
+    "MarketV2Address": "0x3f5C77BB36a16118ccC9Ca83ddEe8A01b6C01811"
+  },
+  "Pyth": {
+    "PythAddress": "0x4D7E825f80bDf85e913E0DD2A2D54927e9dE1594"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "Name": "Swellchain",
+  "ChainId": 1923,
+  "CanReorg": true,
+  "SupportsPriorityFees": true,
+  "SupportsGasRefunds": true,
+  "BlockGasLimitM": 60,
+  "NativeCurrency": {
+    "Name": "Ether",
+    "Symbol": "ETH",
+    "Decimals": 18,
+    "PythFeedId": "0xff61491a931112ddf1bd8147cd1b641375f79f5825126d665480874634fd0ace",
+    "WrappedTokenAddress": "0x4200000000000000000000000000000000000006"
+  },
+  "FlashCallerAddress": "0x31ab65b220487210bbde88b5b8fa1f9aaa77ae76",
+  "StablecoinAddresses": [
+    "0x5d3a1Ff2b6BAb83b63cd9AD0787074081a52ef34"
+  ],
+  "Api3": null,
+  "Pyth": {
+    "PythAddress": "0xDd24F84d36BF92C65F92307595335bdFab5Bbd21"
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "Name": "Flare",
+  "ChainId": 14,
+  "CanReorg": true,
+  "SupportsPriorityFees": true,
+  "SupportsGasRefunds": true,
+  "BlockGasLimitM": 15,
+  "NativeCurrency": {
+    "Name": "Flare",
+    "Symbol": "FLR",
+    "Decimals": 18,
+    "PythFeedId": "0x035aa8d0a2d74e19438f2c1440edff9f3b95f915ca65f681a25ed0bad3dc228d",
+    "WrappedTokenAddress": "0x1D80c49BbBCd1C0911346656B529DF9E5c2F783d"
+  },
+  "FlashCallerAddress": "0x31ab65b220487210bbde88b5b8fa1f9aaa77ae76",
+  "StablecoinAddresses": [
+    "0xFbDa5F676cB37624f28265A144A48B0d6e87d3b6",
+    "0xe7cd86e13AC4309349F30B3435a9d337750fC82D"
+  ],
+  "Api3": null,
+  "Pyth": null
+}

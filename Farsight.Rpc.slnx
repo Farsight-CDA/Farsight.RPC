@@ -1,5 +1,7 @@
 <Solution>
   <Project Path="src/api/Farsight.Rpc.Api.csproj" />
+  <Project Path="src/chains/Farsight.Chains.csproj" />
   <Project Path="src/types/Farsight.Rpc.Types.csproj" />
   <Project Path="sdk/csharp/Farsight.Rpc.Sdk.csproj" />
+  <Project Path="tests/chains/Farsight.Chains.Tests.csproj" />
 </Solution>

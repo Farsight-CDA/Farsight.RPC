@@ -1,0 +1,134 @@
+name: Publish Packages
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.x"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Restore .NET dependencies
+        run: dotnet restore Farsight.Rpc.slnx
+
+      - name: Install TypeScript SDK dependencies
+        run: npm install
+        working-directory: sdk/typescript
+
+      - name: Calculate NuGet package versions
+        id: nuget_versions
+        shell: bash
+        run: |
+          resolve_private_version() {
+            local project_path="$1"
+            local output_name="$2"
+            local version
+
+            version="$(dotnet msbuild "$project_path" -nologo -getProperty:Version)"
+
+            if [[ -z "$version" ]]; then
+              echo "Could not resolve Version for $project_path"
+              exit 1
+            fi
+
+            if [[ ! "$version" =~ ^([0-9]+\.[0-9]+\.[0-9]+)(-.*)?$ ]]; then
+              echo "Unexpected Version format '$version' in $project_path"
+              exit 1
+            fi
+
+            echo "$output_name=${BASH_REMATCH[1]}-private.${{ github.run_number }}.${{ github.run_attempt }}" >> "$GITHUB_OUTPUT"
+          }
+
+          resolve_private_version "sdk/csharp/Farsight.Rpc.Sdk.csproj" "rpc_sdk_version"
+          resolve_private_version "src/chains/Farsight.Chains.csproj" "chains_version"
+
+      - name: Resolve TypeScript package metadata
+        id: npm_package
+        shell: bash
+        run: |
+          package_version="$(node -e 'const fs = require("fs"); const xml = fs.readFileSync("../../version.props", "utf8"); const match = xml.match(/<Version>([^<]+)<\/Version>/); if(!match) { process.exit(1); } process.stdout.write(match[1]);')"
+          package_name="$(npm pkg get name --json | tr -d '"')"
+
+          if [[ -z "$package_name" || -z "$package_version" ]]; then
+            echo "Could not resolve TypeScript package name or shared version"
+            exit 1
+          fi
+
+          npm pkg set version="$package_version"
+
+          echo "name=$package_name" >> "$GITHUB_OUTPUT"
+          echo "version=$package_version" >> "$GITHUB_OUTPUT"
+        working-directory: sdk/typescript
+
+      - name: Build .NET solution
+        run: dotnet build Farsight.Rpc.slnx --configuration Release --no-restore -warnaserror
+
+      - name: Type-check TypeScript SDK
+        run: npm run typecheck
+        working-directory: sdk/typescript
+
+      - name: Build TypeScript SDK
+        run: npm run build
+        working-directory: sdk/typescript
+
+      - name: Run .NET tests
+        run: dotnet test Farsight.Rpc.slnx --configuration Release --no-build
+
+      - name: Pack NuGet packages
+        shell: bash
+        run: |
+          dotnet pack sdk/csharp/Farsight.Rpc.Sdk.csproj --configuration Release --no-restore --output ./nupkgs -p:Version=${{ steps.nuget_versions.outputs.rpc_sdk_version }}
+          dotnet pack src/chains/Farsight.Chains.csproj --configuration Release --no-restore --output ./nupkgs -p:Version=${{ steps.nuget_versions.outputs.chains_version }}
+
+      - name: Validate TypeScript package
+        run: npm pack --dry-run
+        working-directory: sdk/typescript
+
+      - name: Check whether TypeScript package version exists
+        id: npm
+        shell: bash
+        run: |
+          if npm view "${{ steps.npm_package.outputs.name }}@${{ steps.npm_package.outputs.version }}" version >/dev/null 2>&1; then
+            echo "should_publish=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "should_publish=true" >> "$GITHUB_OUTPUT"
+
+      - name: Publish NuGet packages
+        env:
+          API_KEY: ${{ secrets.NUGET_PRIVATE_API_KEY }}
+        shell: bash
+        run: dotnet nuget push ./nupkgs/*.nupkg --source https://nuget.farsight-cda.de/nuget/farsight-packages/v3/index.json --api-key "$API_KEY" --skip-duplicate
+
+      - name: Publish TypeScript package to npm
+        if: steps.npm.outputs.should_publish == 'true'
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --access public
+        working-directory: sdk/typescript
+
+      - name: Skip npm publish when version already exists
+        if: steps.npm.outputs.should_publish != 'true'
+        run: |
+          echo "Package ${{ steps.npm_package.outputs.name }}@${{ steps.npm_package.outputs.version }} already exists on npm. Skipping publish."

@@ -1,0 +1,22 @@
+{
+  "Name": "Plume",
+  "ChainId": 98866,
+  "CanReorg": true,
+  "SupportsPriorityFees": true,
+  "SupportsGasRefunds": true,
+  "BlockGasLimitM": 1125899906,
+  "NativeCurrency": {
+    "Name": "Plume",
+    "Symbol": "PLUME",
+    "Decimals": 18,
+    "PythFeedId": "0xded84d57dbf810bf86b97936f12e1f01b8d6d01c251a4d6eac592147988d475c",
+    "WrappedTokenAddress": "0xEa237441c92CAe6FC17Caaf9a7acB3f953be4bd1"
+  },
+  "FlashCallerAddress": "0x31ab65b220487210bbde88b5b8fa1f9aaa77ae76",
+  "StablecoinAddresses": [
+    "0x222365EF19F7947e5484218551B56bb3965Aa7aF",
+    "0xdddD73F5Df1F0DC31373357beAC77545dC5A6f3F"
+  ],
+  "Api3": null,
+  "Pyth": null
+}

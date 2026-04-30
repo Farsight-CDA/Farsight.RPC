@@ -16,7 +16,6 @@ import { useAuth } from "../lib/auth";
 import {
   useReferenceData,
   type RpcProviderSummary,
-  type RpcStructureDefinition,
 } from "../lib/reference-data";
 import {
   useApplicationData,
@@ -24,6 +23,13 @@ import {
 } from "../lib/application-data";
 import { useEnvironment } from "../lib/environment-context";
 import { useEscapeKey } from "../lib/useEscapeKey";
+import {
+  formatRequirement,
+  requirementMatches,
+  rpcTypeStructureKey,
+  rpcTypes,
+  type RpcTypeName,
+} from "../lib/rpc-structure";
 
 async function readErrorMessage(
   response: Response,
@@ -143,8 +149,31 @@ export default function ApplicationRpcsPage() {
   const rpcsState = applicationData.rpcs.state;
   const rpcsError = applicationData.rpcs.error;
 
-  const rpcStructures = referenceData.rpcStructures.data;
-  const appStructures = applicationData.structures.data;
+  const appStructure = applicationData.structure;
+
+  const typeOverviewStyles = {
+    Realtime: {
+      badge: "border-green-500/30 bg-green-500/10 text-green-400",
+      dot: "bg-green-500",
+    },
+    Archive: {
+      badge: "border-blue-500/30 bg-blue-500/10 text-blue-400",
+      dot: "bg-blue-500",
+    },
+    Tracing: {
+      badge: "border-purple-500/30 bg-purple-500/10 text-purple-400",
+      dot: "bg-purple-500",
+    },
+  };
+
+  const structureOverviewItems = createMemo(() => {
+    const structure = appStructure();
+    return rpcTypes.map((type) => ({
+      type,
+      rule: formatRequirement(structure[rpcTypeStructureKey[type]]),
+      style: typeOverviewStyles[type],
+    }));
+  });
 
   const environment = useEnvironment();
   const selectedEnvironment = createMemo(
@@ -304,97 +333,36 @@ export default function ApplicationRpcsPage() {
   const getChainTypeCounts = (
     chain: string,
     env: string,
-  ): Record<string, number> => {
+  ): Record<RpcTypeName, number> => {
     const chainRpcs = rpcs().filter(
       (rpc) => rpc.chain === chain && rpc.environmentId === env,
     );
-    const counts: Record<string, number> = {};
+    const counts: Record<RpcTypeName, number> = {
+      Realtime: 0,
+      Archive: 0,
+      Tracing: 0,
+    };
     for (const rpc of chainRpcs) {
       counts[rpc.type] = (counts[rpc.type] ?? 0) + 1;
     }
     return counts;
   };
 
-  const matchesStructure = (
-    typeCounts: Record<string, number>,
-    definition: RpcStructureDefinition,
-  ): boolean => {
-    const required = definition.requiredRpcTypes;
-    const requiredKeys = Object.keys(required);
-    const actualKeys = Object.keys(typeCounts);
-    if (requiredKeys.length !== actualKeys.length) return false;
-    for (const key of requiredKeys) {
-      if ((typeCounts[key] ?? 0) !== required[key]) return false;
-    }
-    for (const key of actualKeys) {
-      if (!(key in required)) return false;
-    }
-    return true;
-  };
+  const matchesStructure = (typeCounts: Record<RpcTypeName, number>): boolean =>
+    rpcTypes.every((type) =>
+      requirementMatches(typeCounts[type], appStructure()[rpcTypeStructureKey[type]]),
+    );
 
   const chainStructureStatuses = createMemo(() => {
     const env = environment.selectedEnvironmentId() || "";
-    const supported = appStructures();
-    const definitions = rpcStructures();
     const statuses: Record<string, ChainStructureStatus> = {};
-
-    if (supported.length === 0) return statuses;
-
-    const supportedDefs = definitions.filter((d) =>
-      supported.includes(d.structure),
-    );
 
     for (const chain of availableChains()) {
       const typeCounts = getChainTypeCounts(chain, env);
-      const matches = supportedDefs.some((def) =>
-        matchesStructure(typeCounts, def),
-      );
-      statuses[chain] = matches ? "valid" : "warning";
+      statuses[chain] = matchesStructure(typeCounts) ? "valid" : "warning";
     }
 
     return statuses;
-  });
-
-  const chainMatchedStructures = createMemo(() => {
-    const env = environment.selectedEnvironmentId() || "";
-    const supported = appStructures();
-    const definitions = rpcStructures();
-    const matches: Record<string, RpcStructureDefinition | null> = {};
-
-    if (supported.length === 0) return matches;
-
-    const supportedDefs = definitions.filter((d) =>
-      supported.includes(d.structure),
-    );
-
-    for (const chain of availableChains()) {
-      const typeCounts = getChainTypeCounts(chain, env);
-      const matchedDef = supportedDefs.find((def) =>
-        matchesStructure(typeCounts, def),
-      );
-      matches[chain] = matchedDef ?? null;
-    }
-
-    return matches;
-  });
-
-  const activeChainMatchedStructure = createMemo(() => {
-    const chain = activeChain();
-    const env = environment.selectedEnvironmentId() || "";
-    if (!chain) return null;
-
-    const supported = appStructures();
-    const definitions = rpcStructures();
-    if (supported.length === 0) return null;
-
-    const typeCounts = getChainTypeCounts(chain, env);
-
-    const supportedDefs = definitions.filter((d) =>
-      supported.includes(d.structure),
-    );
-    return (
-      supportedDefs.find((def) => matchesStructure(typeCounts, def)) ?? null
-    );
   });
 
   const activeChainMismatchInfo = createMemo(() => {
@@ -402,19 +370,10 @@ export default function ApplicationRpcsPage() {
     const env = environment.selectedEnvironmentId() || "";
     if (!chain) return null;
 
-    const supported = appStructures();
-    const definitions = rpcStructures();
-    if (supported.length === 0) return null;
-
     const typeCounts = getChainTypeCounts(chain, env);
+    if (matchesStructure(typeCounts)) return null;
 
-    const supportedDefs = definitions.filter((d) =>
-      supported.includes(d.structure),
-    );
-    if (supportedDefs.some((def) => matchesStructure(typeCounts, def)))
-      return null;
-
-    return { typeCounts, supportedDefs };
+    return { typeCounts, structure: appStructure() };
   });
 
   const toggleAddChainsMode = () => {
@@ -934,7 +893,7 @@ export default function ApplicationRpcsPage() {
 
   return (
     <>
-      <div class="flex flex-col gap-6">
+      <div class="flex flex-col gap-3 flex-1 min-h-0">
         <Show
           when={allChainsState() === "pending" || rpcsState() === "pending"}
         >
@@ -1007,8 +966,32 @@ export default function ApplicationRpcsPage() {
             (rpcsState() === "ready" || rpcsState() === "refreshing")
           }
         >
-          <div class="flex flex-col gap-4 lg:flex-row lg:items-stretch lg:gap-6">
-            <aside class="flex max-h-[min(22rem,52vh)] flex-col overflow-hidden border border-b-border bg-b-field lg:max-h-[calc(100vh-13rem)] lg:w-72 lg:shrink-0">
+          {/* Current Structure overview bar */}
+          <div class="flex flex-wrap items-center gap-3 border border-b-border bg-b-field px-4 py-2 shrink-0">
+            <span class="text-[0.65rem] font-bold uppercase tracking-widest text-b-ink/50">
+              Current Structure:
+            </span>
+            <For each={structureOverviewItems()}>
+              {(item) => (
+                <div
+                  class={`inline-flex items-center gap-2 border px-2.5 py-1 ${item.style.badge}`}
+                >
+                  <span
+                    class={`inline-block size-1.5 rounded-full ${item.style.dot}`}
+                  />
+                  <span class="text-xs font-bold tracking-wider">
+                    {item.type}
+                  </span>
+                  <span class="text-xs font-bold tracking-wider opacity-80">
+                    {item.rule}
+                  </span>
+                </div>
+              )}
+            </For>
+          </div>
+
+          <div class="flex flex-col gap-4 lg:flex-row lg:items-stretch lg:gap-6 flex-1 min-h-0">
+            <aside class="flex max-h-[min(22rem,52vh)] flex-col overflow-hidden border border-b-border bg-b-field lg:max-h-none lg:w-72 lg:shrink-0">
               <div class="shrink-0 space-y-3 border-b border-b-border p-4">
                 <div class="flex items-center justify-between gap-2">
                   <p class="text-xs font-bold uppercase tracking-[0.35em] text-b-accent">
@@ -1078,8 +1061,6 @@ export default function ApplicationRpcsPage() {
                       const structureStatus = () =>
                         chainStructureStatuses()[chain] ?? "warning";
                       const isWarning = () => structureStatus() === "warning";
-                      const matchedStructure = () =>
-                        chainMatchedStructures()[chain];
                       return (
                         <div
                           role="button"
@@ -1115,13 +1096,6 @@ export default function ApplicationRpcsPage() {
                             <span class="min-w-0 truncate font-['Anton',sans-serif] text-base tracking-wide">
                               {chain}
                             </span>
-                            <Show when={matchedStructure()}>
-                              {(structure) => (
-                                <span class="ml-1 inline-flex shrink-0 items-center border border-green-500/30 bg-green-500/10 px-1.5 py-0.5 text-[0.6rem] font-bold tracking-wider text-green-400">
-                                  {structure().displayName}
-                                </span>
-                              )}
-                            </Show>
                           </div>
                           <button
                             type="button"
@@ -1224,7 +1198,7 @@ export default function ApplicationRpcsPage() {
               </Show>
             </aside>
 
-            <section class="flex min-h-[min(24rem,55vh)] min-w-0 flex-1 flex-col overflow-hidden border border-b-border bg-b-field lg:min-h-[calc(100vh-13rem)]">
+            <section class="flex min-h-[min(24rem,55vh)] min-w-0 flex-1 flex-col overflow-hidden border border-b-border bg-b-field lg:min-h-0">
               <Show
                 when={activeChain()}
                 fallback={
@@ -1329,16 +1303,6 @@ export default function ApplicationRpcsPage() {
                       </button>
                     </div>
                   </div>
-                    <Show when={activeChainMatchedStructure()}>
-                      {(matched) => (
-                        <div class="mx-4 mt-4 flex items-center gap-2 border border-green-500/30 bg-green-500/10 px-3 py-2">
-                          <CheckmarkIcon class="size-4 shrink-0 text-green-400" />
-                          <p class="text-xs font-bold tracking-wider text-green-400">
-                            Matches {matched().displayName}
-                          </p>
-                        </div>
-                      )}
-                    </Show>
                   <Show when={activeChainMismatchInfo()}>
                     {(info) => (
                       <div class="mx-4 mt-4 flex items-start gap-2 border border-red-500/30 bg-red-500/10 px-3 py-3">
@@ -1348,7 +1312,11 @@ export default function ApplicationRpcsPage() {
                             Does not match any supported structure
                           </p>
                           <Show
-                            when={Object.entries(info().typeCounts).length > 0}
+                            when={
+                              Object.entries(info().typeCounts).filter(
+                                ([, count]) => count > 0,
+                              ).length > 0
+                            }
                             fallback={
                               <p class="mt-2 text-[0.65rem] font-bold uppercase tracking-wider text-b-ink/50">
                                 Has no RPCs configured yet
@@ -1357,7 +1325,11 @@ export default function ApplicationRpcsPage() {
                           >
                             <div class="mt-2 flex flex-wrap items-center gap-1 text-[0.6rem] font-bold uppercase tracking-wider text-b-ink/50">
                               <span>Has:</span>
-                              <For each={Object.entries(info().typeCounts)}>
+                              <For
+                                each={Object.entries(info().typeCounts).filter(
+                                  ([, count]) => count > 0,
+                                )}
+                              >
                                 {([type, count]) => (
                                   <span class="border border-b-border bg-b-paper/20 px-1.5 py-0.5">
                                     {count}x {type}
@@ -1367,28 +1339,22 @@ export default function ApplicationRpcsPage() {
                             </div>
                           </Show>
                           <div class="mt-1.5 flex flex-col gap-1">
-                            <For each={info().supportedDefs}>
-                              {(def) => (
-                                <div class="flex flex-wrap items-center gap-1 text-[0.6rem] font-bold tracking-wider text-b-ink/40">
-                                  <span>{def.displayName} needs:</span>
-                                  <For
-                                    each={Object.entries(def.requiredRpcTypes)}
-                                  >
-                                    {([type, count]) => (
-                                      <span class="border border-b-border/50 bg-b-paper/10 px-1.5 py-0.5">
-                                        {count}x {type}
-                                      </span>
-                                    )}
-                                  </For>
-                                </div>
-                              )}
-                            </For>
+                            <div class="flex flex-wrap items-center gap-1 text-[0.6rem] font-bold tracking-wider text-b-ink/40">
+                              <span>Needs:</span>
+                              <For each={rpcTypes}>
+                                {(type) => (
+                                  <span class="border border-b-border/50 bg-b-paper/10 px-1.5 py-0.5">
+                                    {formatRequirement(info().structure[rpcTypeStructureKey[type]])} {type}
+                                  </span>
+                                )}
+                              </For>
+                            </div>
                           </div>
                         </div>
                       </div>
                     )}
                   </Show>
-                  <div class="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 [scrollbar-gutter:stable]">
+                  <div class="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4">
                     <Show when={activeChainRpcs().length > 0}>
                       <div class="flex flex-col gap-3">
                         <For each={activeChainRpcs()}>

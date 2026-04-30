@@ -209,8 +209,8 @@ const ApplicationLayoutContent: ParentComponent = (props) => {
         </div>
       </div>
 
-      <div class="flex-1 px-6 py-4">
-        <div class="mx-auto max-w-7xl">{props.children}</div>
+      <div class="flex flex-1 flex-col px-6 py-4 min-h-0">
+        <div class="mx-auto max-w-7xl flex flex-1 flex-col min-h-0 w-full">{props.children}</div>
       </div>
     </main>
   );

@@ -14,7 +14,7 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request>
 {
     public sealed record Request(
         string Name,
-        RpcStructureType[] Structures
+        RpcStructureDefinition? Structure
     );
 
     public sealed class Validator : Validator<Request>
@@ -23,13 +23,9 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request>
         {
             RuleFor(x => x.Name).ApplyNameValidation();
 
-            RuleFor(x => x.Structures)
+            RuleFor(x => x.Structure)
                 .NotNull()
-                .WithMessage("Structures is required.");
-
-            RuleForEach(x => x.Structures)
-                .IsInEnum()
-                .WithMessage("Invalid structure value.");
+                .WithMessage("Structure is required.");
         }
     }
 
@@ -50,7 +46,7 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request>
         {
             Id = Guid.NewGuid(),
             Name = req.Name,
-            Structures = [.. req.Structures.Distinct()],
+            Structure = req.Structure ?? RpcStructureDefinition.Default,
         };
 
         dbContext.ConsumerApplications.Add(application);

@@ -13,6 +13,11 @@ import {
 } from "solid-js";
 import LoadingSpinner from "../components/LoadingSpinner";
 import { useAuth } from "./auth";
+import {
+  defaultRpcStructure,
+  normalizeRpcStructure,
+  type RpcStructureDefinition,
+} from "./rpc-structure";
 
 type LoadState = "idle" | "pending" | "refreshing" | "ready" | "errored";
 
@@ -47,7 +52,7 @@ type ApplicationDetail = {
   name: string;
   environments: ApplicationEnvironmentSummary[];
   apiKeys: ConsumerApiKeySummary[];
-  structures: string[];
+  structure: RpcStructureDefinition;
 };
 
 type ListController<T> = {
@@ -64,7 +69,7 @@ type ApplicationDataContextValue = {
   apiKeys: ListController<ConsumerApiKeySummary>;
   rpcs: ListController<ApplicationRpc>;
   rpcsByEnvironment: Accessor<Record<string, ApplicationRpc[]>>;
-  structures: ListController<string>;
+  structure: Accessor<RpcStructureDefinition>;
   refreshApplication: () => Promise<void>;
   refreshRpcs: () => Promise<void>;
   refresh: () => Promise<void>;
@@ -147,10 +152,8 @@ export function ApplicationDataProvider(props: ParentProps) {
   const [apiKeysState, setApiKeysState] = createSignal<LoadState>("idle");
   const [apiKeysError, setApiKeysError] = createSignal<Error | null>(null);
 
-  const [structures, setStructures] = createSignal<string[]>([]);
-  const [structuresState, setStructuresState] = createSignal<LoadState>("idle");
-  const [structuresError, setStructuresError] = createSignal<Error | null>(
-    null,
+  const [structure, setStructure] = createSignal<RpcStructureDefinition>(
+    defaultRpcStructure,
   );
 
   const [loadedDetailKey, setLoadedDetailKey] = createSignal<string | null>(
@@ -178,9 +181,7 @@ export function ApplicationDataProvider(props: ParentProps) {
     setApiKeys([]);
     setApiKeysState("idle");
     setApiKeysError(null);
-    setStructures([]);
-    setStructuresState("idle");
-    setStructuresError(null);
+    setStructure(defaultRpcStructure);
     setLoadedDetailKey(null);
   };
 
@@ -218,11 +219,6 @@ export function ApplicationDataProvider(props: ParentProps) {
       apiKeys().length > 0 && isRefresh ? "refreshing" : "pending",
     );
     setApiKeysError(null);
-    setStructuresState(
-      structures().length > 0 && isRefresh ? "refreshing" : "pending",
-    );
-    setStructuresError(null);
-
     activeDetailLoadKey = requestKey;
     activeDetailLoad = (async () => {
       try {
@@ -231,8 +227,7 @@ export function ApplicationDataProvider(props: ParentProps) {
         setEnvironmentsState("ready");
         setApiKeys(detail.apiKeys);
         setApiKeysState("ready");
-        setStructures(detail.structures);
-        setStructuresState("ready");
+        setStructure(normalizeRpcStructure(detail.structure));
         setLoadedDetailKey(requestKey);
       } catch (error) {
         const err =
@@ -243,8 +238,6 @@ export function ApplicationDataProvider(props: ParentProps) {
         setEnvironmentsState("errored");
         setApiKeysError(err);
         setApiKeysState("errored");
-        setStructuresError(err);
-        setStructuresState("errored");
       }
     })();
 
@@ -508,9 +501,7 @@ export function ApplicationDataProvider(props: ParentProps) {
       return false;
     }
     return (
-      environmentsState() === "pending" &&
-      apiKeysState() === "pending" &&
-      structuresState() === "pending"
+      environmentsState() === "pending" && apiKeysState() === "pending"
     );
   });
 
@@ -534,11 +525,7 @@ export function ApplicationDataProvider(props: ParentProps) {
       error: rpcsError,
     },
     rpcsByEnvironment,
-    structures: {
-      data: structures,
-      state: structuresState,
-      error: structuresError,
-    },
+    structure,
     refreshApplication,
     refreshRpcs,
     refresh,

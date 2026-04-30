@@ -8,7 +8,7 @@ public sealed record ConsumerApplication
     public required Guid Id { get; init; }
     public required string Name { get; set; }
 
-    public required RpcStructureType[] Structures { get; set; }
+    public required RpcStructureDefinition Structure { get; set; }
 
     //Navigation Property
     public List<ApplicationEnvironment>? Environments { get; private set; }

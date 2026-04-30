@@ -3,15 +3,25 @@ using Farsight.Rpc.Types;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace Farsight.Rpc.Api.Persistence.Configurations;
 
 internal sealed class ConsumerApplicationEFConfiguration : IEntityTypeConfiguration<ConsumerApplication>
 {
-    private static readonly ValueComparer<RpcStructureType[]> _structuresComparer = new(
-        (left, right) => left != null && right != null && left.SequenceEqual(right),
-        values => values.Aggregate(0, (hash, value) => HashCode.Combine(hash, value)),
-        values => values.ToArray());
+    private static readonly JsonSerializerOptions _jsonOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web)
+    {
+        Converters =
+        {
+            new JsonStringEnumConverter<RpcRequirementMode>()
+        }
+    };
+
+    private static readonly ValueComparer<RpcStructureDefinition> _structureComparer = new(
+        (left, right) => JsonSerializer.Serialize(left, _jsonOptions) == JsonSerializer.Serialize(right, _jsonOptions),
+        value => JsonSerializer.Serialize(value, _jsonOptions).GetHashCode(),
+        value => JsonSerializer.Deserialize<RpcStructureDefinition>(JsonSerializer.Serialize(value, _jsonOptions), _jsonOptions)!);
 
     public void Configure(EntityTypeBuilder<ConsumerApplication> entity)
     {
@@ -23,12 +33,12 @@ internal sealed class ConsumerApplicationEFConfiguration : IEntityTypeConfigurat
         entity.Property(x => x.Name)
             .UseCollation(AppDbContext.NAME_CASE_INSENSITIVE_COLLATION);
 
-        entity.Property(x => x.Structures)
+        entity.Property(x => x.Structure)
             .HasConversion(
-                values => values.Select(value => value.ToString()).ToArray(),
-                values => values.Select(Enum.Parse<RpcStructureType>).ToArray(),
-                _structuresComparer)
-            .HasColumnType("text[]");
+                value => JsonSerializer.Serialize(value, _jsonOptions),
+                value => JsonSerializer.Deserialize<RpcStructureDefinition>(value, _jsonOptions) ?? RpcStructureDefinition.Default,
+                _structureComparer)
+            .HasColumnType("jsonb");
 
         entity.HasMany(x => x.ApiKeys)
             .WithOne(x => x.Application)

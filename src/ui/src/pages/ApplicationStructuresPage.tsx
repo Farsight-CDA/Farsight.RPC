@@ -1,11 +1,12 @@
-import { createMemo, createSignal, For, Show } from "solid-js";
+import { createEffect, createMemo, createSignal, Show } from "solid-js";
 import { useParams } from "@solidjs/router";
-import CheckmarkIcon from "../components/icons/CheckmarkIcon";
 import LoadingSpinner from "../components/LoadingSpinner";
 import StructureIcon from "../components/icons/StructureIcon";
+import RpcStructureEditor from "../components/RpcStructureEditor";
 import { useAuth } from "../lib/auth";
 import { useReferenceData } from "../lib/reference-data";
 import { useApplicationData } from "../lib/application-data";
+import { normalizeRpcStructure } from "../lib/rpc-structure";
 
 async function readErrorMessage(
   response: Response,
@@ -32,34 +33,27 @@ export default function ApplicationStructuresPage() {
   const applicationId = () => params.applicationId;
 
   const applications = referenceData.applications.data;
-
   const application = createMemo(
     () => applications().find((app) => app.id === applicationId()) ?? null,
   );
 
-  const rpcStructures = referenceData.rpcStructures.data;
-  const appStructures = applicationData.structures.data;
-
-  const [structuresError, setStructuresError] = createSignal<string | null>(
-    null,
+  const [draftStructure, setDraftStructure] = createSignal(
+    applicationData.structure(),
   );
-  const [structuresLoading, setStructuresLoading] = createSignal(false);
+  const [structureError, setStructureError] = createSignal<string | null>(null);
+  const [structureLoading, setStructureLoading] = createSignal(false);
 
-  const isStructureSelected = (structure: string) =>
-    appStructures().includes(structure);
+  createEffect(() => {
+    setDraftStructure(applicationData.structure());
+  });
 
-  const toggleStructure = async (structure: string) => {
+  const saveStructure = async () => {
     const token = auth.token;
     const app = application();
     if (!token || !app) return;
 
-    const current = appStructures();
-    const next = current.includes(structure)
-      ? current.filter((s) => s !== structure)
-      : [...current, structure];
-
-    setStructuresError(null);
-    setStructuresLoading(true);
+    setStructureError(null);
+    setStructureLoading(true);
     try {
       const response = await fetch(`/api/Applications/${app.id}`, {
         method: "PUT",
@@ -67,111 +61,79 @@ export default function ApplicationStructuresPage() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ name: app.name, structures: next }),
+        body: JSON.stringify({
+          name: app.name,
+          structure: normalizeRpcStructure(draftStructure()),
+        }),
       });
       if (!response.ok) {
         throw new Error(
-          await readErrorMessage(response, "Failed to update structures"),
+          await readErrorMessage(response, "Failed to update structure"),
         );
       }
       await applicationData.refreshApplication();
+      setDraftStructure(applicationData.structure());
     } catch (err) {
-      setStructuresError(
-        err instanceof Error ? err.message : "Failed to update structures",
+      setStructureError(
+        err instanceof Error ? err.message : "Failed to update structure",
       );
     } finally {
-      setStructuresLoading(false);
+      setStructureLoading(false);
     }
   };
 
   return (
     <div class="flex flex-col gap-6">
       <section class="border border-b-border bg-b-field overflow-hidden">
-        <div class="border-b border-b-border bg-b-paper/30 px-6 py-4">
-          <div class="flex items-center gap-3">
-            <div class="flex size-10 items-center justify-center border border-b-accent/30 bg-b-accent/10">
-              <StructureIcon class="size-5 text-b-accent" />
+        <div class="border-b border-b-border bg-b-paper/30 px-6 py-5">
+          <div class="flex items-center gap-4">
+            <div class="flex size-12 items-center justify-center border border-b-accent/30 bg-b-accent/10">
+              <StructureIcon class="size-6 text-b-accent" />
             </div>
             <div>
-              <h2 class="font-['Anton',sans-serif] text-xl uppercase tracking-wide text-b-ink">
-                Supported Structures
+              <h2 class="font-['Anton',sans-serif] text-2xl uppercase tracking-wide text-b-ink">
+                RPC Structure
               </h2>
-              <p class="text-xs font-bold uppercase tracking-widest text-b-ink/50">
-                Select optional structure requirements for this application
+              <p class="mt-0.5 text-xs font-bold uppercase tracking-widest text-b-ink/50">
+                Configure frontend validation requirements for each chain
               </p>
             </div>
           </div>
         </div>
 
         <div class="p-6">
-          <div class="flex flex-col gap-3">
-          <For each={rpcStructures()}>
-            {(def) => {
-              const typeEntries = () =>
-                Object.entries(def.requiredRpcTypes ?? {});
-              return (
-                <button
-                  type="button"
-                  disabled={structuresLoading()}
-                  onClick={() => void toggleStructure(def.structure)}
-                  class={`flex items-center gap-4 border px-4 py-4 text-left transition-all duration-200 ${
-                    isStructureSelected(def.structure)
-                      ? "border-b-accent/50 bg-b-accent/10"
-                      : "border-b-border bg-b-paper/20 hover:border-b-border-hover"
-                  } ${structuresLoading() ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
-                >
-                  <div
-                    class={`flex size-5 shrink-0 items-center justify-center border transition-all duration-200 ${
-                      isStructureSelected(def.structure)
-                        ? "border-b-accent bg-b-accent"
-                        : "border-b-ink/30 bg-b-paper"
-                    }`}
-                  >
-                    <Show when={isStructureSelected(def.structure)}>
-                      <CheckmarkIcon class="size-3 text-b-paper" />
-                    </Show>
-                  </div>
-                  <div class="min-w-0 flex-1">
-                    <p class="font-['Anton',sans-serif] text-base tracking-wide text-b-ink">
-                      {def.displayName}
-                    </p>
-                    <div class="mt-1 flex flex-wrap gap-2">
-                      <For each={typeEntries()}>
-                        {([type, count]) => (
-                          <span
-                            class={`inline-flex items-center border px-2 py-0.5 text-[0.6rem] font-bold tracking-wider ${
-                              type === "Realtime"
-                                ? "text-green-400 border-green-500/30 bg-green-500/10"
-                                : type === "Archive"
-                                  ? "text-blue-400 border-blue-500/30 bg-blue-500/10"
-                                  : "text-purple-400 border-purple-500/30 bg-purple-500/10"
-                            }`}
-                          >
-                            {count}x {type}
-                          </span>
-                        )}
-                      </For>
-                    </div>
-                  </div>
-                </button>
-              );
+          <RpcStructureEditor
+            value={draftStructure()}
+            disabled={structureLoading()}
+            onChange={(value) => {
+              setDraftStructure(value);
+              setStructureError(null);
             }}
-          </For>
-        </div>
+          />
 
-        <Show when={structuresError()}>
-          <p class="mt-4 border border-red-500/40 bg-red-500/10 px-3 py-3 text-xs font-bold uppercase leading-snug text-red-400">
-            {structuresError()}
-          </p>
-        </Show>
+          <Show when={structureError()}>
+            <p class="mt-5 border border-red-500/40 bg-red-500/10 px-4 py-3 text-xs font-bold uppercase leading-snug text-red-400">
+              {structureError()}
+            </p>
+          </Show>
 
-        <Show when={structuresLoading()}>
-          <div class="mt-4 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-b-ink/50">
-            <LoadingSpinner class="size-3.5" />
-            Saving…
+          <div class="mt-6 flex items-center justify-end gap-3 border-t border-b-border pt-5">
+            <Show when={structureLoading()}>
+              <div class="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-b-ink/50">
+                <LoadingSpinner class="size-3.5" />
+                Saving...
+              </div>
+            </Show>
+            <button
+              type="button"
+              disabled={structureLoading()}
+              onClick={() => void saveStructure()}
+              class="btn btn-md btn-interactive btn-disabled btn-primary"
+            >
+              Save Structure
+            </button>
           </div>
-        </Show>
-      </div>
+        </div>
       </section>
     </div>
   );

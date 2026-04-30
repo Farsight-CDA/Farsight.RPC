@@ -25,12 +25,6 @@ export type RpcProviderSummary = {
   rpcCount: number;
 };
 
-export type RpcStructureDefinition = {
-  structure: string;
-  displayName: string;
-  requiredRpcTypes: Record<string, number>;
-};
-
 export type RpcErrorGroupSummary = {
   id: string;
   name: string;
@@ -42,7 +36,6 @@ export type ReferenceDataSnapshot = {
   applications: ApplicationSummary[];
   rpcProviders: RpcProviderSummary[];
   chains: string[];
-  rpcStructures: RpcStructureDefinition[];
   errorGroups: RpcErrorGroupSummary[];
 };
 
@@ -56,7 +49,6 @@ type ReferenceDataContextValue = {
   applications: ListController<ApplicationSummary>;
   rpcProviders: ListController<RpcProviderSummary>;
   chains: ListController<string>;
-  rpcStructures: ListController<RpcStructureDefinition>;
   errorGroups: ListController<RpcErrorGroupSummary>;
   isReferenceDataReady: Accessor<boolean>;
   load: (token?: string | null) => Promise<void>;
@@ -87,7 +79,7 @@ async function fetchReferenceList<T>(
 export async function preloadReferenceData(
   token: string,
 ): Promise<ReferenceDataSnapshot> {
-  const [applications, rpcProviders, chains, rpcStructures, errorGroups] =
+  const [applications, rpcProviders, chains, errorGroups] =
     await Promise.all([
       fetchReferenceList<ApplicationSummary>(
         "/api/Applications",
@@ -100,11 +92,6 @@ export async function preloadReferenceData(
         "Failed to load RPC providers",
       ),
       fetchReferenceList<string>("/api/Chains", token, "Failed to load chains"),
-      fetchReferenceList<RpcStructureDefinition>(
-        "/api/RpcStructures",
-        token,
-        "Failed to load RPC structures",
-      ),
       fetchReferenceList<RpcErrorGroupSummary>(
         "/api/RpcErrorGroups",
         token,
@@ -116,7 +103,6 @@ export async function preloadReferenceData(
     applications,
     rpcProviders,
     chains,
-    rpcStructures,
     errorGroups,
   };
 }
@@ -159,15 +145,6 @@ export function ReferenceDataProvider(props: ReferenceDataProviderProps) {
   );
   const [chainsError, setChainsError] = createSignal<Error | null>(null);
 
-  const [rpcStructures, setRpcStructures] = createSignal<
-    RpcStructureDefinition[]
-  >(initialData?.rpcStructures ?? []);
-  const [rpcStructuresState, setRpcStructuresState] = createSignal<LoadState>(
-    initialData ? "ready" : "idle",
-  );
-  const [rpcStructuresError, setRpcStructuresError] =
-    createSignal<Error | null>(null);
-
   const [errorGroups, setErrorGroups] = createSignal(
     initialData?.errorGroups ?? [],
   );
@@ -192,9 +169,6 @@ export function ReferenceDataProvider(props: ReferenceDataProviderProps) {
     setChains([]);
     setChainsState("idle");
     setChainsError(null);
-    setRpcStructures([]);
-    setRpcStructuresState("idle");
-    setRpcStructuresError(null);
     setErrorGroups([]);
     setErrorGroupsState("idle");
     setErrorGroupsError(null);
@@ -221,10 +195,6 @@ export function ReferenceDataProvider(props: ReferenceDataProviderProps) {
     setRpcProvidersError(null);
     setChainsState(chains().length > 0 && isRefresh ? "refreshing" : "pending");
     setChainsError(null);
-    setRpcStructuresState(
-      rpcStructures().length > 0 && isRefresh ? "refreshing" : "pending",
-    );
-    setRpcStructuresError(null);
     setErrorGroupsState(
       errorGroups().length > 0 && isRefresh ? "refreshing" : "pending",
     );
@@ -236,7 +206,6 @@ export function ReferenceDataProvider(props: ReferenceDataProviderProps) {
         applicationsResult,
         rpcProvidersResult,
         chainsResult,
-        rpcStructuresResult,
         errorGroupsResult,
       ] = await Promise.allSettled([
         fetchReferenceList<ApplicationSummary>(
@@ -253,11 +222,6 @@ export function ReferenceDataProvider(props: ReferenceDataProviderProps) {
           "/api/Chains",
           token,
           "Failed to load chains",
-        ),
-        fetchReferenceList<RpcStructureDefinition>(
-          "/api/RpcStructures",
-          token,
-          "Failed to load RPC structures",
         ),
         fetchReferenceList<RpcErrorGroupSummary>(
           "/api/RpcErrorGroups",
@@ -300,18 +264,6 @@ export function ReferenceDataProvider(props: ReferenceDataProviderProps) {
             : new Error("Failed to load chains"),
         );
         setChainsState("errored");
-      }
-
-      if (rpcStructuresResult.status === "fulfilled") {
-        setRpcStructures(rpcStructuresResult.value);
-        setRpcStructuresState("ready");
-      } else {
-        setRpcStructuresError(
-          rpcStructuresResult.reason instanceof Error
-            ? rpcStructuresResult.reason
-            : new Error("Failed to load RPC structures"),
-        );
-        setRpcStructuresState("errored");
       }
 
       if (errorGroupsResult.status === "fulfilled") {
@@ -467,11 +419,6 @@ export function ReferenceDataProvider(props: ReferenceDataProviderProps) {
       data: chains,
       state: chainsState,
       error: chainsError,
-    },
-    rpcStructures: {
-      data: rpcStructures,
-      state: rpcStructuresState,
-      error: rpcStructuresError,
     },
     errorGroups: {
       data: errorGroups,

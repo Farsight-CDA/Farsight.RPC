@@ -11,7 +11,7 @@ public static class FarsightRpcJson
         options.PropertyNameCaseInsensitive = true;
         options.Converters.Add(new JsonStringEnumConverter<TracingMode>());
         options.Converters.Add(new JsonStringEnumConverter<RpcType>());
-        options.Converters.Add(new JsonStringEnumConverter<RpcStructureType>());
+        options.Converters.Add(new JsonStringEnumConverter<RpcRequirementMode>());
         options.Converters.Add(new JsonStringEnumConverter<RpcErrorAction>());
         return options;
     }

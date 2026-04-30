@@ -1,9 +1,9 @@
 import { A, useNavigate } from "@solidjs/router";
-import { createSignal, For, Show } from "solid-js";
+import { createSignal, Show } from "solid-js";
 import LoadingSpinner from "../components/LoadingSpinner";
 import BackIcon from "../components/icons/BackIcon";
-import CheckmarkIcon from "../components/icons/CheckmarkIcon";
 import ListIcon from "../components/icons/ListIcon";
+import RpcStructureEditor from "../components/RpcStructureEditor";
 import { useAuth } from "../lib/auth";
 import {
   nameValidationHint,
@@ -11,6 +11,7 @@ import {
   validateName,
 } from "../lib/name-validation";
 import { useReferenceData } from "../lib/reference-data";
+import { defaultRpcStructure, normalizeRpcStructure } from "../lib/rpc-structure";
 
 async function readErrorMessage(
   response: Response,
@@ -36,24 +37,10 @@ export default function ApplicationNewPage() {
   const referenceData = useReferenceData();
   const navigate = useNavigate();
 
-  const rpcStructures = referenceData.rpcStructures.data;
-
   const [name, setName] = createSignal("");
-  const [structures, setStructures] = createSignal<string[]>([]);
+  const [structure, setStructure] = createSignal(defaultRpcStructure);
   const [formError, setFormError] = createSignal<string | null>(null);
   const [loading, setLoading] = createSignal(false);
-
-  const isStructureSelected = (structure: string) =>
-    structures().includes(structure);
-
-  const toggleStructure = (structure: string) => {
-    setStructures((current) =>
-      current.includes(structure)
-        ? current.filter((value) => value !== structure)
-        : [...current, structure],
-    );
-    setFormError(null);
-  };
 
   const handleSubmit = async (e: SubmitEvent) => {
     e.preventDefault();
@@ -76,7 +63,10 @@ export default function ApplicationNewPage() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ name: appName, structures: structures() }),
+        body: JSON.stringify({
+          name: appName,
+          structure: normalizeRpcStructure(structure()),
+        }),
       });
       if (!response.ok) {
         throw new Error(
@@ -161,64 +151,21 @@ export default function ApplicationNewPage() {
               <div class="flex flex-col gap-3">
                 <div>
                   <p class="text-xs font-bold uppercase tracking-widest text-b-ink/70">
-                    Supported Structures (Optional)
+                    RPC Structure
+                  </p>
+                  <p class="mt-1 text-xs font-semibold uppercase tracking-wider text-b-ink/40">
+                    Frontend-only requirements checked against each chain's RPCs
                   </p>
                 </div>
 
-                <div class="flex flex-col gap-3">
-                  <For each={rpcStructures()}>
-                    {(def) => {
-                      const typeEntries = () =>
-                        Object.entries(def.requiredRpcTypes);
-                      return (
-                        <button
-                          type="button"
-                          disabled={loading()}
-                          onClick={() => toggleStructure(def.structure)}
-                          class={`flex items-center gap-4 border px-4 py-4 text-left transition-all duration-200 ${
-                            isStructureSelected(def.structure)
-                              ? "border-b-accent/50 bg-b-accent/10"
-                              : "border-b-border bg-b-paper/20 hover:border-b-border-hover"
-                          } ${loading() ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
-                        >
-                          <div
-                            class={`flex size-5 shrink-0 items-center justify-center border transition-all duration-200 ${
-                              isStructureSelected(def.structure)
-                                ? "border-b-accent bg-b-accent"
-                                : "border-b-ink/30 bg-b-paper"
-                            }`}
-                          >
-                            <Show when={isStructureSelected(def.structure)}>
-                              <CheckmarkIcon class="size-3 text-b-paper" />
-                            </Show>
-                          </div>
-                          <div class="min-w-0 flex-1">
-                            <p class="font-['Anton',sans-serif] text-base tracking-wide text-b-ink">
-                              {def.displayName}
-                            </p>
-                            <div class="mt-1 flex flex-wrap gap-2">
-                              <For each={typeEntries()}>
-                                {([type, count]) => (
-                                  <span
-                                    class={`inline-flex items-center border px-2 py-0.5 text-[0.6rem] font-bold tracking-wider ${
-                                      type === "Realtime"
-                                        ? "text-green-400 border-green-500/30 bg-green-500/10"
-                                        : type === "Archive"
-                                          ? "text-blue-400 border-blue-500/30 bg-blue-500/10"
-                                          : "text-purple-400 border-purple-500/30 bg-purple-500/10"
-                                    }`}
-                                  >
-                                    {count}x {type}
-                                  </span>
-                                )}
-                              </For>
-                            </div>
-                          </div>
-                        </button>
-                      );
-                    }}
-                  </For>
-                </div>
+                <RpcStructureEditor
+                  value={structure()}
+                  disabled={loading()}
+                  onChange={(value) => {
+                    setStructure(value);
+                    setFormError(null);
+                  }}
+                />
               </div>
 
               <Show when={formError()}>

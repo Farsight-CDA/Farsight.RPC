@@ -14,7 +14,7 @@ public sealed class PUT(AppDbContext dbContext) : Endpoint<PUT.Request>
     public sealed record Request(
         [property: RouteParam] Guid ApplicationId,
         string Name,
-        RpcStructureType[]? Structures
+        RpcStructureDefinition? Structure
     );
 
     public sealed class Validator : Validator<Request>
@@ -22,10 +22,6 @@ public sealed class PUT(AppDbContext dbContext) : Endpoint<PUT.Request>
         public Validator()
         {
             RuleFor(x => x.Name).ApplyNameValidation();
-
-            RuleForEach(x => x.Structures)
-                .IsInEnum()
-                .WithMessage("Invalid structure value.");
         }
     }
 
@@ -52,9 +48,9 @@ public sealed class PUT(AppDbContext dbContext) : Endpoint<PUT.Request>
 
         application.Name = req.Name;
 
-        if(req.Structures is not null)
+        if(req.Structure is not null)
         {
-            application.Structures = [.. req.Structures.Distinct()];
+            application.Structure = req.Structure;
         }
 
         try

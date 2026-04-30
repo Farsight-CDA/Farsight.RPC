@@ -893,7 +893,7 @@ export default function ApplicationRpcsPage() {
 
   return (
     <>
-      <div class="flex flex-col gap-3 flex-1 min-h-0">
+      <div class="flex flex-col gap-3 flex-1 min-h-0 overflow-hidden">
         <Show
           when={allChainsState() === "pending" || rpcsState() === "pending"}
         >
@@ -990,8 +990,8 @@ export default function ApplicationRpcsPage() {
             </For>
           </div>
 
-          <div class="flex flex-col gap-4 lg:flex-row lg:items-stretch lg:gap-6 flex-1 min-h-0">
-            <aside class="flex max-h-[min(22rem,52vh)] flex-col overflow-hidden border border-b-border bg-b-field lg:max-h-none lg:w-72 lg:shrink-0">
+          <div class="flex flex-col gap-4 lg:flex-row lg:items-stretch lg:gap-6 flex-1 min-h-0 overflow-hidden">
+            <aside class="flex max-h-[min(22rem,52vh)] min-h-0 flex-col overflow-hidden border border-b-border bg-b-field lg:max-h-none lg:w-72 lg:shrink-0">
               <div class="shrink-0 space-y-3 border-b border-b-border p-4">
                 <div class="flex items-center justify-between gap-2">
                   <p class="text-xs font-bold uppercase tracking-[0.35em] text-b-accent">

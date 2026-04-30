@@ -9,7 +9,7 @@ const RequireAuth: ParentComponent = (props) => {
   const auth = useAuth();
   const referenceData = useReferenceData();
   return auth.isAuthenticated() ? (
-    <div class="flex min-h-screen flex-col bg-transparent">
+    <div class="flex h-screen flex-col overflow-hidden bg-transparent">
       <Navbar />
       <Show
         when={referenceData.isReferenceDataReady()}

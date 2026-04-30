@@ -42,8 +42,8 @@ const ApplicationLayoutContent: ParentComponent = (props) => {
   const isRpcsTab = () => getActiveTab() === "rpcs";
 
   return (
-    <main class="flex flex-1 flex-col">
-      <div class="border-b border-b-border bg-b-field/50 px-6 py-3">
+    <main class="flex flex-1 flex-col min-h-0">
+      <div class="border-b border-b-border bg-b-field/50 px-6 py-3 shrink-0">
         <div class="mx-auto max-w-7xl">
           <Show when={applicationsState() === "pending"}>
             <div class="flex items-center gap-3 text-sm font-semibold uppercase tracking-wider text-b-ink/70">
@@ -209,8 +209,8 @@ const ApplicationLayoutContent: ParentComponent = (props) => {
         </div>
       </div>
 
-      <div class="flex flex-1 flex-col px-6 py-4 min-h-0">
-        <div class="mx-auto max-w-7xl flex flex-1 flex-col min-h-0 w-full">{props.children}</div>
+      <div class="flex flex-1 flex-col overflow-hidden px-6 py-4 min-h-0">
+        <div class="mx-auto max-w-7xl flex flex-1 flex-col overflow-hidden min-h-0 w-full">{props.children}</div>
       </div>
     </main>
   );

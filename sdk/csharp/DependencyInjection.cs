@@ -35,8 +35,7 @@ public static class DependencyInjection
             configureClient?.Invoke(clientBuilder);
 
             builder.Services.AddSingleton<IFarsightRpcClient>(sp => new FarsightRpcClient(
-                sp.GetRequiredService<IHttpClientFactory>(),
-                sp.GetRequiredService<RegistrationOptions>().Options
+                sp.GetRequiredService<IHttpClientFactory>()
             ));
 
             return builder;

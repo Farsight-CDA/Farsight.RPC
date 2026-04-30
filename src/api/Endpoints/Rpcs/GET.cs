@@ -1,9 +1,11 @@
+using Farsight.Common.Extensions;
 using Farsight.Rpc.Api.Persistence;
 using Farsight.Rpc.Api.Persistence.Entities.Rpc;
 using Farsight.Rpc.Types;
 using FastEndpoints;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
+using System.Collections.Immutable;
 
 namespace Farsight.Rpc.Api.Endpoints.Rpcs;
 
@@ -59,7 +61,7 @@ public sealed class GET(AppDbContext dbContext) : Endpoint<GET.Request, ApiKeyRp
             .Distinct()
             .ToArray();
 
-        var providers = await dbContext.RpcProviders
+        var providers = (await dbContext.RpcProviders
             .AsNoTracking()
             .Where(provider => providerIds.Contains(provider.Id))
             .OrderBy(provider => provider.Name)
@@ -68,20 +70,22 @@ public sealed class GET(AppDbContext dbContext) : Endpoint<GET.Request, ApiKeyRp
                 provider.Name,
                 provider.RateLimit
             ))
-            .ToArrayAsync(ct);
+            .ToArrayAsync(ct))
+            .AsImmutable();
 
-        var errorGroups = await dbContext.RpcErrorGroups
+        var errorGroups = (await dbContext.RpcErrorGroups
             .AsNoTracking()
             .OrderBy(group => group.Name)
             .Select(group => new RpcErrorGroupDto(group.Id, group.Name, group.Action, group.Errors))
-            .ToArrayAsync(ct);
+            .ToArrayAsync(ct))
+            .AsImmutable();
 
         key.LastUsedAt = DateTimeOffset.UtcNow;
         await dbContext.SaveChangesAsync(ct);
 
         await Send.OkAsync(new ApiKeyRpcsDto(
             rpcs.GroupBy(rpc => rpc.Chain)
-                .ToDictionary(group => group.Key, group => group.Select(MapRpc).ToArray()),
+                .ToDictionary(group => group.Key, group => group.Select(MapRpc).ToImmutableArray()),
             providers,
             errorGroups
         ), ct);

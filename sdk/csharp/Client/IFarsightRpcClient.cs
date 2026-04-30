@@ -1,5 +1,6 @@
 using Farsight.Chains;
 using Farsight.Rpc.Types;
+using System.Collections.Immutable;
 
 namespace Farsight.Rpc.Sdk.Client;
 
@@ -16,7 +17,11 @@ public partial interface IFarsightRpcClient
         /// <param name="Rpcs">The RPC endpoints available to the configured API key, grouped by chain metadata.</param>
         /// <param name="Providers">The providers referenced by the returned RPC endpoints.</param>
         /// <param name="ErrorGroups">The globally configured RPC error groups.</param>
-        public sealed record Success(Dictionary<ChainMetadata, RpcEndpointDto[]> Rpcs, RpcProviderDto[] Providers, RpcErrorGroupDto[] ErrorGroups) : GetRpcsResult;
+        public sealed record Success(
+            Dictionary<ChainMetadata, ImmutableArray<RpcEndpoint>> Rpcs,
+            ImmutableArray<RpcProviderDto> Providers,
+            ImmutableArray<RpcErrorGroupDto> ErrorGroups
+        ) : GetRpcsResult;
 
         /// <summary>
         /// Represents a response where the provided API key was not found.

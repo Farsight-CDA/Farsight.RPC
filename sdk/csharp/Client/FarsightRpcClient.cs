@@ -1,5 +1,6 @@
 using Farsight.Chains;
 using Farsight.Rpc.Types;
+using System.Collections.Immutable;
 using System.Net;
 using System.Net.Http.Json;
 using static Farsight.Rpc.Sdk.Client.IFarsightRpcClient;
@@ -10,14 +11,11 @@ public sealed class FarsightRpcClient : IFarsightRpcClient
 {
     private readonly IHttpClientFactory? _httpClientFactory;
     private readonly HttpClient? _httpClient;
-    private readonly FarsightRpcOptions _options;
 
-    internal FarsightRpcClient(IHttpClientFactory httpClientFactory, FarsightRpcOptions options)
+    internal FarsightRpcClient(IHttpClientFactory httpClientFactory)
     {
         ArgumentNullException.ThrowIfNull(httpClientFactory);
-        ArgumentNullException.ThrowIfNull(options);
         _httpClientFactory = httpClientFactory;
-        _options = options;
     }
 
     public FarsightRpcClient(FarsightRpcOptions options)
@@ -25,7 +23,6 @@ public sealed class FarsightRpcClient : IFarsightRpcClient
         ArgumentNullException.ThrowIfNull(options);
         _httpClient = new HttpClient();
         ConfigureClient(_httpClient, options);
-        _options = options;
     }
 
     public async Task<GetRpcsResult> GetRpcsAsync(CancellationToken cancellationToken = default)
@@ -39,13 +36,39 @@ public sealed class FarsightRpcClient : IFarsightRpcClient
             case HttpStatusCode.OK:
                 var result = await response.Content.ReadFromJsonAsync(FarsightRpcJsonContext.Default.ApiKeyRpcsDto, cancellationToken)
                     ?? throw new InvalidOperationException("Null response");
-                var chainsByName = ChainRegistry.GetAllChains().ToDictionary(chain => chain.Name, StringComparer.Ordinal);
+                var chains = ChainRegistry.GetAllChains();
+                var resolveProvider = (Guid providerId) => result.Providers.FirstOrDefault(x => x.Id == providerId)
+                    ?? throw new InvalidOperationException($"RPC response referenced unknown provider '{providerId}'.");
                 var rpcs = result.Rpcs.ToDictionary(
-                    group => chainsByName.TryGetValue(group.Key, out var chain)
-                        ? chain
-                        : throw new InvalidOperationException($"RPC response referenced unknown chain '{group.Key}'."),
-                    group => group.Value
+                    group => chains.FirstOrDefault(x => x.Name == group.Key)
+                        ?? throw new InvalidOperationException($"RPC response referenced unknown chain '{group.Key}'."),
+                    group => group.Value.Select<RpcEndpointDto, RpcEndpoint>(rpc => rpc switch
+                    {
+                        RpcEndpointDto.Realtime realtime => new RpcEndpoint.Realtime
+                        {
+                            Id = realtime.Id,
+                            Address = realtime.Address,
+                            Provider = resolveProvider(rpc.ProviderId),
+                        },
+                        RpcEndpointDto.Archive archive => new RpcEndpoint.Archive
+                        {
+                            Id = archive.Id,
+                            Address = archive.Address,
+                            Provider = resolveProvider(rpc.ProviderId),
+                            IndexerStepSize = archive.IndexerStepSize,
+                            IndexerBlockOffset = archive.IndexerBlockOffset,
+                        },
+                        RpcEndpointDto.Tracing tracing => new RpcEndpoint.Tracing
+                        {
+                            Id = tracing.Id,
+                            Address = tracing.Address,
+                            Provider = resolveProvider(rpc.ProviderId),
+                            TracingMode = tracing.TracingMode,
+                        },
+                        _ => throw new NotSupportedException($"Unsupported RPC type '{rpc.GetType().Name}'.")
+                    }).ToImmutableArray()
                 );
+
                 return new GetRpcsResult.Success(rpcs, result.Providers, result.ErrorGroups);
             default:
                 response.EnsureSuccessStatusCode();

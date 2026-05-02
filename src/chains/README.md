@@ -37,6 +37,7 @@ Each `ChainMetadata` record contains:
 
 | Chain | Native Currency |
 |---|---|
+| Abstract | ETH |
 | Arbitrum | ETH |
 | Avalanche C-Chain | AVAX |
 | BSquared | BTC |
@@ -45,12 +46,14 @@ Each `ChainMetadata` record contains:
 | BSC | BNB |
 | Celo | CELO |
 | CoreDAO | CORE |
+| Citrea | cBTC |
 | CronosEVM | CRO |
 | Ethereum | ETH |
 | Flare | FLR |
 | Flow | FLOW |
 | Fraxtal | FRAX |
 | Gnosis | xDAI |
+| Hemi | ETH |
 | HyperEVM | HYPE |
 | Ink | ETH |
 | Katana | ETH |

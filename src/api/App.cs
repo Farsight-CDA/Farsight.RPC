@@ -83,7 +83,7 @@ public static class App
                 options =>
                 {
                     options.IncludeFormattedMessage = true;
-                    options.SetResourceBuilder(ResourceBuilder.CreateEmpty().AddService("SwapThing"));
+                    options.SetResourceBuilder(ResourceBuilder.CreateEmpty().AddService("Farsight.RPC"));
                     options.AddOtlpExporter(
                         otlp =>
                         {

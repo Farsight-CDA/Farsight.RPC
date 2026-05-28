@@ -1,0 +1,23 @@
+{
+  "Name": "Tempo",
+  "ChainId": 4217,
+  "CanReorg": false,
+  "SupportsPriorityFees": true,
+  "SupportsGasRefunds": true,
+  "BlockGasLimitM": 500,
+  "NativeCurrency": {
+    "Name": "US Dollar",
+    "Symbol": "USD",
+    "Decimals": 18,
+    "PythFeedId": "0xeaa020c61cc479712813461ce153894a96a6c00b21ed0cfc2798d1f9a9e9c94a",
+    "WrappedTokenAddress": null
+  },
+  "FlashCallerAddress": "0x31ab65b220487210bbde88b5b8fa1f9aaa77ae76",
+  "StablecoinAddresses": [
+    "0x20c0000000000000000000000000000000000000",
+    "0x20c000000000000000000000b9537d11c60e8b50",
+    "0x20c00000000000000000000014f22ca97301eb73"
+  ],
+  "Api3": null,
+  "Pyth": null
+}

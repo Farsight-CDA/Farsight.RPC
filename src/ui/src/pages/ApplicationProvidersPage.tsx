@@ -256,8 +256,8 @@ export default function ApplicationProvidersPage() {
 
   return (
     <>
-      <div class="flex flex-col gap-6">
-        <section class="border border-b-border bg-b-field overflow-hidden">
+      <div class="flex min-h-0 flex-1 flex-col gap-6">
+        <section class="flex min-h-0 flex-1 flex-col border border-b-border bg-b-field overflow-hidden">
           <div class="border-b border-b-border bg-b-paper/30 px-6 py-4">
             <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
               <div class="flex items-center gap-3">
@@ -289,7 +289,7 @@ export default function ApplicationProvidersPage() {
             </div>
           </div>
 
-          <div class="p-6">
+          <div class="min-h-0 flex-1 overflow-y-auto p-6">
             <Show when={providersState() === "pending"}>
               <div class="flex items-center justify-center gap-3 py-8 text-xs font-bold uppercase tracking-widest text-b-ink/80">
                 <LoadingSpinner class="size-4" />

@@ -7,6 +7,7 @@ import TrashIcon from "../components/icons/TrashIcon";
 import LightningIcon from "../components/icons/LightningIcon";
 import EmptyStateIcon from "../components/icons/EmptyStateIcon";
 import ProviderIcon from "../components/icons/ProviderIcon";
+import RpcIcon from "../components/icons/RpcIcon";
 import PlusIcon from "../components/icons/PlusIcon";
 import ChevronDownIcon from "../components/icons/ChevronDownIcon";
 import CheckmarkIcon from "../components/icons/CheckmarkIcon";
@@ -893,7 +894,44 @@ export default function ApplicationRpcsPage() {
 
   return (
     <>
-      <div class="flex flex-col gap-3 flex-1 min-h-0 overflow-hidden">
+      <div class="flex min-h-0 flex-1 flex-col gap-6">
+      <section class="flex min-h-0 flex-1 flex-col border border-b-border bg-b-field overflow-hidden">
+      <div class="border-b border-b-border bg-b-paper/30 px-6 py-4">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div class="flex items-center gap-3">
+            <div class="flex size-10 items-center justify-center border border-b-accent/30 bg-b-accent/10">
+              <RpcIcon class="size-5 text-b-accent" />
+            </div>
+            <div>
+              <h2 class="font-['Anton',sans-serif] text-xl uppercase tracking-wide text-b-ink">
+                RPCs
+              </h2>
+              <p class="text-xs font-bold uppercase tracking-widest text-b-ink/50">
+                Configure RPC endpoints per environment
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              const ch = activeChain();
+              if (ch) openCreateRpcModal(ch);
+            }}
+            disabled={
+              providersState() === "pending" ||
+              createRpcLoading() ||
+              deleteRpcLoading() ||
+              editRpcLoading() ||
+              !selectedEnvironment()
+            }
+            class="btn btn-md btn-interactive btn-disabled btn-primary shrink-0"
+          >
+            Add RPC
+          </button>
+        </div>
+      </div>
+
+      <div class="flex flex-col gap-3 flex-1 min-h-0 overflow-hidden p-6">
         <Show
           when={allChainsState() === "pending" || rpcsState() === "pending"}
         >
@@ -1450,6 +1488,8 @@ export default function ApplicationRpcsPage() {
             </section>
           </div>
         </Show>
+      </div>
+      </section>
       </div>
 
       <Show when={createRpcModalOpen()}>

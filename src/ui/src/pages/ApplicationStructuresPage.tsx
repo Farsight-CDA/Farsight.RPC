@@ -101,7 +101,6 @@ export default function ApplicationStructuresPage() {
           </div>
         </div>
 
-        <div class="p-6">
           <RpcStructureEditor
             value={draftStructure()}
             disabled={structureLoading()}
@@ -133,7 +132,6 @@ export default function ApplicationStructuresPage() {
               Save Structure
             </button>
           </div>
-        </div>
       </section>
     </div>
   );

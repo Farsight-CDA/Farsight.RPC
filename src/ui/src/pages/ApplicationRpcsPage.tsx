@@ -931,7 +931,7 @@ export default function ApplicationRpcsPage() {
         </div>
       </div>
 
-      <div class="flex flex-col gap-3 flex-1 min-h-0 overflow-hidden p-6">
+      <div class="flex flex-col gap-3 flex-1 min-h-0 overflow-hidden">
         <Show
           when={allChainsState() === "pending" || rpcsState() === "pending"}
         >
@@ -986,7 +986,7 @@ export default function ApplicationRpcsPage() {
             environment.environments().length === 0
           }
         >
-          <div class="flex flex-col items-center justify-center gap-3 py-8 border border-dashed border-b-border/50 bg-b-paper/20">
+          <div class="flex flex-col items-center justify-center gap-3 py-8 border border-b-border/50 bg-b-paper/20">
             <EmptyStateIcon class="size-10 text-b-ink/20" />
             <p class="text-sm font-semibold uppercase tracking-wider text-b-ink/50">
               Add an environment before configuring RPCs.
@@ -1475,7 +1475,7 @@ export default function ApplicationRpcsPage() {
                     </Show>
 
                     <Show when={activeChainRpcs().length === 0}>
-                      <div class="flex flex-col items-center justify-center gap-3 border border-dashed border-b-border/50 bg-b-field/30 py-12">
+                      <div class="flex flex-col items-center justify-center gap-3 border border-b-border/50 bg-b-field/30 py-12">
                         <EmptyStateIcon class="size-8 text-b-ink/20" />
                         <p class="text-xs font-semibold uppercase tracking-wider text-b-ink/50">
                           No RPCs configured for this chain

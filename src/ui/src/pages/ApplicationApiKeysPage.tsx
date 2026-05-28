@@ -230,7 +230,6 @@ export default function ApplicationApiKeysPage() {
             </div>
           </div>
 
-          <div class="p-6">
             <Show when={apiKeysState() === "pending"}>
               <div class="flex items-center justify-center gap-3 py-8 text-xs font-bold uppercase tracking-widest text-b-ink/80">
                 <LoadingSpinner class="size-4" />
@@ -258,7 +257,7 @@ export default function ApplicationApiKeysPage() {
                 environments().length === 0
               }
             >
-              <div class="flex flex-col items-center justify-center gap-3 py-8 border border-dashed border-b-border/50 bg-b-paper/20">
+              <div class="flex flex-col items-center justify-center gap-3 py-8 border border-b-border/50 bg-b-paper/20">
                 <EmptyStateIcon class="size-10 text-b-ink/20" />
                 <p class="text-sm font-semibold uppercase tracking-wider text-b-ink/50">
                   Add an environment before creating API keys.
@@ -343,14 +342,13 @@ export default function ApplicationApiKeysPage() {
                 apiKeys().length === 0
               }
             >
-              <div class="flex flex-col items-center justify-center gap-3 py-8 border border-dashed border-b-border/50 bg-b-paper/20">
+              <div class="flex flex-col items-center justify-center gap-3 py-8 border border-b-border/50 bg-b-paper/20">
                 <EmptyStateIcon class="size-10 text-b-ink/20" />
                 <p class="text-sm font-semibold uppercase tracking-wider text-b-ink/50">
                   No API keys yet.
                 </p>
               </div>
             </Show>
-          </div>
         </section>
       </div>
 

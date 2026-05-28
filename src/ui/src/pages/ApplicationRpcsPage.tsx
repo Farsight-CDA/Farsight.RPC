@@ -948,9 +948,9 @@ export default function ApplicationRpcsPage() {
             environment.environments().length === 0
           }
         >
-          <div class="flex flex-col items-center justify-center gap-4 border border-dashed border-b-border/50 bg-b-field/30 py-16">
-            <EmptyStateIcon class="size-12 text-b-ink/20" />
-            <p class="text-center text-sm font-semibold uppercase tracking-wider text-b-ink/50">
+          <div class="flex flex-col items-center justify-center gap-3 py-8 border border-dashed border-b-border/50 bg-b-paper/20">
+            <EmptyStateIcon class="size-10 text-b-ink/20" />
+            <p class="text-sm font-semibold uppercase tracking-wider text-b-ink/50">
               Add an environment before configuring RPCs.
             </p>
           </div>

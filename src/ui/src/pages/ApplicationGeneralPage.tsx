@@ -1,6 +1,6 @@
-import { createMemo, createSignal, Show } from "solid-js";
+import { createMemo, createSignal, For, Show } from "solid-js";
 import { useNavigate, useParams } from "@solidjs/router";
-import ColorPicker from "../components/ColorPicker";
+import { PRESET_COLORS } from "../components/ColorPicker";
 import LoadingSpinner from "../components/LoadingSpinner";
 import PencilIcon from "../components/icons/PencilIcon";
 import TrashIcon from "../components/icons/TrashIcon";
@@ -55,10 +55,11 @@ export default function ApplicationGeneralPage() {
   const [deleteError, setDeleteError] = createSignal<string | null>(null);
   const [deleteLoading, setDeleteLoading] = createSignal(false);
 
-  const [isEditingColor, setIsEditingColor] = createSignal(false);
-  const [editingColor, setEditingColor] = createSignal("#6B7280");
   const [colorError, setColorError] = createSignal<string | null>(null);
   const [colorLoading, setColorLoading] = createSignal(false);
+
+  const [customColor, setCustomColor] = createSignal("");
+  const [showCustom, setShowCustom] = createSignal(false);
 
   const startEditingName = () => {
     setRenameError(null);
@@ -66,24 +67,12 @@ export default function ApplicationGeneralPage() {
     setIsEditingName(true);
   };
 
-  const startEditingColor = () => {
-    setColorError(null);
-    setEditingColor(application()?.color ?? "#6B7280");
-    setIsEditingColor(true);
-  };
-
-  const handleColorSave = async () => {
+  const handleUpdateColor = async (newColor: string) => {
     const token = auth.token;
     const app = application();
     if (!token || !app) return;
 
-    const newColor = editingColor();
-
-    // Skip API call if color hasn't changed
-    if (app.color === newColor) {
-      setIsEditingColor(false);
-      return;
-    }
+    if (app.color === newColor) return;
 
     setColorError(null);
     setColorLoading(true);
@@ -101,7 +90,6 @@ export default function ApplicationGeneralPage() {
           await readErrorMessage(response, "Failed to update color"),
         );
       }
-      setIsEditingColor(false);
       await referenceData.refreshApplications();
     } catch (err) {
       setColorError(
@@ -109,6 +97,15 @@ export default function ApplicationGeneralPage() {
       );
     } finally {
       setColorLoading(false);
+    }
+  };
+
+  const handleCustomSubmit = () => {
+    const hex = customColor();
+    if (/^#[0-9A-Fa-f]{6}$/.test(hex)) {
+      void handleUpdateColor(hex);
+      setShowCustom(false);
+      setCustomColor("");
     }
   };
 
@@ -306,59 +303,113 @@ export default function ApplicationGeneralPage() {
           </div>
 
           <div class="p-6">
-            <Show
-              when={!isEditingColor()}
-              fallback={
-                <div class="flex flex-col gap-3">
-                  <label class="text-xs font-bold uppercase tracking-widest text-b-ink/70">
-                    Application Color
-                  </label>
-                  <ColorPicker
-                    value={editingColor()}
-                    onChange={setEditingColor}
-                    disabled={colorLoading()}
-                  />
-                  <Show when={colorError()}>
-                    <p class="border border-red-500/40 bg-red-500/10 px-3 py-3 text-xs font-bold uppercase leading-snug text-red-400">
-                      {colorError()}
-                    </p>
-                  </Show>
-                  <div class="flex flex-col gap-3 sm:flex-row sm:justify-end">
+            <div class="flex flex-col gap-4">
+              <div class="flex items-center gap-3">
+                <div
+                  class="size-8 border border-b-border"
+                  style={{ "background-color": application()?.color ?? "#6B7280" }}
+                />
+                <p class="text-sm font-mono font-semibold text-b-ink/70">
+                  {application()?.color}
+                </p>
+              </div>
+
+              <div class="flex flex-wrap gap-2">
+                <For each={PRESET_COLORS}>
+                  {(color) => (
                     <button
                       type="button"
-                      onClick={() => void handleColorSave()}
                       disabled={colorLoading()}
-                      class="btn btn-md btn-interactive btn-disabled btn-primary"
-                    >
-                      <Show when={colorLoading()}>
-                        <LoadingSpinner class="size-3.5 text-b-paper" />
-                      </Show>
-                      {colorLoading() ? "Saving…" : "Save"}
-                    </button>
-                  </div>
-                </div>
-              }
-            >
-              <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div class="flex items-center gap-3">
-                  <div
-                    class="size-8 border border-b-border"
-                    style={{ "background-color": application()?.color ?? "#6B7280" }}
-                  />
-                  <p class="text-sm font-mono font-semibold text-b-ink/70">
-                    {application()?.color}
-                  </p>
-                </div>
+                      onClick={() => {
+                        if (color !== application()?.color) {
+                          void handleUpdateColor(color);
+                        }
+                      }}
+                      class="relative size-8 border-2 transition-all duration-150 outline-none focus-visible:ring-2 focus-visible:ring-b-accent/40 disabled:opacity-40 disabled:cursor-not-allowed"
+                      style={{
+                        "background-color": color,
+                        "border-color":
+                          (application()?.color ?? "") === color
+                            ? "#fff"
+                            : "transparent",
+                        "box-shadow":
+                          (application()?.color ?? "") === color
+                            ? `0 0 0 2px ${color}`
+                            : "none",
+                        opacity:
+                          (application()?.color ?? "") === color ? 1 : 0.4,
+                      }}
+                      title={color}
+                    />
+                  )}
+                </For>
                 <button
                   type="button"
-                  onClick={startEditingColor}
-                  disabled={colorLoading() || deleteLoading()}
-                  class="btn btn-md btn-interactive btn-disabled btn-secondary shrink-0"
+                  disabled={colorLoading()}
+                  onClick={() => {
+                    if (showCustom()) {
+                      setShowCustom(false);
+                      setCustomColor("");
+                    } else {
+                      setShowCustom(true);
+                      if (!PRESET_COLORS.includes(application()?.color ?? "")) {
+                        setCustomColor(application()?.color ?? "");
+                      }
+                    }
+                  }}
+                  class={`flex size-8 items-center justify-center border-2 text-xs font-bold transition-all duration-150 outline-none focus-visible:ring-2 focus-visible:ring-b-accent/40 disabled:opacity-40 disabled:cursor-not-allowed ${
+                    showCustom() || !PRESET_COLORS.includes(application()?.color ?? "")
+                      ? "border-b-accent bg-b-accent/10 text-b-accent"
+                      : "border-b-border bg-b-field text-b-ink/50 hover:border-b-border-hover"
+                  }`}
+                  title="Custom hex color"
                 >
-                  Edit
+                  #
                 </button>
               </div>
-            </Show>
+
+              <Show when={showCustom()}>
+                <div class="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={customColor()}
+                    onInput={(e) => {
+                      let hex = e.currentTarget.value;
+                      if (hex && !hex.startsWith("#")) {
+                        hex = "#" + hex;
+                      }
+                      setCustomColor(hex);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleCustomSubmit();
+                      }
+                    }}
+                    maxlength={7}
+                    placeholder="#FF5722"
+                    disabled={colorLoading()}
+                    class="h-9 w-28 border border-b-border bg-b-paper px-3 text-sm font-mono font-semibold text-b-ink placeholder:text-b-ink/25 outline-none focus-visible:border-b-accent/50 focus-visible:ring-2 focus-visible:ring-b-accent/20 hover:border-b-border-hover transition-all duration-200"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleCustomSubmit}
+                    disabled={
+                      colorLoading() || !/^#[0-9A-Fa-f]{6}$/.test(customColor())
+                    }
+                    class="btn btn-sm btn-interactive btn-disabled btn-primary"
+                  >
+                    Apply
+                  </button>
+                </div>
+              </Show>
+
+              <Show when={colorError()}>
+                <p class="border border-red-500/40 bg-red-500/10 px-3 py-3 text-xs font-bold uppercase leading-snug text-red-400">
+                  {colorError()}
+                </p>
+              </Show>
+            </div>
           </div>
         </section>
 
@@ -381,7 +432,7 @@ export default function ApplicationGeneralPage() {
               <button
                 type="button"
                 onClick={() => setDeleteLoading(true)}
-                disabled={deleteLoading() || isEditingName() || isEditingColor()}
+                disabled={deleteLoading() || isEditingName() || colorLoading()}
                 class="btn btn-md btn-interactive btn-disabled btn-danger"
               >
                 <Show when={deleteLoading()}>

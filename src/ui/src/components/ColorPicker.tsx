@@ -1,6 +1,6 @@
 import { createSignal, For, Show } from "solid-js";
 
-const PRESET_COLORS = [
+export const PRESET_COLORS = [
   "#EF4444",
   "#F97316",
   "#EAB308",

@@ -23,30 +23,28 @@ export default function ErrorGroupGeneralPage() {
   const errorGroups = referenceData.errorGroups.data;
   const group = createMemo(() => errorGroups().find((g) => g.id === groupId())!);
 
-  const [isEditing, setIsEditing] = createSignal(false);
+  const [isEditingName, setIsEditingName] = createSignal(false);
   const [editingName, setEditingName] = createSignal("");
-  const [editingAction, setEditingAction] = createSignal("");
-  const [editError, setEditError] = createSignal<string | null>(null);
-  const [editLoading, setEditLoading] = createSignal(false);
+  const [updateError, setUpdateError] = createSignal<string | null>(null);
+  const [updateLoading, setUpdateLoading] = createSignal(false);
 
   const [showDeleteConfirm, setShowDeleteConfirm] = createSignal(false);
   const [deleteError, setDeleteError] = createSignal<string | null>(null);
   const [deleteLoading, setDeleteLoading] = createSignal(false);
 
-  const startEditing = () => {
-    setEditError(null);
+  const startEditingName = () => {
+    setUpdateError(null);
     setEditingName(group().name);
-    setEditingAction(group().action);
-    setIsEditing(true);
+    setIsEditingName(true);
   };
 
-  const cancelEditing = () => {
-    if (editLoading()) return;
-    setIsEditing(false);
-    setEditError(null);
+  const cancelEditingName = () => {
+    if (updateLoading()) return;
+    setIsEditingName(false);
+    setUpdateError(null);
   };
 
-  const handleUpdate = async () => {
+  const handleUpdateName = async () => {
     const token = auth.token;
     const g = group();
     if (!token) return;
@@ -54,17 +52,17 @@ export default function ErrorGroupGeneralPage() {
     const name = editingName();
     const validationError = validateName(name);
     if (validationError) {
-      setEditError(validationError);
+      setUpdateError(validationError);
       return;
     }
 
-    if (g.name === name && g.action === editingAction()) {
-      setIsEditing(false);
+    if (g.name === name) {
+      setIsEditingName(false);
       return;
     }
 
-    setEditError(null);
-    setEditLoading(true);
+    setUpdateError(null);
+    setUpdateLoading(true);
     try {
       const response = await fetch(`/api/RpcErrorGroups/${g.id}`, {
         method: "PUT",
@@ -74,7 +72,7 @@ export default function ErrorGroupGeneralPage() {
         },
         body: JSON.stringify({
           name,
-          action: editingAction(),
+          action: g.action,
           errors: g.errors,
         }),
       });
@@ -87,14 +85,55 @@ export default function ErrorGroupGeneralPage() {
           ),
         );
       }
-      setIsEditing(false);
+      setIsEditingName(false);
       await referenceData.refreshErrorGroups();
     } catch (err) {
-      setEditError(
+      setUpdateError(
         err instanceof Error ? err.message : "Failed to update error group",
       );
     } finally {
-      setEditLoading(false);
+      setUpdateLoading(false);
+    }
+  };
+
+  const handleUpdateAction = async (newAction: string) => {
+    const token = auth.token;
+    const g = group();
+    if (!token) return;
+
+    if (g.action === newAction) return;
+
+    setUpdateError(null);
+    setUpdateLoading(true);
+    try {
+      const response = await fetch(`/api/RpcErrorGroups/${g.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          name: g.name,
+          action: newAction,
+          errors: g.errors,
+        }),
+      });
+      if (!response.ok) {
+        throw new Error(
+          await readErrorMessage(
+            response,
+            "Failed to update error group",
+            "An error group with this name already exists.",
+          ),
+        );
+      }
+      await referenceData.refreshErrorGroups();
+    } catch (err) {
+      setUpdateError(
+        err instanceof Error ? err.message : "Failed to update error group",
+      );
+    } finally {
+      setUpdateLoading(false);
     }
   };
 
@@ -145,111 +184,113 @@ export default function ErrorGroupGeneralPage() {
         </div>
 
         <div class="p-6">
-          <Show
-            when={!isEditing()}
-            fallback={
-              <div class="flex flex-col gap-4">
-                <div class="flex flex-col gap-2">
-                  <label for="edit-name" class="text-xs font-bold uppercase tracking-widest text-b-ink/70">
-                    Name
-                  </label>
-                  <input
-                    id="edit-name"
-                    type="text"
-                    required
-                    pattern={nameValidationPattern}
-                    value={editingName()}
-                    onInput={(e) => {
-                      setEditingName(e.currentTarget.value);
-                      setEditError(null);
-                    }}
-                    class="h-11 w-full border border-b-border bg-b-paper px-4 text-sm font-semibold text-b-ink placeholder:text-b-ink/25 outline-none focus-visible:border-b-accent/50 focus-visible:ring-2 focus-visible:ring-b-accent/20 hover:border-b-border-hover transition-all duration-200"
-                    title={nameValidationHint}
-                    autocomplete="off"
-                  />
-                  <p class="text-xs font-semibold uppercase tracking-wider text-b-ink/40">
-                    {nameValidationHint}
-                  </p>
-                </div>
-
-                <div class="flex flex-col gap-2">
-                  <label for="edit-action" class="text-xs font-bold uppercase tracking-widest text-b-ink/70">
-                    Action
-                  </label>
-                  <select
-                    id="edit-action"
-                    value={editingAction()}
-                    onChange={(e) => setEditingAction(e.currentTarget.value)}
-                    class="h-11 w-full border border-b-border bg-b-paper px-4 text-sm font-semibold text-b-ink outline-none focus-visible:border-b-accent/50 focus-visible:ring-2 focus-visible:ring-b-accent/20 hover:border-b-border-hover transition-all duration-200 appearance-none cursor-pointer"
-                  >
-                    <For each={ACTION_OPTIONS}>
-                      {(opt) => <option value={opt}>{opt}</option>}
-                    </For>
-                  </select>
-                </div>
-
-                <Show when={editError()}>
-                  <p class="border border-red-500/40 bg-red-500/10 px-3 py-3 text-xs font-bold uppercase leading-snug text-red-400">
-                    {editError()}
-                  </p>
-                </Show>
-
-                <div class="flex flex-col gap-3 sm:flex-row sm:justify-end">
+          <div class="flex flex-col gap-4">
+            <Show
+              when={isEditingName()}
+              fallback={
+                <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <p class="text-xs font-bold uppercase tracking-widest text-b-ink/50 mb-1">
+                      Name
+                    </p>
+                    <p class="font-['Anton',sans-serif] text-2xl tracking-wide text-b-ink">
+                      {group().name}
+                    </p>
+                  </div>
                   <button
                     type="button"
-                    onClick={cancelEditing}
-                    disabled={editLoading()}
-                    class="btn btn-sm btn-interactive btn-disabled btn-secondary"
+                    onClick={startEditingName}
+                    disabled={updateLoading() || deleteLoading()}
+                    class="btn btn-sm btn-interactive btn-disabled btn-secondary shrink-0"
                   >
-                    Cancel
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => void handleUpdate()}
-                    disabled={editLoading()}
-                    class="btn btn-sm btn-interactive btn-disabled btn-primary"
-                  >
-                    <Show when={editLoading()}>
-                      <LoadingSpinner class="size-3.5 text-b-paper" />
-                    </Show>
-                    {editLoading() ? "Saving…" : "Save"}
+                    <PencilIcon class="size-3.5" />
+                    Edit
                   </button>
                 </div>
-              </div>
-            }
-          >
-            <div class="flex flex-col gap-4">
-              <div class="flex flex-col gap-1">
-                <p class="text-xs font-bold uppercase tracking-widest text-b-ink/50 mb-1">
+              }
+            >
+              <div class="flex flex-col gap-2">
+                <label for="edit-name" class="text-xs font-bold uppercase tracking-widest text-b-ink/70">
                   Name
-                </p>
-                <p class="font-['Anton',sans-serif] text-2xl tracking-wide text-b-ink">
-                  {group().name}
+                </label>
+                <input
+                  id="edit-name"
+                  type="text"
+                  required
+                  pattern={nameValidationPattern}
+                  value={editingName()}
+                  onInput={(e) => {
+                    setEditingName(e.currentTarget.value);
+                    setUpdateError(null);
+                  }}
+                  class="h-11 w-full border border-b-border bg-b-paper px-4 text-sm font-semibold text-b-ink placeholder:text-b-ink/25 outline-none focus-visible:border-b-accent/50 focus-visible:ring-2 focus-visible:ring-b-accent/20 hover:border-b-border-hover transition-all duration-200"
+                  title={nameValidationHint}
+                  autocomplete="off"
+                />
+                <p class="text-xs font-semibold uppercase tracking-wider text-b-ink/40">
+                  {nameValidationHint}
                 </p>
               </div>
+            </Show>
 
-              <div class="flex flex-col gap-1">
-                <p class="text-xs font-bold uppercase tracking-widest text-b-ink/50 mb-1">
-                  Action
-                </p>
-                <span class={`inline-flex items-center self-start border px-2 py-0.5 text-[0.7rem] font-bold tracking-wider ${actionBadgeClass(group().action)}`}>
-                  {group().action}
-                </span>
+            <div class="flex flex-col gap-2">
+              <p class="text-xs font-bold uppercase tracking-widest text-b-ink/50 mb-1">
+                Action
+              </p>
+              <div class="flex flex-wrap gap-2">
+                <For each={ACTION_OPTIONS}>
+                  {(opt) => (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (opt !== group().action) {
+                          void handleUpdateAction(opt);
+                        }
+                      }}
+                      disabled={updateLoading()}
+                      class={`inline-flex items-center border px-3 py-1.5 text-xs font-bold tracking-wider transition-colors ${
+                        opt === group().action
+                          ? actionBadgeClass(opt)
+                          : "text-b-ink/30 border-b-border bg-transparent hover:bg-b-ink/5 hover:text-b-ink/60 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                      }`}
+                    >
+                      {opt}
+                    </button>
+                  )}
+                </For>
               </div>
+            </div>
 
+            <Show when={updateError()}>
+              <p class="border border-red-500/40 bg-red-500/10 px-3 py-3 text-xs font-bold uppercase leading-snug text-red-400">
+                {updateError()}
+              </p>
+            </Show>
+
+            <Show when={isEditingName()}>
               <div class="flex flex-col gap-3 sm:flex-row sm:justify-end">
                 <button
                   type="button"
-                  onClick={startEditing}
-                  disabled={deleteLoading()}
-                  class="btn btn-sm btn-interactive btn-disabled btn-secondary shrink-0"
+                  onClick={cancelEditingName}
+                  disabled={updateLoading()}
+                  class="btn btn-sm btn-interactive btn-disabled btn-secondary"
                 >
-                  <PencilIcon class="size-3.5" />
-                  Edit
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleUpdateName()}
+                  disabled={updateLoading()}
+                  class="btn btn-sm btn-interactive btn-disabled btn-primary"
+                >
+                  <Show when={updateLoading()}>
+                    <LoadingSpinner class="size-3.5 text-b-paper" />
+                  </Show>
+                  {updateLoading() ? "Saving…" : "Save"}
                 </button>
               </div>
-            </div>
-          </Show>
+            </Show>
+          </div>
         </div>
       </section>
 
@@ -272,7 +313,7 @@ export default function ErrorGroupGeneralPage() {
             <button
               type="button"
               onClick={() => setShowDeleteConfirm(true)}
-              disabled={isEditing()}
+              disabled={isEditingName()}
               class="btn btn-sm btn-interactive btn-disabled btn-danger shrink-0"
             >
               Delete

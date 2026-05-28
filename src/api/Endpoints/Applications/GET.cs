@@ -11,7 +11,8 @@ public sealed class GET(AppDbContext dbContext) : EndpointWithoutRequest<GET.App
         Guid Id,
         string Name,
         int ApiKeyCount,
-        int RpcCount
+        int RpcCount,
+        string Color
     );
 
     public override void Configure()
@@ -27,7 +28,8 @@ public sealed class GET(AppDbContext dbContext) : EndpointWithoutRequest<GET.App
                 a.Id,
                 a.Name,
                 a.ApiKeys!.Count,
-                a.Rpcs!.Count
+                a.Rpcs!.Count,
+                a.Color
             ))
             .ToArrayAsync(ct);
 

@@ -1,5 +1,6 @@
 import { createMemo, createSignal, Show } from "solid-js";
 import { useNavigate, useParams } from "@solidjs/router";
+import ColorPicker from "../components/ColorPicker";
 import LoadingSpinner from "../components/LoadingSpinner";
 import PencilIcon from "../components/icons/PencilIcon";
 import TrashIcon from "../components/icons/TrashIcon";
@@ -54,10 +55,61 @@ export default function ApplicationGeneralPage() {
   const [deleteError, setDeleteError] = createSignal<string | null>(null);
   const [deleteLoading, setDeleteLoading] = createSignal(false);
 
+  const [isEditingColor, setIsEditingColor] = createSignal(false);
+  const [editingColor, setEditingColor] = createSignal("#6B7280");
+  const [colorError, setColorError] = createSignal<string | null>(null);
+  const [colorLoading, setColorLoading] = createSignal(false);
+
   const startEditingName = () => {
     setRenameError(null);
     setEditingName(application()?.name ?? "");
     setIsEditingName(true);
+  };
+
+  const startEditingColor = () => {
+    setColorError(null);
+    setEditingColor(application()?.color ?? "#6B7280");
+    setIsEditingColor(true);
+  };
+
+  const handleColorSave = async () => {
+    const token = auth.token;
+    const app = application();
+    if (!token || !app) return;
+
+    const newColor = editingColor();
+
+    // Skip API call if color hasn't changed
+    if (app.color === newColor) {
+      setIsEditingColor(false);
+      return;
+    }
+
+    setColorError(null);
+    setColorLoading(true);
+    try {
+      const response = await fetch(`/api/Applications/${app.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ color: newColor }),
+      });
+      if (!response.ok) {
+        throw new Error(
+          await readErrorMessage(response, "Failed to update color"),
+        );
+      }
+      setIsEditingColor(false);
+      await referenceData.refreshApplications();
+    } catch (err) {
+      setColorError(
+        err instanceof Error ? err.message : "Failed to update color",
+      );
+    } finally {
+      setColorLoading(false);
+    }
   };
 
   const handleRename = async () => {
@@ -233,6 +285,83 @@ export default function ApplicationGeneralPage() {
           </div>
         </section>
 
+        <section class="border border-b-border bg-b-field overflow-hidden">
+          <div class="border-b border-b-border bg-b-paper/30 px-6 py-4">
+            <div class="flex items-center gap-3">
+              <div class="flex size-10 items-center justify-center border border-b-ink/20 bg-b-ink/5">
+                <div
+                  class="size-5 rounded-full border border-b-border"
+                  style={{ "background-color": application()?.color ?? "#6B7280" }}
+                />
+              </div>
+              <div>
+                <h2 class="font-['Anton',sans-serif] text-xl uppercase tracking-wide text-b-ink">
+                  Application Color
+                </h2>
+                <p class="text-xs font-bold uppercase tracking-widest text-b-ink/50">
+                  Visual identifier for the applications list
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="p-6">
+            <Show
+              when={!isEditingColor()}
+              fallback={
+                <div class="flex flex-col gap-3">
+                  <label class="text-xs font-bold uppercase tracking-widest text-b-ink/70">
+                    Application Color
+                  </label>
+                  <ColorPicker
+                    value={editingColor()}
+                    onChange={setEditingColor}
+                    disabled={colorLoading()}
+                  />
+                  <Show when={colorError()}>
+                    <p class="border border-red-500/40 bg-red-500/10 px-3 py-3 text-xs font-bold uppercase leading-snug text-red-400">
+                      {colorError()}
+                    </p>
+                  </Show>
+                  <div class="flex flex-col gap-3 sm:flex-row sm:justify-end">
+                    <button
+                      type="button"
+                      onClick={() => void handleColorSave()}
+                      disabled={colorLoading()}
+                      class="btn btn-md btn-interactive btn-disabled btn-primary"
+                    >
+                      <Show when={colorLoading()}>
+                        <LoadingSpinner class="size-3.5 text-b-paper" />
+                      </Show>
+                      {colorLoading() ? "Saving…" : "Save"}
+                    </button>
+                  </div>
+                </div>
+              }
+            >
+              <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div class="flex items-center gap-3">
+                  <div
+                    class="size-8 border border-b-border"
+                    style={{ "background-color": application()?.color ?? "#6B7280" }}
+                  />
+                  <p class="text-sm font-mono font-semibold text-b-ink/70">
+                    {application()?.color}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={startEditingColor}
+                  disabled={colorLoading() || deleteLoading()}
+                  class="btn btn-md btn-interactive btn-disabled btn-secondary shrink-0"
+                >
+                  Edit
+                </button>
+              </div>
+            </Show>
+          </div>
+        </section>
+
         <section class="border border-red-500/30 bg-b-field overflow-hidden">
           <div class="border-b border-red-500/30 bg-red-500/5 px-6 py-4">
             <div class="flex items-center justify-between gap-4">
@@ -252,7 +381,7 @@ export default function ApplicationGeneralPage() {
               <button
                 type="button"
                 onClick={() => setDeleteLoading(true)}
-                disabled={deleteLoading() || isEditingName()}
+                disabled={deleteLoading() || isEditingName() || isEditingColor()}
                 class="btn btn-md btn-interactive btn-disabled btn-danger"
               >
                 <Show when={deleteLoading()}>

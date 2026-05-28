@@ -118,8 +118,13 @@ export default function DashboardPage() {
                 {(app) => (
                   <A
                     href={`/applications/${app.id}`}
-                    class="group relative border border-b-border bg-b-paper p-5 transition-all duration-200 hover:border-b-accent/40 hover:bg-b-field hover:shadow-[0_4px_20px_rgba(255,87,34,0.12)] hover:-translate-y-0.5 outline-none focus-visible:ring-2 focus-visible:ring-b-accent/30 overflow-hidden"
+                    class="group relative border border-b-border bg-b-paper transition-all duration-200 hover:border-b-accent/40 hover:bg-b-field hover:shadow-[0_4px_20px_rgba(255,87,34,0.12)] hover:-translate-y-0.5 outline-none focus-visible:ring-2 focus-visible:ring-b-accent/30 overflow-hidden"
                   >
+                    <div
+                      class="h-1.5 w-full"
+                      style={{ "background-color": app.color }}
+                    />
+                    <div class="p-5">
                     {/* Decorative Corner Accent */}
                     <div class="absolute top-0 right-0 w-12 h-12 bg-gradient-to-bl from-b-accent/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
 
@@ -146,6 +151,7 @@ export default function DashboardPage() {
                     {/* Arrow Indicator */}
                     <div class="absolute bottom-5 right-5 opacity-0 group-hover:opacity-100 transition-all duration-200 transform translate-x-2 group-hover:translate-x-0">
                       <ArrowRightIcon class="size-5 text-b-accent" />
+                    </div>
                     </div>
                   </A>
                 )}

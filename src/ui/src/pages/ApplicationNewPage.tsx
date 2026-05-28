@@ -1,7 +1,8 @@
 import { A, useNavigate } from "@solidjs/router";
 import { createSignal, Show } from "solid-js";
+import ColorPicker from "../components/ColorPicker";
 import LoadingSpinner from "../components/LoadingSpinner";
-import BackIcon from "../components/icons/BackIcon";
+import CloseIcon from "../components/icons/CloseIcon";
 import ListIcon from "../components/icons/ListIcon";
 import RpcStructureEditor from "../components/RpcStructureEditor";
 import { useAuth } from "../lib/auth";
@@ -38,6 +39,7 @@ export default function ApplicationNewPage() {
   const navigate = useNavigate();
 
   const [name, setName] = createSignal("");
+  const [color, setColor] = createSignal("#6B7280");
   const [structure, setStructure] = createSignal(defaultRpcStructure);
   const [formError, setFormError] = createSignal<string | null>(null);
   const [loading, setLoading] = createSignal(false);
@@ -66,6 +68,7 @@ export default function ApplicationNewPage() {
         body: JSON.stringify({
           name: appName,
           structure: normalizeRpcStructure(structure()),
+          color: color(),
         }),
       });
       if (!response.ok) {
@@ -94,28 +97,30 @@ export default function ApplicationNewPage() {
   return (
     <main class="flex flex-1 flex-col items-center gap-8 px-4 sm:px-6 py-8 sm:py-12">
       <div class="w-full max-w-3xl">
-        <A
-          href="/applications"
-          class="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-b-ink/50 hover:text-b-accent transition-colors duration-200 mb-6"
-        >
-          <BackIcon class="size-3" />
-          Back
-        </A>
-
         <section class="border border-b-border bg-b-field overflow-hidden">
           <div class="border-b border-b-border bg-b-paper/30 px-6 py-4">
-            <div class="flex items-center gap-3">
-              <div class="flex size-10 items-center justify-center border border-b-accent/30 bg-b-accent/10">
-                <ListIcon class="size-5 text-b-accent" />
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-3">
+                <div class="flex size-10 items-center justify-center border border-b-accent/30 bg-b-accent/10">
+                  <ListIcon class="size-5 text-b-accent" />
+                </div>
+                <div>
+                  <h2 class="font-['Anton',sans-serif] text-xl uppercase tracking-wide text-b-ink">
+                    New Application
+                  </h2>
+                  <p class="text-xs font-bold uppercase tracking-widest text-b-ink/50">
+                    Create a new RPC consumer application
+                  </p>
+                </div>
               </div>
-              <div>
-                <h2 class="font-['Anton',sans-serif] text-xl uppercase tracking-wide text-b-ink">
-                  New Application
-                </h2>
-                <p class="text-xs font-bold uppercase tracking-widest text-b-ink/50">
-                  Create a new RPC consumer application
-                </p>
-              </div>
+              <button
+                type="button"
+                onClick={() => navigate("/applications")}
+                class="flex size-8 items-center justify-center border border-red-500/30 bg-red-500/10 text-red-400 hover:bg-red-500/20 hover:text-red-300 transition-colors duration-200"
+                aria-label="Close"
+              >
+                <CloseIcon class="size-4" />
+              </button>
             </div>
           </div>
 
@@ -146,6 +151,17 @@ export default function ApplicationNewPage() {
                 <p class="text-xs font-semibold uppercase tracking-wider text-b-ink/40">
                   {nameValidationHint}
                 </p>
+              </div>
+
+              <div class="flex flex-col gap-2">
+                <label class="text-xs font-bold uppercase tracking-widest text-b-ink/70">
+                  Color
+                </label>
+                <ColorPicker
+                  value={color()}
+                  onChange={setColor}
+                  disabled={loading()}
+                />
               </div>
 
               <div class="flex flex-col gap-3">

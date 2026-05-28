@@ -16,6 +16,7 @@ export type ApplicationSummary = {
   name: string;
   apiKeyCount: number;
   rpcCount: number;
+  color: string;
 };
 
 export type RpcProviderSummary = {

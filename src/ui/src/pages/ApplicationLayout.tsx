@@ -69,7 +69,11 @@ const ApplicationLayoutContent: ParentComponent = (props) => {
                   <ArrowLeftIcon class="size-3.5 transition-transform group-hover:-translate-x-1" />
                   Applications
                 </button>
-                <h1 class="font-['Anton',sans-serif] text-3xl leading-none tracking-wide text-b-ink">
+                <h1 class="flex items-center gap-2.5 font-['Anton',sans-serif] text-3xl leading-none tracking-wide text-b-ink">
+                  <span
+                    class="inline-block size-3 rounded-full shrink-0"
+                    style={{ "background-color": application()?.color ?? "#6B7280" }}
+                  />
                   {application()?.name}
                 </h1>
               </div>

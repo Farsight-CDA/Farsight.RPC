@@ -53,6 +53,7 @@ type ApplicationDetail = {
   environments: ApplicationEnvironmentSummary[];
   apiKeys: ConsumerApiKeySummary[];
   structure: RpcStructureDefinition;
+  color: string;
 };
 
 type ListController<T> = {

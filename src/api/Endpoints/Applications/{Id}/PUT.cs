@@ -13,15 +13,30 @@ public sealed class PUT(AppDbContext dbContext) : Endpoint<PUT.Request>
 {
     public sealed record Request(
         [property: RouteParam] Guid ApplicationId,
-        string Name,
-        RpcStructureDefinition? Structure
+        string? Name,
+        RpcStructureDefinition? Structure,
+        string? Color
     );
 
     public sealed class Validator : Validator<Request>
     {
         public Validator()
         {
-            RuleFor(x => x.Name).ApplyNameValidation();
+            RuleFor(x => x)
+                .Must(x => x.Name is not null || x.Color is not null || x.Structure is not null)
+                .WithMessage("At least one field (Name, Color, Structure) must be provided.");
+
+            When(
+                x => x.Name is not null,
+                () => RuleFor(x => x.Name!).ApplyNameValidation()
+            );
+
+            When(
+                x => x.Color is not null,
+                () => RuleFor(x => x.Color!)
+                    .Matches(@"^#[0-9A-Fa-f]{6}$")
+                    .WithMessage("Color must be a valid hex color code (e.g. #FF5722).")
+                );
         }
     }
 
@@ -41,12 +56,19 @@ public sealed class PUT(AppDbContext dbContext) : Endpoint<PUT.Request>
             ThrowError("Application not found.", 404);
         }
 
-        if(await dbContext.ConsumerApplications.AnyAsync(a => a.Id != req.ApplicationId && a.Name == req.Name, ct))
+        if(req.Name is not null)
         {
-            ThrowError("An application with this name already exists.", 409);
+            if(await dbContext.ConsumerApplications.AnyAsync(a => a.Id != req.ApplicationId && a.Name == req.Name, ct))
+            {
+                ThrowError("An application with this name already exists.", 409);
+            }
+            application.Name = req.Name;
         }
 
-        application.Name = req.Name;
+        if(req.Color is not null)
+        {
+            application.Color = req.Color;
+        }
 
         if(req.Structure is not null)
         {

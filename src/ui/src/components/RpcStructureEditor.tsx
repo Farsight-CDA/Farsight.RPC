@@ -71,7 +71,7 @@ export default function RpcStructureEditor(props: Props) {
   };
 
   return (
-    <div class="grid gap-3">
+    <div class="grid gap-2">
       <For each={rpcTypes}>
         {(type, index) => {
           const key = rpcTypeStructureKey[type];
@@ -82,12 +82,12 @@ export default function RpcStructureEditor(props: Props) {
             <div
               class={`relative overflow-hidden border border-b-border bg-b-field ${style.accent}`}
             >
-              <div class="flex flex-col gap-4 p-5 md:flex-row md:items-center">
+              <div class="flex flex-col gap-3 p-3 md:flex-row md:items-center">
                 {/* Left: type info */}
                 <div class="min-w-0 flex-1">
                   <div class="flex flex-wrap items-center gap-3">
                     <p
-                      class={`font-['Anton',sans-serif] text-lg tracking-wide ${style.text}`}
+                      class={`font-['Anton',sans-serif] text-base tracking-wide ${style.text}`}
                     >
                       {type}
                     </p>
@@ -100,8 +100,8 @@ export default function RpcStructureEditor(props: Props) {
                 </div>
 
                 {/* Right: controls */}
-                <div class="grid gap-3 sm:grid-cols-[8rem_1fr] md:w-[26rem]">
-                  <label class="flex flex-col gap-1.5">
+                <div class="grid gap-2 sm:grid-cols-[8rem_1fr] md:w-[22rem]">
+                  <label class="flex flex-col gap-1">
                     <span class="text-[0.6rem] font-bold uppercase tracking-widest text-b-ink/50">
                       Condition
                     </span>
@@ -113,7 +113,7 @@ export default function RpcStructureEditor(props: Props) {
                           mode: e.currentTarget.value as RpcRequirementMode,
                         })
                       }
-                      class={`h-10 border bg-b-paper px-3 text-xs font-bold uppercase tracking-wider text-b-ink outline-none transition-all duration-200 disabled:opacity-50 ${style.border} ${style.focusRing}`}
+                      class={`h-8 border bg-b-paper px-2 text-xs font-bold uppercase tracking-wider text-b-ink outline-none transition-all duration-200 disabled:opacity-50 ${style.border} ${style.focusRing}`}
                     >
                       <For each={modeOptions}>
                         {(option) => (
@@ -123,10 +123,10 @@ export default function RpcStructureEditor(props: Props) {
                     </select>
                   </label>
 
-                  <Show
+                    <Show
                     when={requirement().mode === "Range"}
                     fallback={
-                      <label class="flex flex-col gap-1.5">
+                      <label class="flex flex-col gap-1">
                         <span class="text-[0.6rem] font-bold uppercase tracking-widest text-b-ink/50">
                           Count
                         </span>
@@ -141,13 +141,13 @@ export default function RpcStructureEditor(props: Props) {
                               count: e.currentTarget.valueAsNumber,
                             })
                           }
-                          class={`h-10 border bg-b-paper px-3 text-sm font-semibold text-b-ink outline-none transition-all duration-200 disabled:opacity-50 ${style.border} ${style.focusRing}`}
+                          class={`h-8 border bg-b-paper px-2 text-sm font-semibold text-b-ink outline-none transition-all duration-200 disabled:opacity-50 ${style.border} ${style.focusRing}`}
                         />
                       </label>
                     }
                   >
                     <div class="grid grid-cols-2 gap-2">
-                      <label class="flex flex-col gap-1.5">
+                      <label class="flex flex-col gap-1">
                         <span class="text-[0.6rem] font-bold uppercase tracking-widest text-b-ink/50">
                           Min
                         </span>
@@ -162,10 +162,10 @@ export default function RpcStructureEditor(props: Props) {
                               min: e.currentTarget.valueAsNumber,
                             })
                           }
-                          class={`h-10 border bg-b-paper px-3 text-sm font-semibold text-b-ink outline-none transition-all duration-200 disabled:opacity-50 ${style.border} ${style.focusRing}`}
+                          class={`h-8 border bg-b-paper px-2 text-sm font-semibold text-b-ink outline-none transition-all duration-200 disabled:opacity-50 ${style.border} ${style.focusRing}`}
                         />
                       </label>
-                      <label class="flex flex-col gap-1.5">
+                      <label class="flex flex-col gap-1">
                         <span class="text-[0.6rem] font-bold uppercase tracking-widest text-b-ink/50">
                           Max
                         </span>
@@ -180,7 +180,7 @@ export default function RpcStructureEditor(props: Props) {
                               max: e.currentTarget.valueAsNumber,
                             })
                           }
-                          class={`h-10 border bg-b-paper px-3 text-sm font-semibold text-b-ink outline-none transition-all duration-200 disabled:opacity-50 ${style.border} ${style.focusRing}`}
+                          class={`h-8 border bg-b-paper px-2 text-sm font-semibold text-b-ink outline-none transition-all duration-200 disabled:opacity-50 ${style.border} ${style.focusRing}`}
                         />
                       </label>
                     </div>

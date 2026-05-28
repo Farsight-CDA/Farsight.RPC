@@ -40,6 +40,10 @@ internal sealed class ConsumerApplicationEFConfiguration : IEntityTypeConfigurat
                 _structureComparer)
             .HasColumnType("jsonb");
 
+        entity.Property(x => x.Color)
+            .HasMaxLength(7)
+            .HasDefaultValue("#6B7280");
+
         entity.HasMany(x => x.ApiKeys)
             .WithOne(x => x.Application)
             .HasForeignKey(x => x.ApplicationId);

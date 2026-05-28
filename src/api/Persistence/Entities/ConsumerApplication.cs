@@ -10,6 +10,8 @@ public sealed record ConsumerApplication
 
     public required RpcStructureDefinition Structure { get; set; }
 
+    public string Color { get; set; } = "#6B7280";
+
     //Navigation Property
     public List<ApplicationEnvironment>? Environments { get; private set; }
 

@@ -14,7 +14,8 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request>
 {
     public sealed record Request(
         string Name,
-        RpcStructureDefinition? Structure
+        RpcStructureDefinition? Structure,
+        string Color
     );
 
     public sealed class Validator : Validator<Request>
@@ -26,6 +27,12 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request>
             RuleFor(x => x.Structure)
                 .NotNull()
                 .WithMessage("Structure is required.");
+
+            RuleFor(x => x.Color)
+                .NotEmpty()
+                .WithMessage("Color is required.")
+                .Matches(@"^#[0-9A-Fa-f]{6}$")
+                .WithMessage("Color must be a valid hex color code (e.g. #FF5722).");
         }
     }
 
@@ -47,6 +54,7 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request>
             Id = Guid.NewGuid(),
             Name = req.Name,
             Structure = req.Structure ?? RpcStructureDefinition.Default,
+            Color = req.Color,
         };
 
         dbContext.ConsumerApplications.Add(application);

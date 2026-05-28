@@ -30,7 +30,8 @@ public sealed class GETById(AppDbContext dbContext) : Endpoint<GETById.Request, 
         string Name,
         EnvironmentSummary[] Environments,
         ApiKeySummary[] ApiKeys,
-        RpcStructureDefinition Structure
+        RpcStructureDefinition Structure,
+        string Color
     );
 
     public override void Configure()
@@ -44,7 +45,7 @@ public sealed class GETById(AppDbContext dbContext) : Endpoint<GETById.Request, 
         var application = await dbContext.ConsumerApplications
             .AsNoTracking()
             .Where(a => a.Id == req.ApplicationId)
-            .Select(a => new { a.Id, a.Name, a.Structure })
+            .Select(a => new { a.Id, a.Name, a.Structure, a.Color })
             .SingleOrDefaultAsync(ct);
 
         if(application is null)
@@ -72,7 +73,8 @@ public sealed class GETById(AppDbContext dbContext) : Endpoint<GETById.Request, 
             application.Name,
             environments,
             apiKeys,
-            application.Structure
+            application.Structure,
+            application.Color
         ), ct);
     }
 }

@@ -1,0 +1,23 @@
+{
+  "Name": "Kaia",
+  "ChainId": 8217,
+  "CanReorg": false,
+  "SupportsPriorityFees": true,
+  "SupportsGasRefunds": true,
+  "BlockGasLimitM": 500,
+  "NativeCurrency": {
+    "Name": "Kaia",
+    "Symbol": "KAIA",
+    "Decimals": 18,
+    "PythFeedId": "0x452d40e01473f95aa9930911b4392197b3551b37ac92a049e87487b654b4ebbe",
+    "WrappedTokenAddress": "0x19Aac5f612f524B754CA7e7c41cbFa2E981A4432"
+  },
+  "FlashCallerAddress": "0x31ab65b220487210bbde88b5b8fa1f9aaa77ae76",
+  "StablecoinAddresses": [
+    "0xd077a400968890eacc75cdc901f0356c943e4fdb"
+  ],
+  "Api3": null,
+  "Pyth": {
+    "PythAddress": "0x2880aB155794e7179c9eE2e38200202908C17B43"
+  }
+}

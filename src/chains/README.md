@@ -56,6 +56,7 @@ Each `ChainMetadata` record contains:
 | Hemi | ETH |
 | HyperEVM | HYPE |
 | Ink | ETH |
+| Kaia | KAIA |
 | Katana | ETH |
 | Linea | ETH |
 | Lisk | ETH |
@@ -74,6 +75,7 @@ Each `ChainMetadata` record contains:
 | Sonic | S |
 | Soneium | ETH |
 | Swellchain | ETH |
+| TAC | TAC |
 | Tempo | USD |
 | Unichain | ETH |
 | Worldchain | ETH |

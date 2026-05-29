@@ -1,0 +1,21 @@
+{
+  "Name": "TAC",
+  "ChainId": 239,
+  "CanReorg": false,
+  "SupportsPriorityFees": true,
+  "SupportsGasRefunds": true,
+  "BlockGasLimitM": 90,
+  "NativeCurrency": {
+    "Name": "TAC",
+    "Symbol": "TAC",
+    "Decimals": 18,
+    "PythFeedId": null,
+    "WrappedTokenAddress": "0xB63B9f0eb4A6E6f191529D71d4D88cc8900Df2C9"
+  },
+  "FlashCallerAddress": "0x31ab65b220487210bbde88b5b8fa1f9aaa77ae76",
+  "StablecoinAddresses": [
+    "0xAF988C3f7CB2AceAbB15f96b19388a259b6C438f"
+  ],
+  "Api3": null,
+  "Pyth": null
+}

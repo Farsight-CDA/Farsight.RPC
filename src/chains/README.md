@@ -49,6 +49,7 @@ Each `ChainMetadata` record contains:
 | Citrea | cBTC |
 | CronosEVM | CRO |
 | Ethereum | ETH |
+| Etherlink | XTZ |
 | Flare | FLR |
 | Flow | FLOW |
 | Fraxtal | FRAX |

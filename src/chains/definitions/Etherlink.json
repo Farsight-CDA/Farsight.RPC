@@ -1,0 +1,24 @@
+{
+  "Name": "Etherlink",
+  "ChainId": 42793,
+  "CanReorg": true,
+  "SupportsPriorityFees": false,
+  "SupportsGasRefunds": true,
+  "BlockGasLimitM": 1125899906,
+  "NativeCurrency": {
+    "Name": "Tezos",
+    "Symbol": "XTZ",
+    "Decimals": 18,
+    "PythFeedId": "0x0affd4b8ad136a21d79bc82450a325ee12ff55a235abc242666e423b8bcffd03",
+    "WrappedTokenAddress": "0xc9B53AB2679f573e480d01e0f49e2B5CFB7a3EAb"
+  },
+  "FlashCallerAddress": "0x31ab65b220487210bbde88b5b8fa1f9aaa77ae76",
+  "StablecoinAddresses": [
+    "0x2C03058C8AFC06713be23e58D2febC8337dbfE6A",
+    "0x796Ea11Fa2dD751eD01b53C372fFDB4AAa8f00F9"
+  ],
+  "Api3": null,
+  "Pyth": {
+    "PythAddress": "0x2880aB155794e7179c9eE2e38200202908C17B43"
+  }
+}

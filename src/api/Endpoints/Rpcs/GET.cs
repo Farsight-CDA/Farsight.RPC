@@ -1,6 +1,7 @@
 using Farsight.Common.Extensions;
 using Farsight.Rpc.Api.Persistence;
 using Farsight.Rpc.Api.Persistence.Entities.Rpc;
+using Farsight.Rpc.Api.Services;
 using Farsight.Rpc.Types;
 using FastEndpoints;
 using FluentValidation;
@@ -9,7 +10,7 @@ using System.Collections.Immutable;
 
 namespace Farsight.Rpc.Api.Endpoints.Rpcs;
 
-public sealed class GET(AppDbContext dbContext) : Endpoint<GET.Request, ApiKeyRpcsDto>
+public sealed class GET(AppDbContext dbContext, PublicRpcRegistry publicRpcRegistry) : Endpoint<GET.Request, ApiKeyRpcsDto>
 {
     public sealed record Request(
         [property: FromHeader(ApiKeyHeaders.API_KEY)] string ApiKey
@@ -42,15 +43,13 @@ public sealed class GET(AppDbContext dbContext) : Endpoint<GET.Request, ApiKeyRp
             ThrowError("API key not found.", 403);
         }
 
-        string[] activeChains = await dbContext.ApplicationEnvironments
+        var environment = await dbContext.ApplicationEnvironments
             .AsNoTracking()
-            .Where(environment => environment.ApplicationId == key.ApplicationId && environment.Id == key.EnvironmentId)
-            .Select(environment => environment.Chains)
-            .SingleAsync(ct);
+            .SingleAsync(environment => environment.ApplicationId == key.ApplicationId && environment.Id == key.EnvironmentId, ct);
 
         var rpcs = await dbContext.Rpcs
             .AsNoTracking()
-            .Where(rpc => rpc.ApplicationId == key.ApplicationId && rpc.EnvironmentId == key.EnvironmentId && activeChains.Contains(rpc.Chain))
+            .Where(rpc => rpc.ApplicationId == key.ApplicationId && rpc.EnvironmentId == key.EnvironmentId && environment.Chains.Contains(rpc.Chain))
             .OrderBy(rpc => rpc.Chain)
             .ThenBy(rpc => EF.Property<string>(rpc, "RpcType"))
             .ThenBy(rpc => rpc.Id)
@@ -71,7 +70,7 @@ public sealed class GET(AppDbContext dbContext) : Endpoint<GET.Request, ApiKeyRp
                 provider.RateLimit
             ))
             .ToArrayAsync(ct))
-            .AsImmutable();
+            .ToImmutableArray();
 
         var errorGroups = (await dbContext.RpcErrorGroups
             .AsNoTracking()
@@ -83,9 +82,31 @@ public sealed class GET(AppDbContext dbContext) : Endpoint<GET.Request, ApiKeyRp
         key.LastUsedAt = DateTimeOffset.UtcNow;
         await dbContext.SaveChangesAsync(ct);
 
+        var responseRpcs = rpcs
+            .GroupBy(rpc => rpc.Chain)
+            .ToDictionary(group => group.Key, group => group.Select(MapRpc).ToImmutableArray());
+
+        if(environment.EnablePublicRpcs)
+        {
+            foreach(string chain in environment.Chains)
+            {
+                var publicRpcs = publicRpcRegistry.GetWorkingRpcs(chain)
+                    .Select(address => new RpcEndpointDto.Public
+                    {
+                        Id = Guid.NewGuid(),
+                        Address = address,
+                        ProviderId = Guid.Empty,
+                    })
+                    .Cast<RpcEndpointDto>();
+
+                responseRpcs[chain] = responseRpcs.TryGetValue(chain, out var existingRpcs)
+                    ? existingRpcs.AddRange(publicRpcs)
+                    : publicRpcs.ToImmutableArray();
+            }
+        }
+
         await Send.OkAsync(new ApiKeyRpcsDto(
-            rpcs.GroupBy(rpc => rpc.Chain)
-                .ToDictionary(group => group.Key, group => group.Select(MapRpc).ToImmutableArray()),
+            responseRpcs,
             providers,
             errorGroups
         ), ct);

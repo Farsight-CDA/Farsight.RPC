@@ -27,6 +27,9 @@ internal sealed class ApplicationEnvironmentEFConfiguration : IEntityTypeConfigu
             .HasColumnType("text[]")
             .Metadata.SetValueComparer(_chainsComparer);
 
+        entity.Property(x => x.EnablePublicRpcs)
+            .HasDefaultValue(true);
+
         entity.HasOne(x => x.Application)
             .WithMany(x => x.Environments)
             .HasForeignKey(x => x.ApplicationId);

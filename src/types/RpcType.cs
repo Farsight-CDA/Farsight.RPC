@@ -5,4 +5,5 @@ public enum RpcType
     Realtime,
     Archive,
     Tracing,
+    Public,
 }

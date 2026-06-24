@@ -6,6 +6,7 @@ namespace Farsight.Rpc.Types;
 [JsonDerivedType(typeof(Realtime), nameof(RpcType.Realtime))]
 [JsonDerivedType(typeof(Archive), nameof(RpcType.Archive))]
 [JsonDerivedType(typeof(Tracing), nameof(RpcType.Tracing))]
+[JsonDerivedType(typeof(Public), nameof(RpcType.Public))]
 public abstract record RpcEndpointDto
 {
     public required Guid Id { get; init; }
@@ -13,6 +14,8 @@ public abstract record RpcEndpointDto
     public required Guid ProviderId { get; init; }
 
     public sealed record Realtime : RpcEndpointDto;
+
+    public sealed record Public : RpcEndpointDto;
 
     public sealed record Archive : RpcEndpointDto
     {

@@ -1,6 +1,5 @@
 using EtherSharp.Client;
 using EtherSharp.Common.Exceptions;
-using EtherSharp.Query;
 using Farsight.Common.Extensions;
 using Farsight.Rpc.Api.Auth;
 using Farsight.Rpc.Api.Services;
@@ -50,17 +49,11 @@ public sealed class POST(ChainService chainService) : Endpoint<POST.Request, POS
 
         try
         {
-            ulong expectedChainId = chainService.Chains.Single(x => x.Name.Equals(req.Chain, StringComparison.OrdinalIgnoreCase)).ChainId;
-
             await using var client = req.Address.Scheme is "ws" or "wss"
                  ? EtherClientBuilder.CreateForWebsocket(req.Address).BuildReadClient()
                  : EtherClientBuilder.CreateForHttpRpc(req.Address).BuildReadClient();
 
-            ulong actualChainId = await client.InitializeAsync(IQuery.GetChainId(), cts.Token);
-            if(actualChainId != expectedChainId)
-            {
-                ThrowError($"RPC for {req.Chain} returned chain id {actualChainId}, expected {expectedChainId}.", 400);
-            }
+            ulong actualChainId = await chainService.ValidateRpcChainAsync(client, req.Chain, cts.Token);
 
             TracingMode? detectedTracingMode = req.RpcType == RpcType.Tracing
                 ? await ProbeTracingModeAsync(client, cts.Token)
@@ -71,6 +64,10 @@ public sealed class POST(ChainService chainService) : Endpoint<POST.Request, POS
         catch(OperationCanceledException) when(!ct.IsCancellationRequested)
         {
             ThrowError("RPC validation timed out.", 504);
+        }
+        catch(InvalidOperationException ex)
+        {
+            ThrowError(ex.Message, 400);
         }
         catch(Exception ex)
         {

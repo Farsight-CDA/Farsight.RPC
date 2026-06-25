@@ -44,13 +44,19 @@ public sealed class GET(AppDbContext dbContext, PublicRpcRegistry publicRpcRegis
             ThrowError("API key not found.", 403);
         }
 
-        var environment = await dbContext.ApplicationEnvironments
+        var environmentSettings = await dbContext.ApplicationEnvironments
             .AsNoTracking()
-            .SingleAsync(environment => environment.ApplicationId == key.ApplicationId && environment.Id == key.EnvironmentId, ct);
+            .Where(environment => environment.ApplicationId == key.ApplicationId && environment.Id == key.EnvironmentId)
+            .Select(environment => new
+            {
+                environment.Chains,
+                environment.EnablePublicRpcs,
+            })
+            .SingleAsync(ct);
 
         var rpcs = await dbContext.Rpcs
             .AsNoTracking()
-            .Where(rpc => rpc.ApplicationId == key.ApplicationId && rpc.EnvironmentId == key.EnvironmentId && environment.Chains.Contains(rpc.Chain))
+            .Where(rpc => rpc.ApplicationId == key.ApplicationId && rpc.EnvironmentId == key.EnvironmentId && environmentSettings.Chains.Contains(rpc.Chain))
             .OrderBy(rpc => rpc.Chain)
             .ThenBy(rpc => EF.Property<string>(rpc, "RpcType"))
             .ThenBy(rpc => rpc.Id)
@@ -71,19 +77,7 @@ public sealed class GET(AppDbContext dbContext, PublicRpcRegistry publicRpcRegis
                 provider.RateLimit
             ))
             .ToArrayAsync(ct))
-            .ToImmutableArray();
-
-        var publicRpcProvider = environment.EnablePublicRpcs
-            ? await dbContext.RpcProviders
-                .AsNoTracking()
-                .Where(provider => provider.Id == BuiltInRpcProviders.PublicRpcProviderId)
-                .Select(provider => new RpcProviderDto(
-                    provider.Id,
-                    provider.Name,
-                    provider.RateLimit
-                ))
-                .SingleAsync(ct)
-            : null;
+            .AsImmutable();
 
         var errorGroups = (await dbContext.RpcErrorGroups
             .AsNoTracking()
@@ -99,11 +93,11 @@ public sealed class GET(AppDbContext dbContext, PublicRpcRegistry publicRpcRegis
             .GroupBy(rpc => rpc.Chain)
             .ToDictionary(group => group.Key, group => group.Select(MapRpc).ToImmutableArray());
 
-        if(environment.EnablePublicRpcs)
+        if(environmentSettings.EnablePublicRpcs)
         {
-            var publicRpcCount = 0;
+            int publicRpcCount = 0;
 
-            foreach(string chain in environment.Chains)
+            foreach(string chain in environmentSettings.Chains)
             {
                 var publicRpcs = publicRpcRegistry.GetWorkingRpcs(chain)
                     .Select(address => new RpcEndpointDto.Public
@@ -122,8 +116,18 @@ public sealed class GET(AppDbContext dbContext, PublicRpcRegistry publicRpcRegis
                     : publicRpcs;
             }
 
-            if(publicRpcCount > 0 && publicRpcProvider is not null)
+            if(publicRpcCount > 0)
             {
+                var publicRpcProvider = await dbContext.RpcProviders
+                    .AsNoTracking()
+                    .Where(provider => provider.Id == BuiltInRpcProviders.PublicRpcProviderId)
+                    .Select(provider => new RpcProviderDto(
+                        provider.Id,
+                        provider.Name,
+                        provider.RateLimit
+                    ))
+                    .SingleAsync(ct);
+
                 providers = providers.Add(publicRpcProvider);
             }
         }

@@ -22,7 +22,6 @@ public partial class ChainService : Singleton
         {
             throw new InvalidOperationException($"RPC for {chain} returned chain id {actualChainId}, expected {expectedChainId}.");
         }
-        //
         return actualChainId;
     }
 

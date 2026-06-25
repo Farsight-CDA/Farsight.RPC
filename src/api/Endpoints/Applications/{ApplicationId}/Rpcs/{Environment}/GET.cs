@@ -34,17 +34,17 @@ public sealed class GET(AppDbContext dbContext, PublicRpcRegistry publicRpcRegis
 
     public override async Task HandleAsync(Request req, CancellationToken ct)
     {
-        if(!await dbContext.ConsumerApplications.AnyAsync(a => a.Id == req.ApplicationId, ct))
-        {
-            ThrowError("Application not found.", 404);
-        }
-
         var environment = await dbContext.ApplicationEnvironments
             .AsNoTracking()
             .SingleOrDefaultAsync(environment => environment.ApplicationId == req.ApplicationId && environment.Id == req.EnvironmentId, ct);
 
         if(environment is null)
         {
+            if(!await dbContext.ConsumerApplications.AnyAsync(a => a.Id == req.ApplicationId, ct))
+            {
+                ThrowError("Application not found.", 404);
+            }
+
             ThrowError("Environment not found.", 404);
         }
 

@@ -281,7 +281,7 @@ export function ApplicationDataProvider(props: ParentProps) {
 
     const availableEnvironments = environments();
     const requestKey = `${token}:${id}:${availableEnvironments
-      .map((environment) => environment.id)
+      .map((environment) => `${environment.id}:${environment.enablePublicRpcs}`)
       .join("|")}`;
     if (activeRpcsLoad && activeRpcsLoadKey === requestKey) {
       return activeRpcsLoad;
@@ -449,7 +449,9 @@ export function ApplicationDataProvider(props: ParentProps) {
       ),
     );
 
-    if (!settings.enablePublicRpcs) {
+    if (settings.enablePublicRpcs) {
+      await refreshRpcs();
+    } else {
       setRpcs((items) =>
         items.filter(
           (rpc) => rpc.environmentId !== environmentId || rpc.type !== "Public",

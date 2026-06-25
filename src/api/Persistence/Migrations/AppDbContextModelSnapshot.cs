@@ -39,7 +39,7 @@ namespace Farsight.Rpc.Api.Persistence.Migrations
                     b.Property<bool>("EnablePublicRpcs")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
-                        .HasDefaultValue(true);
+                        .HasDefaultValue(false);
 
                     b.Property<string>("Name")
                         .IsRequired()

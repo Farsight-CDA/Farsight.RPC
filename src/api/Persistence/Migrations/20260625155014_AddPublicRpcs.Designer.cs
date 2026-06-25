@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Farsight.Rpc.Api.Persistence.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260624153711_AddPublicRpcs")]
+    [Migration("20260625155014_AddPublicRpcs")]
     partial class AddPublicRpcs
     {
         /// <inheritdoc />
@@ -42,7 +42,7 @@ namespace Farsight.Rpc.Api.Persistence.Migrations
                     b.Property<bool>("EnablePublicRpcs")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
-                        .HasDefaultValue(true);
+                        .HasDefaultValue(false);
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -206,6 +206,14 @@ namespace Farsight.Rpc.Api.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("RpcProviders", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("00000000-0000-0000-0000-000000000001"),
+                            Name = "Public RPC",
+                            RateLimit = 5
+                        });
                 });
 
             modelBuilder.Entity("Farsight.Rpc.Api.Persistence.Entities.Rpc.RpcEndpoint+Archive", b =>

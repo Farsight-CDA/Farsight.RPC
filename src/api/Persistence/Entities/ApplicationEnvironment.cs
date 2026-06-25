@@ -8,7 +8,7 @@ public sealed record ApplicationEnvironment
     public required Guid ApplicationId { get; init; }
     public required string Name { get; set; }
     public required string[] Chains { get; set; }
-    public bool EnablePublicRpcs { get; set; } = true;
+    public bool EnablePublicRpcs { get; set; } = false;
 
     //Navigation Property
     public ConsumerApplication? Application { get; private set; }

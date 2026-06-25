@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Farsight.Rpc.Api.Persistence.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260625155014_AddPublicRpcs")]
+    [Migration("20260625220157_AddPublicRpcs")]
     partial class AddPublicRpcs
     {
         /// <inheritdoc />

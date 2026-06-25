@@ -34,17 +34,13 @@ public sealed class GET(AppDbContext dbContext, PublicRpcRegistry publicRpcRegis
 
     public override async Task HandleAsync(Request req, CancellationToken ct)
     {
-        var environment = await dbContext.ApplicationEnvironments
-            .AsNoTracking()
-            .SingleOrDefaultAsync(environment => environment.ApplicationId == req.ApplicationId && environment.Id == req.EnvironmentId, ct);
-
-        if(environment is null)
+        if(!await dbContext.ConsumerApplications.AnyAsync(a => a.Id == req.ApplicationId, ct))
         {
-            if(!await dbContext.ConsumerApplications.AnyAsync(a => a.Id == req.ApplicationId, ct))
-            {
-                ThrowError("Application not found.", 404);
-            }
+            ThrowError("Application not found.", 404);
+        }
 
+        if(!await dbContext.ApplicationEnvironments.AnyAsync(environment => environment.ApplicationId == req.ApplicationId && environment.Id == req.EnvironmentId, ct))
+        {
             ThrowError("Environment not found.", 404);
         }
 
@@ -56,22 +52,23 @@ public sealed class GET(AppDbContext dbContext, PublicRpcRegistry publicRpcRegis
             .ThenBy(rpc => rpc.Id)
             .ToArrayAsync(ct);
 
-        if(!environment.EnablePublicRpcs)
-        {
-            await Send.OkAsync(rpcs, ct);
-            return;
-        }
+        var publicRpcSettings = await dbContext.ApplicationEnvironments
+            .AsNoTracking()
+            .Where(environment => environment.ApplicationId == req.ApplicationId && environment.Id == req.EnvironmentId)
+            .Select(environment => new { environment.Chains, environment.EnablePublicRpcs })
+            .SingleAsync(ct);
 
-        var publicRpcs = environment.Chains
-            .SelectMany(chain => publicRpcRegistry.GetWorkingRpcs(chain).Select(address => new RpcEndpoint.Public
-            {
-                Id = Guid.NewGuid(),
-                EnvironmentId = req.EnvironmentId,
-                Chain = chain,
-                Address = address,
-                ProviderId = BuiltInRpcProviders.PublicRpcProviderId,
-                ApplicationId = req.ApplicationId,
-            }));
+        IEnumerable<RpcEndpoint> publicRpcs = publicRpcSettings.EnablePublicRpcs
+            ? publicRpcSettings.Chains.SelectMany(chain => publicRpcRegistry.GetWorkingRpcs(chain).Select(address => new RpcEndpoint.Public
+                {
+                    Id = Guid.NewGuid(),
+                    EnvironmentId = req.EnvironmentId,
+                    Chain = chain,
+                    Address = address,
+                    ProviderId = BuiltInRpcProviders.PublicRpcProviderId,
+                    ApplicationId = req.ApplicationId,
+                }))
+            : [];
 
         await Send.OkAsync([.. rpcs, .. publicRpcs], ct);
     }

@@ -27,8 +27,8 @@ internal sealed class RpcProviderEFConfiguration : IEntityTypeConfiguration<RpcP
         entity.HasData(new RpcProvider
         {
             Id = BuiltInRpcProviders.PublicRpcProviderId,
-            Name = "Public RPC",
-            RateLimit = 5
+            Name = BuiltInRpcProviders.PUBLICRPCPROVIDERNAME,
+            RateLimit = BuiltInRpcProviders.PUBLICRPCPROVIDERRATELIMIT
         });
     }
 }

@@ -1,4 +1,5 @@
 using Farsight.Common.Extensions;
+using Farsight.Rpc.Api.Common;
 using Farsight.Rpc.Api.Persistence;
 using Farsight.Rpc.Api.Persistence.Entities.Rpc;
 using Farsight.Rpc.Api.Services;
@@ -72,6 +73,18 @@ public sealed class GET(AppDbContext dbContext, PublicRpcRegistry publicRpcRegis
             .ToArrayAsync(ct))
             .ToImmutableArray();
 
+        var publicRpcProvider = environment.EnablePublicRpcs
+            ? await dbContext.RpcProviders
+                .AsNoTracking()
+                .Where(provider => provider.Id == BuiltInRpcProviders.PublicRpcProviderId)
+                .Select(provider => new RpcProviderDto(
+                    provider.Id,
+                    provider.Name,
+                    provider.RateLimit
+                ))
+                .SingleAsync(ct)
+            : null;
+
         var errorGroups = (await dbContext.RpcErrorGroups
             .AsNoTracking()
             .OrderBy(group => group.Name)
@@ -88,6 +101,8 @@ public sealed class GET(AppDbContext dbContext, PublicRpcRegistry publicRpcRegis
 
         if(environment.EnablePublicRpcs)
         {
+            var publicRpcCount = 0;
+
             foreach(string chain in environment.Chains)
             {
                 var publicRpcs = publicRpcRegistry.GetWorkingRpcs(chain)
@@ -95,13 +110,21 @@ public sealed class GET(AppDbContext dbContext, PublicRpcRegistry publicRpcRegis
                     {
                         Id = Guid.NewGuid(),
                         Address = address,
-                        ProviderId = Guid.Empty,
+                        ProviderId = BuiltInRpcProviders.PublicRpcProviderId,
                     })
-                    .Cast<RpcEndpointDto>();
+                    .Cast<RpcEndpointDto>()
+                    .ToImmutableArray();
+
+                publicRpcCount += publicRpcs.Length;
 
                 responseRpcs[chain] = responseRpcs.TryGetValue(chain, out var existingRpcs)
                     ? existingRpcs.AddRange(publicRpcs)
-                    : publicRpcs.ToImmutableArray();
+                    : publicRpcs;
+            }
+
+            if(publicRpcCount > 0 && publicRpcProvider is not null)
+            {
+                providers = providers.Add(publicRpcProvider);
             }
         }
 

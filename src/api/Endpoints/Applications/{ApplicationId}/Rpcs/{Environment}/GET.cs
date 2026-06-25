@@ -1,4 +1,5 @@
 using Farsight.Rpc.Api.Auth;
+using Farsight.Rpc.Api.Common;
 using Farsight.Rpc.Api.Persistence;
 using Farsight.Rpc.Api.Persistence.Entities.Rpc;
 using Farsight.Rpc.Api.Services;
@@ -84,7 +85,7 @@ public sealed class GET(AppDbContext dbContext, PublicRpcRegistry publicRpcRegis
                 req.EnvironmentId,
                 chain,
                 address,
-                Guid.Empty,
+                BuiltInRpcProviders.PublicRpcProviderId,
                 req.ApplicationId
             )));
 

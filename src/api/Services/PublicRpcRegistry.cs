@@ -7,7 +7,7 @@ namespace Farsight.Rpc.Api.Services;
 
 public partial class PublicRpcRegistry : Singleton
 {
-    private volatile ImmutableDictionary<string, ImmutableArray<Uri>> _working = ImmutableDictionary<string, ImmutableArray<Uri>>.Empty;
+    private volatile ImmutableDictionary<string, ImmutableArray<Uri>> _working = [];
 
     public ImmutableArray<Uri> GetWorkingRpcs(string chain)
         => _working.TryGetValue(chain, out var endpoints) ? endpoints : [];
@@ -24,7 +24,7 @@ public partial class PublicRpcRegistry : Singleton
             {
                 var candidates = await chainlistSource.FetchAsync(cancellationToken);
                 var validRpcs = new ConcurrentDictionary<string, ConcurrentBag<Uri>>(StringComparer.OrdinalIgnoreCase);
-                var candidateRpcs = candidates.SelectMany(group => group.Value.Select(address => (Chain: group.Key, Address: address))).Take(200);
+                var candidateRpcs = candidates.SelectMany(group => group.Value.Select(address => (Chain: group.Key, Address: address))).Take(20);
 
                 await Parallel.ForEachAsync(candidateRpcs, new ParallelOptions
                 {

@@ -329,6 +329,35 @@ export default function ApplicationRpcsPage() {
     return getChainRpcs(chain, env);
   });
 
+  const configuredActiveChainRpcs = createMemo(() =>
+    activeChainRpcs().filter((rpc) => rpc.type !== "Public"),
+  );
+
+  const publicActiveChainRpcs = createMemo(() =>
+    activeChainRpcs().filter((rpc) => rpc.type === "Public"),
+  );
+
+  const [expandedPublicRpcGroups, setExpandedPublicRpcGroups] = createSignal<
+    Set<string>
+  >(new Set());
+
+  const activePublicRpcGroupKey = () =>
+    `${environment.selectedEnvironmentId() ?? ""}:${activeChain() ?? ""}`;
+
+  const isActivePublicRpcGroupExpanded = () =>
+    expandedPublicRpcGroups().has(activePublicRpcGroupKey());
+
+  const toggleActivePublicRpcGroup = () => {
+    const key = activePublicRpcGroupKey();
+    const next = new Set(expandedPublicRpcGroups());
+    if (next.has(key)) {
+      next.delete(key);
+    } else {
+      next.add(key);
+    }
+    setExpandedPublicRpcGroups(next);
+  };
+
   type ChainStructureStatus = "valid" | "warning";
 
   const getChainTypeCounts = (
@@ -344,6 +373,7 @@ export default function ApplicationRpcsPage() {
       Tracing: 0,
     };
     for (const rpc of chainRpcs) {
+      if (rpc.type === "Public") continue;
       counts[rpc.type] = (counts[rpc.type] ?? 0) + 1;
     }
     return counts;
@@ -887,6 +917,8 @@ export default function ApplicationRpcsPage() {
         return "text-blue-400 border-blue-500/30 bg-blue-500/10";
       case "Tracing":
         return "text-purple-400 border-purple-500/30 bg-purple-500/10";
+      case "Public":
+        return "text-b-accent border-b-accent/30 bg-b-accent/10";
       default:
         return "text-b-ink/50 border-b-border bg-b-field";
     }
@@ -1395,7 +1427,7 @@ export default function ApplicationRpcsPage() {
                   <div class="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4">
                     <Show when={activeChainRpcs().length > 0}>
                       <div class="flex flex-col gap-3">
-                        <For each={activeChainRpcs()}>
+                        <For each={configuredActiveChainRpcs()}>
                           {(rpc) => (
                             <div class="flex flex-col gap-3 border border-b-border bg-b-paper/20 p-4 sm:flex-row sm:items-start sm:justify-between transition-colors hover:border-b-border-hover">
                               <div class="min-w-0 flex-1">
@@ -1471,6 +1503,58 @@ export default function ApplicationRpcsPage() {
                             </div>
                           )}
                         </For>
+
+                        <Show when={publicActiveChainRpcs().length > 0}>
+                          <div class="border border-b-border bg-b-paper/20 transition-colors hover:border-b-border-hover">
+                            <button
+                              type="button"
+                              onClick={toggleActivePublicRpcGroup}
+                              class="flex w-full items-center justify-between gap-3 p-4 text-left"
+                              aria-expanded={isActivePublicRpcGroupExpanded()}
+                            >
+                              <div class="min-w-0 flex-1">
+                                <div class="flex flex-wrap items-center gap-2">
+                                  <span
+                                    class={`inline-flex items-center border px-2 py-0.5 text-xs font-bold tracking-wider ${getTypeColor("Public")}`}
+                                  >
+                                    Public
+                                  </span>
+                                  <span class="text-xs font-semibold uppercase tracking-wider text-b-ink/50">
+                                    {publicActiveChainRpcs().length} node
+                                    {publicActiveChainRpcs().length === 1
+                                      ? ""
+                                      : "s"}
+                                  </span>
+                                </div>
+                                <p class="mt-2 text-xs font-semibold uppercase tracking-wider text-b-ink/40">
+                                  Discovered public RPC endpoints
+                                </p>
+                              </div>
+                              <ChevronDownIcon
+                                class={`size-4 shrink-0 text-b-ink/50 transition-transform ${
+                                  isActivePublicRpcGroupExpanded()
+                                    ? "rotate-180"
+                                    : ""
+                                }`}
+                              />
+                            </button>
+                            <Show when={isActivePublicRpcGroupExpanded()}>
+                              <div class="border-t border-b-border/60 px-4 pb-4">
+                                <div class="flex flex-col gap-2 pt-3">
+                                  <For each={publicActiveChainRpcs()}>
+                                    {(rpc) => (
+                                      <div class="border border-b-border/60 bg-b-field/40 px-3 py-3">
+                                        <code class="break-all font-mono text-xs font-semibold text-b-ink/80">
+                                          {rpc.address}
+                                        </code>
+                                      </div>
+                                    )}
+                                  </For>
+                                </div>
+                              </div>
+                            </Show>
+                          </div>
+                        </Show>
                       </div>
                     </Show>
 

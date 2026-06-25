@@ -1,3 +1,4 @@
+using Farsight.Rpc.Api.Common;
 using Farsight.Rpc.Api.Persistence.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -22,5 +23,12 @@ internal sealed class RpcProviderEFConfiguration : IEntityTypeConfiguration<RpcP
             .HasForeignKey(x => x.ProviderId);
 
         entity.ToTable("RpcProviders");
+
+        entity.HasData(new RpcProvider
+        {
+            Id = BuiltInRpcProviders.PublicRpcProviderId,
+            Name = BuiltInRpcProviders.PUBLICRPCPROVIDERNAME,
+            RateLimit = BuiltInRpcProviders.PUBLICRPCPROVIDERRATELIMIT
+        });
     }
 }

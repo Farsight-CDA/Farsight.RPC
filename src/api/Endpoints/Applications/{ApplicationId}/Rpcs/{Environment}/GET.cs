@@ -1,13 +1,15 @@
 using Farsight.Rpc.Api.Auth;
+using Farsight.Rpc.Api.Common;
 using Farsight.Rpc.Api.Persistence;
 using Farsight.Rpc.Api.Persistence.Entities.Rpc;
+using Farsight.Rpc.Api.Services;
 using FastEndpoints;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 
 namespace Farsight.Rpc.Api.Endpoints.Applications.Rpcs;
 
-public sealed class GET(AppDbContext dbContext) : Endpoint<GET.Request, RpcEndpoint[]>
+public sealed class GET(AppDbContext dbContext, PublicRpcRegistry publicRpcRegistry) : Endpoint<GET.Request, RpcEndpoint[]>
 {
     public sealed record Request(
         [property: RouteParam] Guid ApplicationId,
@@ -50,6 +52,24 @@ public sealed class GET(AppDbContext dbContext) : Endpoint<GET.Request, RpcEndpo
             .ThenBy(rpc => rpc.Id)
             .ToArrayAsync(ct);
 
-        await Send.OkAsync(rpcs, ct);
+        var publicRpcSettings = await dbContext.ApplicationEnvironments
+            .AsNoTracking()
+            .Where(environment => environment.ApplicationId == req.ApplicationId && environment.Id == req.EnvironmentId)
+            .Select(environment => new { environment.Chains, environment.EnablePublicRpcs })
+            .SingleAsync(ct);
+
+        IEnumerable<RpcEndpoint> publicRpcs = publicRpcSettings.EnablePublicRpcs
+            ? publicRpcSettings.Chains.SelectMany(chain => publicRpcRegistry.GetWorkingRpcs(chain).Select(address => new RpcEndpoint.Public
+                {
+                    Id = Guid.NewGuid(),
+                    EnvironmentId = req.EnvironmentId,
+                    Chain = chain,
+                    Address = address,
+                    ProviderId = BuiltInRpcProviders.PublicRpcProviderId,
+                    ApplicationId = req.ApplicationId,
+                }))
+            : [];
+
+        await Send.OkAsync([.. rpcs, .. publicRpcs], ct);
     }
 }

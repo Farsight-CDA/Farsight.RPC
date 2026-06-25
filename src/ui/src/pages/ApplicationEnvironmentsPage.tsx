@@ -62,7 +62,8 @@ export default function ApplicationEnvironmentsPage() {
   );
 
   const getEnvironmentRpcCount = (environmentId: string) =>
-    rpcsByEnvironment()[environmentId]?.length ?? 0;
+    rpcsByEnvironment()[environmentId]?.filter((rpc) => rpc.type !== "Public")
+      .length ?? 0;
 
   const getActiveChainCount = (environment: ApplicationEnvironmentSummary) =>
     new Set(environment.chains ?? []).size;
@@ -90,6 +91,13 @@ export default function ApplicationEnvironmentsPage() {
   >(null);
   const [deleteEnvironmentLoadingId, setDeleteEnvironmentLoadingId] =
     createSignal<string | null>(null);
+
+  const [publicRpcToggleError, setPublicRpcToggleError] = createSignal<
+    string | null
+  >(null);
+  const [publicRpcToggleLoadingId, setPublicRpcToggleLoadingId] = createSignal<
+    string | null
+  >(null);
 
   const openEnvironmentModal = () => {
     setCreateEnvironmentError(null);
@@ -267,6 +275,24 @@ export default function ApplicationEnvironmentsPage() {
     }
   };
 
+  const handleTogglePublicRpcs = async (
+    environment: ApplicationEnvironmentSummary,
+  ) => {
+    setPublicRpcToggleError(null);
+    setPublicRpcToggleLoadingId(environment.id);
+    try {
+      await applicationData.updateEnvironmentSettings(environment.id, {
+        enablePublicRpcs: !environment.enablePublicRpcs,
+      });
+    } catch (err) {
+      setPublicRpcToggleError(
+        err instanceof Error ? err.message : "Failed to update environment",
+      );
+    } finally {
+      setPublicRpcToggleLoadingId(null);
+    }
+  };
+
   return (
     <>
       <div class="flex flex-col gap-6">
@@ -327,6 +353,12 @@ export default function ApplicationEnvironmentsPage() {
               </p>
             </Show>
 
+            <Show when={publicRpcToggleError()}>
+              <p class="mb-4 border border-red-500/40 bg-red-500/10 px-3 py-3 text-xs font-bold uppercase leading-snug text-red-400">
+                {publicRpcToggleError()}
+              </p>
+            </Show>
+
             <Show
               when={
                 !isInitialEnvironmentLoadPending() &&
@@ -342,6 +374,8 @@ export default function ApplicationEnvironmentsPage() {
                       editingEnvironmentId() === environment.id;
                     const isDeleting = () =>
                       deleteEnvironmentLoadingId() === environment.id;
+                    const isTogglingPublicRpcs = () =>
+                      publicRpcToggleLoadingId() === environment.id;
                     return (
                       <div class="border border-b-border bg-b-paper/40 p-4 shadow-[0_1px_0_rgba(0,0,0,0.35)] transition-colors hover:border-b-border-hover">
                         <Show
@@ -390,6 +424,7 @@ export default function ApplicationEnvironmentsPage() {
                             </div>
                           }
                         >
+                          <div class="flex flex-col gap-4">
                           <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                             <div>
                               <p class="font-['Anton',sans-serif] text-xl tracking-wide text-b-ink">
@@ -413,7 +448,36 @@ export default function ApplicationEnvironmentsPage() {
                                 </span>
                               </div>
                             </div>
+                          </div>
+                          <div class="flex flex-col gap-3 border-t border-b-border/60 pt-3 sm:flex-row sm:items-center sm:justify-between">
+                            <div>
+                              <p class="text-xs font-bold uppercase tracking-widest text-b-ink/70">
+                                Public RPC discovery
+                              </p>
+                              <p class="mt-1 text-xs font-semibold uppercase tracking-wider text-b-ink/45">
+                                {environment.enablePublicRpcs
+                                  ? "Enabled for this environment"
+                                  : "Disabled for this environment"}
+                              </p>
+                            </div>
                             <div class="flex flex-col gap-3 sm:flex-row sm:justify-end">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  void handleTogglePublicRpcs(environment)
+                                }
+                                disabled={isDeleting() || isTogglingPublicRpcs()}
+                                class="btn btn-sm btn-interactive btn-disabled btn-secondary"
+                              >
+                                <Show when={isTogglingPublicRpcs()}>
+                                  <LoadingSpinner class="size-3.5" />
+                                </Show>
+                                {isTogglingPublicRpcs()
+                                  ? "Saving…"
+                                  : environment.enablePublicRpcs
+                                    ? "Disable"
+                                    : "Enable"}
+                              </button>
                               <button
                                 type="button"
                                 onClick={() =>
@@ -438,6 +502,7 @@ export default function ApplicationEnvironmentsPage() {
                                 {isDeleting() ? "Deleting…" : "Delete"}
                               </button>
                             </div>
+                          </div>
                           </div>
                         </Show>
                       </div>

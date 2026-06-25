@@ -8,6 +8,7 @@ namespace Farsight.Rpc.Api.Persistence.Entities.Rpc;
 [JsonDerivedType(typeof(Realtime), nameof(RpcType.Realtime))]
 [JsonDerivedType(typeof(Archive), nameof(RpcType.Archive))]
 [JsonDerivedType(typeof(Tracing), nameof(RpcType.Tracing))]
+[JsonDerivedType(typeof(Public), nameof(RpcType.Public))]
 public abstract class RpcEndpoint
 {
     public required Guid Id { get; init; }
@@ -31,6 +32,7 @@ public abstract class RpcEndpoint
     public ApplicationEnvironment? Environment { get; private set; } = null;
 
     public sealed class Realtime : RpcEndpoint;
+    public sealed class Public : RpcEndpoint;
 
     public sealed class Archive : RpcEndpoint
     {

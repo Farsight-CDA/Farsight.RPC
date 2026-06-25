@@ -25,6 +25,7 @@ export type ApplicationEnvironmentSummary = {
   id: string;
   name: string;
   chains: string[];
+  enablePublicRpcs: boolean;
 };
 
 export type ConsumerApiKeySummary = {
@@ -36,7 +37,7 @@ export type ConsumerApiKeySummary = {
 
 export type ApplicationRpc = {
   id: string;
-  type: "Realtime" | "Archive" | "Tracing";
+  type: "Realtime" | "Archive" | "Tracing" | "Public";
   environmentId: string;
   chain: string;
   address: string;
@@ -78,6 +79,10 @@ type ApplicationDataContextValue = {
   removeEnvironmentChain: (
     environmentId: string,
     chain: string,
+  ) => Promise<void>;
+  updateEnvironmentSettings: (
+    environmentId: string,
+    settings: { enablePublicRpcs: boolean },
   ) => Promise<void>;
 };
 
@@ -276,7 +281,7 @@ export function ApplicationDataProvider(props: ParentProps) {
 
     const availableEnvironments = environments();
     const requestKey = `${token}:${id}:${availableEnvironments
-      .map((environment) => environment.id)
+      .map((environment) => `${environment.id}:${environment.enablePublicRpcs}`)
       .join("|")}`;
     if (activeRpcsLoad && activeRpcsLoadKey === requestKey) {
       return activeRpcsLoad;
@@ -401,6 +406,58 @@ export function ApplicationDataProvider(props: ParentProps) {
       environmentId,
       environment.chains.filter((item) => item !== chain),
     );
+  };
+
+  const updateEnvironmentSettings = async (
+    environmentId: string,
+    settings: { enablePublicRpcs: boolean },
+  ) => {
+    const token = auth.token;
+    const id = applicationId();
+    const environment = environments().find(
+      (item) => item.id === environmentId,
+    );
+    if (!token || !id || !environment) {
+      throw new Error("Environment not found");
+    }
+
+    const response = await fetch(
+      `/api/Applications/${id}/Environments/${environmentId}/PublicRpcs`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          enablePublicRpcs: settings.enablePublicRpcs,
+        }),
+      },
+    );
+
+    if (!response.ok) {
+      throw new Error(
+        await readErrorMessage(response, "Failed to update environment"),
+      );
+    }
+
+    setEnvironments((items) =>
+      items.map((item) =>
+        item.id === environmentId
+          ? { ...item, enablePublicRpcs: settings.enablePublicRpcs }
+          : item,
+      ),
+    );
+
+    if (settings.enablePublicRpcs) {
+      await refreshRpcs();
+    } else {
+      setRpcs((items) =>
+        items.filter(
+          (rpc) => rpc.environmentId !== environmentId || rpc.type !== "Public",
+        ),
+      );
+    }
   };
 
   createEffect(() => {
@@ -532,6 +589,7 @@ export function ApplicationDataProvider(props: ParentProps) {
     refresh,
     addEnvironmentChain,
     removeEnvironmentChain,
+    updateEnvironmentSettings,
   };
 
   return (

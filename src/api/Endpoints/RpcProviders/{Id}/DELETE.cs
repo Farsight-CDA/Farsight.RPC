@@ -1,4 +1,5 @@
 using Farsight.Rpc.Api.Auth;
+using Farsight.Rpc.Api.Common;
 using Farsight.Rpc.Api.Persistence;
 using FastEndpoints;
 using Microsoft.EntityFrameworkCore;
@@ -19,6 +20,11 @@ public sealed class DELETE(AppDbContext dbContext) : Endpoint<DELETE.Request>
 
     public override async Task HandleAsync(Request req, CancellationToken ct)
     {
+        if(req.RpcProviderId == BuiltInRpcProviders.PublicRpcProviderId)
+        {
+            ThrowError("The public RPC provider cannot be deleted.", 409);
+        }
+
         int deletedRows = await dbContext.RpcProviders
             .Where(provider => provider.Id == req.RpcProviderId)
             .ExecuteDeleteAsync(ct);

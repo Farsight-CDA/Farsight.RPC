@@ -50,6 +50,12 @@ public sealed class FarsightRpcClient : IFarsightRpcClient
                             Address = realtime.Address,
                             Provider = resolveProvider(rpc.ProviderId),
                         },
+                        RpcEndpointDto.Public publicRpc => new RpcEndpoint.Public
+                        {
+                            Id = publicRpc.Id,
+                            Address = publicRpc.Address,
+                            Provider = resolveProvider(rpc.ProviderId),
+                        },
                         RpcEndpointDto.Archive archive => new RpcEndpoint.Archive
                         {
                             Id = archive.Id,

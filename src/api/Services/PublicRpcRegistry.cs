@@ -24,16 +24,20 @@ public partial class PublicRpcRegistry : Singleton
             {
                 var candidates = await chainlistSource.FetchAsync(cancellationToken);
                 var validRpcs = new ConcurrentDictionary<string, ConcurrentBag<Uri>>(StringComparer.OrdinalIgnoreCase);
-                var candidateRpcs = candidates.SelectMany(group => group.Value.Select(address => (Chain: group.Key, Address: address))).Take(20);
+                var candidateRpcs = candidates.SelectMany(group => group.Value.Select(address => (Chain: group.Key, Address: address)));
 
                 await Parallel.ForEachAsync(candidateRpcs, new ParallelOptions
                 {
-                    MaxDegreeOfParallelism = configuration.ValidationConcurrency,
+                    MaxDegreeOfParallelism = Math.Max(1, configuration.ValidationConcurrency),
                     CancellationToken = cancellationToken,
                 }, async (candidate, ct) =>
                 {
-                    var uri = new Uri(candidate.Address, UriKind.Absolute);
-                    if(!await chainService.IsValidRpcAsync(uri, candidate.Chain, ct))
+                    if(!Uri.TryCreate(candidate.Address, UriKind.Absolute, out var uri))
+                    {
+                        return;
+                    }
+
+                    if(!await chainService.IsValidRpcAsync(uri, candidate.Chain, configuration.ValidationTimeout, ct))
                     {
                         return;
                     }

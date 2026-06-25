@@ -17,6 +17,11 @@ public abstract record RpcEndpoint
     public sealed record Realtime : RpcEndpoint;
 
     /// <summary>
+    /// Represents a public RPC endpoint without provider metadata.
+    /// </summary>
+    public sealed record Public : RpcEndpoint;
+
+    /// <summary>
     /// Represents an archive RPC endpoint.
     /// </summary>
     public sealed record Archive : RpcEndpoint

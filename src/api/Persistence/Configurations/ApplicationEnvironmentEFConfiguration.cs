@@ -28,7 +28,7 @@ internal sealed class ApplicationEnvironmentEFConfiguration : IEntityTypeConfigu
             .Metadata.SetValueComparer(_chainsComparer);
 
         entity.Property(x => x.EnablePublicRpcs)
-            .HasDefaultValue(true);
+            .HasDefaultValue(false);
 
         entity.HasOne(x => x.Application)
             .WithMany(x => x.Environments)

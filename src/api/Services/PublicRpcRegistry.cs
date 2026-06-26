@@ -7,6 +7,15 @@ namespace Farsight.Rpc.Api.Services;
 
 public partial class PublicRpcRegistry : Singleton
 {
+    [Inject]
+    private readonly ChainlistPublicRpcSource _chainlistSource;
+
+    [Inject]
+    private readonly ChainService _chainService;
+
+    [Inject]
+    private readonly PublicRpcsConfiguration _configuration;
+
     private volatile ImmutableDictionary<string, ImmutableArray<Uri>> _working = [];
 
     public ImmutableArray<Uri> GetWorkingRpcs(string chain)
@@ -14,21 +23,17 @@ public partial class PublicRpcRegistry : Singleton
 
     protected override async Task RunAsync(CancellationToken cancellationToken)
     {
-        var chainlistSource = _provider.GetRequiredService<ChainlistPublicRpcSource>();
-        var chainService = _provider.GetRequiredService<ChainService>();
-        var configuration = _provider.GetRequiredService<PublicRpcsConfiguration>();
-
         while(!cancellationToken.IsCancellationRequested)
         {
             try
             {
-                var candidates = await chainlistSource.FetchAsync(cancellationToken);
+                var candidates = await _chainlistSource.FetchAsync(cancellationToken);
                 var validRpcs = new ConcurrentDictionary<string, ConcurrentBag<Uri>>(StringComparer.OrdinalIgnoreCase);
                 var candidateRpcs = candidates.SelectMany(group => group.Value.Select(address => (Chain: group.Key, Address: address)));
 
                 await Parallel.ForEachAsync(candidateRpcs, new ParallelOptions
                 {
-                    MaxDegreeOfParallelism = Math.Max(1, configuration.ValidationConcurrency),
+                    MaxDegreeOfParallelism = Math.Max(1, _configuration.ValidationConcurrency),
                     CancellationToken = cancellationToken,
                 }, async (candidate, ct) =>
                 {
@@ -37,7 +42,8 @@ public partial class PublicRpcRegistry : Singleton
                         return;
                     }
 
-                    if(!await chainService.IsValidRpcAsync(uri, candidate.Chain, configuration.ValidationTimeout, ct))
+                    var validation = await _chainService.IsValidRpcAsync(uri, candidate.Chain, _configuration.ValidationTimeout, cancellationToken: ct);
+                    if(!validation.IsValid)
                     {
                         return;
                     }
@@ -57,7 +63,7 @@ public partial class PublicRpcRegistry : Singleton
                 _logger.LogWarning(ex, "Public RPC refresh failed.");
             }
 
-            await Task.Delay(configuration.RefreshInterval, cancellationToken);
+            await Task.Delay(_configuration.RefreshInterval, cancellationToken);
         }
     }
 }

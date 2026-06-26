@@ -1,14 +1,12 @@
 using Farsight.Common.Extensions;
+using Farsight.Chains;
 using Farsight.Rpc.Api.Auth;
-using Farsight.Rpc.Api.Services;
 using FastEndpoints;
 
 namespace Farsight.Rpc.Api.Endpoints.Chains;
 
-public sealed class GET(ChainService chainService) : EndpointWithoutRequest<ReadOnlyMemory<string>>
+public sealed class GET : EndpointWithoutRequest<ReadOnlyMemory<string>>
 {
-    private readonly ChainService _chainService = chainService;
-
     public override void Configure()
     {
         Get("/api/Chains");
@@ -16,5 +14,5 @@ public sealed class GET(ChainService chainService) : EndpointWithoutRequest<Read
     }
 
     public override async Task HandleAsync(CancellationToken ct)
-        => await Send.OkAsync(_chainService.Chains.Select(x => x.Name).ToArray(), ct);
+        => await Send.OkAsync(ChainRegistry.GetAllChains().Select(x => x.Name).ToArray(), ct);
 }

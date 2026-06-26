@@ -1,3 +1,4 @@
+using Farsight.Chains;
 using Farsight.Common;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -8,19 +9,19 @@ public partial class ChainlistPublicRpcSource : Singleton
 {
     private static readonly Uri _sourceUri = new("https://chainlist.org/rpcs.json");
 
+    [Inject]
+    private readonly HttpClient _httpClient;
+
     public async Task<Dictionary<string, string[]>> FetchAsync(CancellationToken cancellationToken = default)
     {
-        var chainService = _provider.GetRequiredService<ChainService>();
-        var httpClientFactory = _provider.GetRequiredService<IHttpClientFactory>();
-
-        using var response = await httpClientFactory.CreateClient().GetAsync(_sourceUri, cancellationToken);
-        response.EnsureSuccessStatusCode();
+        using var response = await _httpClient.GetAsync(_sourceUri, cancellationToken);
+        _ = response.EnsureSuccessStatusCode();
 
         await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
         var chains = await JsonSerializer.DeserializeAsync(stream, ChainlistJsonContext.Default.ChainlistChainArray, cancellationToken)
             ?? [];
 
-        var knownChains = chainService.Chains.ToArray().ToDictionary(chain => chain.ChainId);
+        var knownChains = ChainRegistry.GetAllChains().ToArray().ToDictionary(chain => chain.ChainId);
         var rpcs = new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
 
         foreach(var chain in chains)
@@ -49,7 +50,7 @@ public partial class ChainlistPublicRpcSource : Singleton
                     continue;
                 }
 
-                chainRpcs.Add(uri.AbsoluteUri);
+                _ = chainRpcs.Add(uri.AbsoluteUri);
             }
         }
 

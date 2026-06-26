@@ -30,7 +30,7 @@ public sealed class PUT(AppDbContext dbContext) : Endpoint<PUT.Request>
                 .WithMessage(ChainValidation.REQUIRED_MESSAGE)
                 .MaximumLength(30)
                 .WithMessage(ChainValidation.LENGTH_MESSAGE)
-                .Must(chainService.IsRegisteredChain)
+                .Must(chain => chainService.IsRegisteredChain(chain))
                 .WithMessage(ChainValidation.INVALID_MESSAGE);
         }
     }

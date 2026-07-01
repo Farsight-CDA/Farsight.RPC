@@ -1,3 +1,4 @@
+using Farsight.Chains;
 using Farsight.Rpc.Api.Auth;
 using Farsight.Rpc.Api.Persistence;
 using Farsight.Rpc.Api.Services;
@@ -30,7 +31,7 @@ public sealed class PUT(AppDbContext dbContext) : Endpoint<PUT.Request>
                 .WithMessage(ChainValidation.REQUIRED_MESSAGE)
                 .MaximumLength(30)
                 .WithMessage(ChainValidation.LENGTH_MESSAGE)
-                .Must(chain => chainService.IsRegisteredChain(chain))
+                .Must(ChainRegistry.IsRegisteredChain)
                 .WithMessage(ChainValidation.INVALID_MESSAGE);
         }
     }

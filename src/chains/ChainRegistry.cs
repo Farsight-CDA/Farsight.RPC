@@ -1,4 +1,6 @@
-﻿using System.Reflection;
+﻿using System.Collections.Immutable;
+using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Text.Json;
 
 namespace Farsight.Chains;
@@ -8,15 +10,25 @@ namespace Farsight.Chains;
 /// </summary>
 public static class ChainRegistry
 {
-    private static readonly Assembly Assembly = typeof(ChainRegistry).Assembly;
+    private static readonly Assembly _assembly = typeof(ChainRegistry).Assembly;
 
     /// <summary>
     /// Returns metadata for all chains embedded in the assembly.
     /// </summary>
-    public static ChainMetadata[] GetAllChains()
+    public static ImmutableArray<ChainMetadata> Chains { get; } = ImmutableCollectionsMarshal.AsImmutableArray(GetAllChains());
+
+    /// <summary>
+    /// Checks if the given chain name matches a registered chain in the registry.
+    /// </summary>
+    /// <param name="chainName"></param>
+    /// <returns></returns>
+    public static bool IsRegisteredChain(string chainName)
+        => Chains.Any(x => x.Name.Equals(chainName, StringComparison.OrdinalIgnoreCase));
+
+    private static ChainMetadata[] GetAllChains()
     {
         string? @namespace = typeof(ChainRegistry).Namespace ?? throw new InvalidOperationException("Missing ChainRegistry Namespace");
-        string[] resourceNames = [.. Assembly.GetManifestResourceNames().Where(name => name.StartsWith(@namespace) && name.EndsWith(".json"))];
+        string[] resourceNames = [.. _assembly.GetManifestResourceNames().Where(name => name.StartsWith(@namespace) && name.EndsWith(".json"))];
 
         var chains = new ChainMetadata[resourceNames.Length];
 
@@ -24,7 +36,7 @@ public static class ChainRegistry
         {
             string ressourceName = resourceNames[i];
 
-            using var stream = Assembly.GetManifestResourceStream(ressourceName)
+            using var stream = _assembly.GetManifestResourceStream(ressourceName)
                 ?? throw new InvalidOperationException($"Embedded chain resource '{ressourceName}' was not found.");
 
             chains[i] = JsonSerializer.Deserialize(stream, ChainsJsonContext.Default.ChainMetadata)

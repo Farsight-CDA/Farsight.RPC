@@ -8,7 +8,6 @@ using EtherSharp.Tx.EIP1559;
 using EtherSharp.Wallet;
 using Farsight.Chains;
 using Farsight.Common;
-using Farsight.Common.Extensions;
 using Farsight.Rpc.Types;
 
 namespace Farsight.Rpc.Api.Services;
@@ -16,12 +15,8 @@ namespace Farsight.Rpc.Api.Services;
 public partial class ChainService : Singleton
 {
     private static readonly IEtherSigner _publicRpcValidationSigner = EtherHdWallet.Create();
-    private static readonly ReadOnlyMemory<ChainMetadata> _chains = ChainRegistry.GetAllChains();
 
     public sealed record RpcValidationResult(bool IsValid, ulong ChainId, TracingMode? TracingMode, string? ErrorMessage, int ErrorStatusCode);
-
-    public bool IsRegisteredChain(string chainName)
-        => _chains.Any(x => x.Name.Equals(chainName, StringComparison.OrdinalIgnoreCase));
 
     public async Task<RpcValidationResult> IsValidRpcAsync(Uri address, string chain, TimeSpan timeout, bool validateTracing = false, CancellationToken cancellationToken = default)
     {
@@ -32,7 +27,7 @@ public partial class ChainService : Singleton
 
         try
         {
-            ulong expectedChainId = _chains.Single(x => x.Name.Equals(chain, StringComparison.OrdinalIgnoreCase)).ChainId;
+            ulong expectedChainId = ChainRegistry.Chains.Single(x => x.Name.Equals(chain, StringComparison.OrdinalIgnoreCase)).ChainId;
             client = CreateValidationTxClient(address, timeout);
 
             await client.InitializeAsync(forceNoQuery: true, cts.Token);

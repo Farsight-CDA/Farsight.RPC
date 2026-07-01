@@ -36,11 +36,10 @@ public sealed class FarsightRpcClient : IFarsightRpcClient
             case HttpStatusCode.OK:
                 var result = await response.Content.ReadFromJsonAsync(FarsightRpcJsonContext.Default.ApiKeyRpcsDto, cancellationToken)
                     ?? throw new InvalidOperationException("Null response");
-                var chains = ChainRegistry.GetAllChains();
                 var resolveProvider = (Guid providerId) => result.Providers.FirstOrDefault(x => x.Id == providerId)
                     ?? throw new InvalidOperationException($"RPC response referenced unknown provider '{providerId}'.");
                 var rpcs = result.Rpcs.ToDictionary(
-                    group => chains.FirstOrDefault(x => x.Name == group.Key)
+                    group => ChainRegistry.Chains.FirstOrDefault(x => x.Name == group.Key)
                         ?? throw new InvalidOperationException($"RPC response referenced unknown chain '{group.Key}'."),
                     group => group.Value.Select<RpcEndpointDto, RpcEndpoint>(rpc => rpc switch
                     {

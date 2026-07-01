@@ -21,12 +21,13 @@ public partial class ChainlistPublicRpcSource : Singleton
         var chains = await JsonSerializer.DeserializeAsync(stream, ChainlistJsonContext.Default.ChainlistChainArray, cancellationToken)
             ?? [];
 
-        var knownChains = ChainRegistry.GetAllChains().ToArray().ToDictionary(chain => chain.ChainId);
         var rpcs = new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
 
         foreach(var chain in chains)
         {
-            if(!knownChains.TryGetValue(chain.ChainId, out var knownChain))
+            var knownChain = ChainRegistry.Chains.FirstOrDefault(x => x.ChainId == chain.ChainId);
+
+            if(knownChain is null)
             {
                 continue;
             }

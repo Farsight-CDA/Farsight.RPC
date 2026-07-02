@@ -6,6 +6,6 @@ namespace Farsight.Rpc.Api.Configuration;
 public sealed class PublicRpcsConfiguration
 {
     public TimeSpan RefreshInterval { get; init; } = TimeSpan.FromMinutes(30);
-    public int ValidationConcurrency { get; init; } = 20;
+    public int ValidationConcurrency { get; init; } = 3;
     public TimeSpan ValidationTimeout { get; init; } = TimeSpan.FromSeconds(5);
 }

@@ -109,7 +109,10 @@ public partial class PublicRpcRegistry : Singleton
             "cannot pay gas",
             "Transaction fee too low",
             "invalid gas price",
-            "gas fee cap is below the minimum base fee"
+            "gas fee cap is below the minimum base fee",
+            "value transfer not allowed",
+            "transaction gas price below minimum",
+            "below current base fee"
         ],
         StringComparison.OrdinalIgnoreCase
     );
@@ -162,6 +165,12 @@ public partial class PublicRpcRegistry : Singleton
         }
         catch(Exception ex)
         {
+            if(ex.Message.Contains("<html"))
+            {
+                _logger.LogDebug("Chain({chainId}): Dropping RPC {rpc}: {type}: Truncated HTML Return", chainId, address, ex.GetType().Name);
+                return false;
+            }
+
             _logger.LogDebug("Chain({chainId}): Dropping RPC {rpc}: {type}:{error}", chainId, address, ex.GetType().Name, ex.Message);
             return false;
         }

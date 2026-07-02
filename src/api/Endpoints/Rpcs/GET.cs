@@ -89,38 +89,42 @@ public sealed class GET(AppDbContext dbContext, PublicRpcRegistry publicRpcRegis
             .GroupBy(rpc => rpc.Chain)
             .ToDictionary(group => group.Key, group => group.Select(MapRpc).ToImmutableArray());
 
-        if(environment.EnablePublicRpcs)
+        if(!environment.EnablePublicRpcs)
         {
-            foreach(string chain in environment.Chains)
+            await Send.OkAsync(new ApiKeyRpcsDto(
+               responseRpcs,
+               providers,
+               errorGroups
+           ), ct);
+            return;
+        }
+
+        foreach(string chain in environment.Chains)
+        {
+            var publicRpcs = publicRpcRegistry.GetWorkingRpcs(chain)
+                .Select(address => new RpcEndpointDto.Public
+                {
+                    Id = Guid.NewGuid(),
+                    Address = address,
+                    ProviderId = BuiltInRpcProviders.PublicRpcProviderId,
+                })
+                .Cast<RpcEndpointDto>()
+                .ToImmutableArray();
+
+            if(publicRpcs.Length == 0)
             {
-                var publicRpcs = publicRpcRegistry.GetWorkingRpcs(chain)
-                    .Select(address => new RpcEndpointDto.Public
-                    {
-                        Id = Guid.NewGuid(),
-                        Address = address,
-                        ProviderId = BuiltInRpcProviders.PublicRpcProviderId,
-                    })
-                    .Cast<RpcEndpointDto>()
-                    .ToImmutableArray();
-
-                if(publicRpcs.Length == 0)
-                {
-                    continue;
-                }
-
-                if(providers.All(provider => provider.Id != BuiltInRpcProviders.PublicRpcProviderId))
-                {
-                    providers = providers.Add(new RpcProviderDto(
-                        BuiltInRpcProviders.PublicRpcProviderId,
-                        BuiltInRpcProviders.PUBLICRPCPROVIDERNAME,
-                        BuiltInRpcProviders.PUBLICRPCPROVIDERRATELIMIT
-                    ));
-                }
-
-                responseRpcs[chain] = responseRpcs.TryGetValue(chain, out var existingRpcs)
-                    ? existingRpcs.AddRange(publicRpcs)
-                    : publicRpcs;
+                continue;
             }
+
+            providers = providers.Add(new RpcProviderDto(
+                BuiltInRpcProviders.PublicRpcProviderId,
+                BuiltInRpcProviders.PUBLICRPCPROVIDERNAME,
+                BuiltInRpcProviders.PUBLICRPCPROVIDERRATELIMIT
+            ));
+
+            responseRpcs[chain] = responseRpcs.TryGetValue(chain, out var existingRpcs)
+                ? existingRpcs.AddRange(publicRpcs)
+                : publicRpcs;
         }
 
         await Send.OkAsync(new ApiKeyRpcsDto(

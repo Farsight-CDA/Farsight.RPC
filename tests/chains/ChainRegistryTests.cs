@@ -6,8 +6,5 @@ public sealed class ChainRegistryTests
 {
     [Fact]
     public void GetAllChains_ShouldReturnChains()
-    {
-        var chains = ChainRegistry.GetAllChains();
-        Assert.NotEmpty(chains);
-    }
+        => Assert.NotEmpty(ChainRegistry.Chains);
 }

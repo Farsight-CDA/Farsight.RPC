@@ -1,69 +1,169 @@
+using EtherSharp.Client;
+using EtherSharp.Common.Exceptions;
+using EtherSharp.Numerics;
+using EtherSharp.RPC.Modules.Eth;
+using EtherSharp.RPC.Transport;
+using EtherSharp.Tx;
+using EtherSharp.Tx.EIP1559;
+using EtherSharp.Tx.Legacy;
+using EtherSharp.Wallet;
+using Farsight.Chains;
 using Farsight.Common;
 using Farsight.Rpc.Api.Configuration;
-using System.Collections.Concurrent;
+using Farsight.Rpc.Api.Services.Chainlist;
+using System.Buffers;
 using System.Collections.Immutable;
 
 namespace Farsight.Rpc.Api.Services;
 
 public partial class PublicRpcRegistry : Singleton
 {
-    [Inject]
-    private readonly ChainlistPublicRpcSource _chainlistSource;
+    private static readonly EtherHdWallet _validationSigner = EtherHdWallet.Create();
 
     [Inject]
-    private readonly ChainService _chainService;
-
+    private readonly ChainlistApiClient _chainlistSource;
     [Inject]
-    private readonly PublicRpcsConfiguration _configuration;
+    private readonly PublicRpcsConfiguration _publicRpcConfiguration;
 
-    private volatile ImmutableDictionary<string, ImmutableArray<Uri>> _working = [];
+    private volatile ImmutableDictionary<string, ImmutableArray<Uri>> _publicRpcs = [];
 
     public ImmutableArray<Uri> GetWorkingRpcs(string chain)
-        => _working.TryGetValue(chain, out var endpoints) ? endpoints : [];
+        => _publicRpcs.TryGetValue(chain, out var endpoints) ? endpoints : [];
+
+    protected override async Task InitializeAsync(CancellationToken cancellationToken)
+        => await RefreshPublicRPCsAsync(cancellationToken);
 
     protected override async Task RunAsync(CancellationToken cancellationToken)
     {
-        while(!cancellationToken.IsCancellationRequested)
+        using var timer = new PeriodicTimer(_publicRpcConfiguration.RefreshInterval);
+
+        while(await timer.WaitForNextTickAsync(cancellationToken))
         {
             try
             {
-                var candidates = await _chainlistSource.FetchAsync(cancellationToken);
-                var validRpcs = new ConcurrentDictionary<string, ConcurrentBag<Uri>>(StringComparer.OrdinalIgnoreCase);
-                var candidateRpcs = candidates.SelectMany(group => group.Value.Select(address => (Chain: group.Key, Address: address)));
-
-                await Parallel.ForEachAsync(candidateRpcs, new ParallelOptions
-                {
-                    MaxDegreeOfParallelism = Math.Max(1, _configuration.ValidationConcurrency),
-                    CancellationToken = cancellationToken,
-                }, async (candidate, ct) =>
-                {
-                    if(!Uri.TryCreate(candidate.Address, UriKind.Absolute, out var uri))
-                    {
-                        return;
-                    }
-
-                    var validation = await _chainService.IsValidRpcAsync(uri, candidate.Chain, _configuration.ValidationTimeout, cancellationToken: ct);
-                    if(!validation.IsValid)
-                    {
-                        return;
-                    }
-
-                    validRpcs.GetOrAdd(candidate.Chain, static _ => []).Add(uri);
-                });
-
-                _working = validRpcs.ToImmutableDictionary(
-                    group => group.Key,
-                    group => group.Value.OrderBy(uri => uri.AbsoluteUri, StringComparer.OrdinalIgnoreCase).ToImmutableArray(),
-                    StringComparer.OrdinalIgnoreCase);
-
-                _logger.LogInformation("Public RPC refresh completed with {EndpointCount} validated endpoints across {ChainCount} chains.", _working.Values.Sum(endpoints => endpoints.Length), _working.Count);
+                await RefreshPublicRPCsAsync(cancellationToken);
             }
             catch(Exception ex) when(!cancellationToken.IsCancellationRequested)
             {
-                _logger.LogWarning(ex, "Public RPC refresh failed.");
+                _logger.LogError(ex, "Exception while refreshing public RPCs");
+            }
+        }
+    }
+
+    private async Task RefreshPublicRPCsAsync(CancellationToken cancellationToken)
+    {
+        var candidates = await _chainlistSource.FetchPublicRPCsAsync(cancellationToken);
+
+        var results = new List<ChainlistPublicRpc>();
+        var resultsLock = new Lock();
+
+        await Parallel.ForAsync(0, candidates.Length, new ParallelOptions
+        {
+            MaxDegreeOfParallelism = Math.Max(1, _publicRpcConfiguration.ValidationConcurrency),
+            CancellationToken = cancellationToken,
+        }, async (i, ct) =>
+        {
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            cts.CancelAfter(_publicRpcConfiguration.ValidationTimeout);
+
+            var candidate = candidates[i];
+
+            bool isValid = await ValidateRPCAsync(candidate.ChainId, candidate.Address, cts.Token);
+
+            if(!isValid)
+            {
+                return;
             }
 
-            await Task.Delay(_configuration.RefreshInterval, cancellationToken);
+            lock(resultsLock)
+            {
+                results.Add(candidate);
+            }
+        });
+
+        _publicRpcs = results
+            .GroupBy(x => x.ChainId)
+            .ToImmutableDictionary(
+                x => ChainRegistry.Chains.First(y => y.ChainId == x.Key).Name,
+                x => x.Select(y => y.Address).ToImmutableArray()
+            );
+
+        _logger.LogInformation("Public RPC refresh completed, stored {validCount} / {totalCount} public endpoints",
+            results.Count, candidates.Length);
+    }
+
+    private static readonly SearchValues<string> _validErrors = SearchValues.Create(
+        [
+            "insufficient funds",
+            "Insufficient balance",
+            "insufficient fee",
+            "tx fee",
+            "exceeds transaction sender account balance",
+            "max fee per gas less than block base fee",
+            "gas price less than block base fee",
+            "already known",
+            "transaction underpriced",
+            "insufficient to cover the transaction cost",
+            "Gas limit too low",
+            "the sender account doesn't exist",
+            "cannot pay gas",
+            "Transaction fee too low",
+            "invalid gas price",
+            "gas fee cap is below the minimum base fee"
+        ],
+        StringComparison.OrdinalIgnoreCase
+    );
+
+    private async Task<bool> ValidateRPCAsync(ulong chainId, Uri address, CancellationToken cancellationToken)
+    {
+        //ToDo: Install resiliency middleware
+        var client = EtherClientBuilder.CreateEmpty()
+            .WithRPCTransport(provider => address.Scheme is "ws" or "wss"
+                ? new WssJsonRpcTransport(address, TimeSpan.FromSeconds(30), provider, [])
+                : new HttpJsonRpcTransport(address, provider, []))
+            .BuildReadClient();
+
+        try
+        {
+            await client.InitializeAsync(forceNoQuery: true, cancellationToken);
+
+            if(client.ChainId != chainId)
+            {
+                _logger.LogDebug("Chain({chainId}): Dropping RPC {rpc}: ChainId mismatch", chainId, address);
+                return false;
+            }
+
+            var handler = new LegacyTxTypeHandler(_validationSigner, client.AsInternal().RPC);
+            await handler.InitializeAsync(chainId, cancellationToken);
+
+            string txBytes = handler.EncodeTxToBytes(
+                ITxInput.ForEthTransfer(_validationSigner.Address, 1),
+                LegacyTxParams.Default,
+                new LegacyGasParams(21000, UInt256.Pow(10, 9)),
+                1,
+                out _
+            );
+
+            var rpcModule = client.AsInternal().Provider.GetRequiredService<IEthRpcModule>();
+
+            await rpcModule.SendRawTransactionAsync(txBytes, cancellationToken);
+            return false;
+        }
+        catch(RPCException ex)
+        {
+            bool isValid = ex.Message.ContainsAny(_validErrors);
+
+            if(!isValid)
+            {
+                _logger.LogDebug("Chain({chainId}): Dropping RPC {rpc}: {error}", chainId, address, ex.Message);
+            }
+
+            return isValid;
+        }
+        catch(Exception ex)
+        {
+            _logger.LogDebug("Chain({chainId}): Dropping RPC {rpc}: {type}:{error}", chainId, address, ex.GetType().Name, ex.Message);
+            return false;
         }
     }
 }

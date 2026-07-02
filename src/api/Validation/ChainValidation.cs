@@ -1,3 +1,4 @@
+using Farsight.Chains;
 using Farsight.Rpc.Api.Services;
 using FluentValidation;
 
@@ -9,13 +10,13 @@ internal static class ChainValidation
     public const string LENGTH_MESSAGE = "Chain cannot be longer than 30 characters.";
     public const string INVALID_MESSAGE = "Chain is invalid.";
 
-    public static IRuleBuilderOptions<T, string> ApplyChainValidation<T>(this IRuleBuilderInitial<T, string> ruleBuilder, ChainService chainService)
+    public static IRuleBuilderOptions<T, string> ApplyChainValidation<T>(this IRuleBuilderInitial<T, string> ruleBuilder)
         => ruleBuilder
             .Cascade(CascadeMode.Stop)
             .Must(static chain => !String.IsNullOrWhiteSpace(chain))
             .WithMessage(REQUIRED_MESSAGE)
             .MaximumLength(30)
             .WithMessage(LENGTH_MESSAGE)
-            .Must(chainService.IsRegisteredChain)
+            .Must(ChainRegistry.IsRegisteredChain)
             .WithMessage(INVALID_MESSAGE);
 }

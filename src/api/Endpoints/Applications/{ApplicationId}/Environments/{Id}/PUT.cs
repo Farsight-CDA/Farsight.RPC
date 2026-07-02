@@ -21,7 +21,7 @@ public sealed class PUT(AppDbContext dbContext) : Endpoint<PUT.Request>
 
     public sealed class Validator : Validator<Request>
     {
-        public Validator(ChainService chainService)
+        public Validator()
         {
             RuleFor(x => x.Name).ApplyNameValidation();
 

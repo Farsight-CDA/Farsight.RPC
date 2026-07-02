@@ -23,14 +23,14 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request>
 
     public sealed class Validator : Validator<Request>
     {
-        public Validator(ChainService chainService)
+        public Validator()
         {
             RuleFor(x => x.EnvironmentId)
                 .Must(static environmentId => environmentId != Guid.Empty)
                 .WithMessage("Environment is required.");
 
             RuleFor(x => x.Chain)
-                .ApplyChainValidation(chainService);
+                .ApplyChainValidation();
 
             RuleFor(x => x.Address)
                 .ApplyRpcAddressValidation();

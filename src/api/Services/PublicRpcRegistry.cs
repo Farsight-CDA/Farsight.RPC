@@ -53,6 +53,8 @@ public partial class PublicRpcRegistry : Singleton
 
     private async Task RefreshPublicRPCsAsync(CancellationToken cancellationToken)
     {
+        _logger.LogInformation("Refreshing public rpcs...");
+
         var candidates = await _chainlistSource.FetchPublicRPCsAsync(cancellationToken);
 
         var results = new List<ChainlistPublicRpc>();

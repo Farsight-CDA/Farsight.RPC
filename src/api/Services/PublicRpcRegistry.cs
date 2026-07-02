@@ -25,7 +25,7 @@ public partial class PublicRpcRegistry : Singleton
     [Inject]
     private readonly PublicRpcsConfiguration _publicRpcConfiguration;
 
-    private volatile ImmutableDictionary<string, ImmutableArray<Uri>> _publicRpcs = [];
+    private ImmutableDictionary<string, ImmutableArray<Uri>> _publicRpcs = [];
 
     public ImmutableArray<Uri> GetWorkingRpcs(string chain)
         => _publicRpcs.TryGetValue(chain, out var endpoints) ? endpoints : [];
@@ -136,7 +136,7 @@ public partial class PublicRpcRegistry : Singleton
                 return false;
             }
 
-            var handler = new LegacyTxTypeHandler(_validationSigner, client.AsInternal().RPC);
+            var handler = new LegacyTxTypeHandler(_validationSigner);
             await handler.InitializeAsync(chainId, cancellationToken);
 
             string txBytes = handler.EncodeTxToBytes(

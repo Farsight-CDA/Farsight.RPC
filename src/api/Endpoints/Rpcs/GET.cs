@@ -44,21 +44,15 @@ public sealed class GET(AppDbContext dbContext, PublicRpcRegistry publicRpcRegis
             ThrowError("API key not found.", 403);
         }
 
-        string[] activeChains = await dbContext.ApplicationEnvironments
+        var environment = await dbContext.ApplicationEnvironments
             .AsNoTracking()
             .Where(environment => environment.ApplicationId == key.ApplicationId && environment.Id == key.EnvironmentId)
-            .Select(environment => environment.Chains)
-            .SingleAsync(ct);
-
-        bool enablePublicRpcs = await dbContext.ApplicationEnvironments
-            .AsNoTracking()
-            .Where(environment => environment.ApplicationId == key.ApplicationId && environment.Id == key.EnvironmentId)
-            .Select(environment => environment.EnablePublicRpcs)
+            .Select(environment => new { environment.Chains, environment.EnablePublicRpcs })
             .SingleAsync(ct);
 
         var rpcs = await dbContext.Rpcs
             .AsNoTracking()
-            .Where(rpc => rpc.ApplicationId == key.ApplicationId && rpc.EnvironmentId == key.EnvironmentId && activeChains.Contains(rpc.Chain))
+            .Where(rpc => rpc.ApplicationId == key.ApplicationId && rpc.EnvironmentId == key.EnvironmentId && environment.Chains.Contains(rpc.Chain))
             .OrderBy(rpc => rpc.Chain)
             .ThenBy(rpc => EF.Property<string>(rpc, "RpcType"))
             .ThenBy(rpc => rpc.Id)
@@ -95,9 +89,9 @@ public sealed class GET(AppDbContext dbContext, PublicRpcRegistry publicRpcRegis
             .GroupBy(rpc => rpc.Chain)
             .ToDictionary(group => group.Key, group => group.Select(MapRpc).ToImmutableArray());
 
-        if(enablePublicRpcs)
+        if(environment.EnablePublicRpcs)
         {
-            foreach(string chain in activeChains)
+            foreach(string chain in environment.Chains)
             {
                 var publicRpcs = publicRpcRegistry.GetWorkingRpcs(chain)
                     .Select(address => new RpcEndpointDto.Public

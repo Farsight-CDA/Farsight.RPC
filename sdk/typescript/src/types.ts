@@ -41,6 +41,8 @@ export type RpcEndpoint = RealtimeRpcEndpoint | ArchiveRpcEndpoint | TracingRpcE
 export interface GetRpcsSuccessResult {
   kind: "success";
   rpcs: Record<string, RpcEndpoint[]>;
+  publicRpcs: Record<string, string[]>;
+  publicRpcsUpdatedAt: string | null;
   providers: RpcProvider[];
   errorGroups: RpcErrorGroup[];
 }

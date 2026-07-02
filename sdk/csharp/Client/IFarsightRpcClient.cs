@@ -15,10 +15,14 @@ public partial interface IFarsightRpcClient
         /// Represents a successful RPC lookup.
         /// </summary>
         /// <param name="Rpcs">The RPC endpoints available to the configured API key, grouped by chain metadata.</param>
+        /// <param name="PublicRpcs">The public RPC endpoints available to the configured API key, grouped by chain metadata.</param>
+        /// <param name="PublicRpcsUpdatedAt">The timestamp of the last successful public RPC registry refresh.</param>
         /// <param name="Providers">The providers referenced by the returned RPC endpoints.</param>
         /// <param name="ErrorGroups">The globally configured RPC error groups.</param>
         public sealed record Success(
             Dictionary<ChainMetadata, ImmutableArray<RpcEndpoint>> Rpcs,
+            Dictionary<ChainMetadata, ImmutableArray<Uri>> PublicRpcs,
+            DateTimeOffset? PublicRpcsUpdatedAt,
             ImmutableArray<RpcProviderDto> Providers,
             ImmutableArray<RpcErrorGroupDto> ErrorGroups
         ) : GetRpcsResult;

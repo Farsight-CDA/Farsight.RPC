@@ -38,6 +38,7 @@ public sealed class FarsightRpcClient : IFarsightRpcClient
                     ?? throw new InvalidOperationException("Null response");
                 var resolveProvider = (Guid providerId) => result.Providers.FirstOrDefault(x => x.Id == providerId)
                     ?? throw new InvalidOperationException($"RPC response referenced unknown provider '{providerId}'.");
+
                 var rpcs = result.Rpcs.ToDictionary(
                     group => ChainRegistry.Chains.FirstOrDefault(x => x.Name == group.Key)
                         ?? throw new InvalidOperationException($"RPC response referenced unknown chain '{group.Key}'."),
@@ -47,12 +48,6 @@ public sealed class FarsightRpcClient : IFarsightRpcClient
                         {
                             Id = realtime.Id,
                             Address = realtime.Address,
-                            Provider = resolveProvider(rpc.ProviderId),
-                        },
-                        RpcEndpointDto.Public publicRpc => new RpcEndpoint.Public
-                        {
-                            Id = publicRpc.Id,
-                            Address = publicRpc.Address,
                             Provider = resolveProvider(rpc.ProviderId),
                         },
                         RpcEndpointDto.Archive archive => new RpcEndpoint.Archive
@@ -73,8 +68,13 @@ public sealed class FarsightRpcClient : IFarsightRpcClient
                         _ => throw new NotSupportedException($"Unsupported RPC type '{rpc.GetType().Name}'.")
                     }).ToImmutableArray()
                 );
+                var publicRpcs = result.PublicRpcs.ToDictionary(
+                    group => ChainRegistry.Chains.FirstOrDefault(x => x.Name == group.Key)
+                        ?? throw new InvalidOperationException($"RPC response referenced unknown chain '{group.Key}'."),
+                    group => group.Value
+                );
 
-                return new GetRpcsResult.Success(rpcs, result.Providers, result.ErrorGroups);
+                return new GetRpcsResult.Success(rpcs, publicRpcs, result.PublicRpcsUpdatedAt, result.Providers, result.ErrorGroups);
             default:
                 response.EnsureSuccessStatusCode();
                 throw new InvalidOperationException();

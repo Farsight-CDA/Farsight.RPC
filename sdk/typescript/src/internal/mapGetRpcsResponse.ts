@@ -18,6 +18,8 @@ import {
 
 type RawGetRpcsResponse = {
   Rpcs: Record<string, RawRpcEndpoint[]>;
+  PublicRpcs: Record<string, string[]>;
+  PublicRpcsUpdatedAt?: string | null;
   Providers: RawRpcProvider[];
   ErrorGroups: RawRpcErrorGroup[];
 };
@@ -62,6 +64,7 @@ type RawRpcEndpoint = RawRealtimeRpcEndpoint | RawArchiveRpcEndpoint | RawTracin
 export function mapGetRpcsResponse(payload: unknown): GetRpcsSuccessResult {
   const response = asRecord(payload, "Expected the API response to be an object.") as Partial<RawGetRpcsResponse>;
   const rawRpcs = asRecord(response.Rpcs, "Expected response.Rpcs to be an object.");
+  const rawPublicRpcs = asRecord(response.PublicRpcs, "Expected response.PublicRpcs to be an object.");
   const providers = asArray(response.Providers, "Expected response.Providers to be an array.").map(mapProvider);
   const errorGroups = asArray(response.ErrorGroups, "Expected response.ErrorGroups to be an array.").map(mapErrorGroup);
 
@@ -71,10 +74,23 @@ export function mapGetRpcsResponse(payload: unknown): GetRpcsSuccessResult {
       asArray(value, `Expected response.Rpcs.${chain} to be an array.`).map(mapRpcEndpoint),
     ]),
   );
+  const publicRpcs = Object.fromEntries(
+    Object.entries(rawPublicRpcs).map(([chain, value]) => [
+      chain,
+      asArray(value, `Expected response.PublicRpcs.${chain} to be an array.`).map((address) =>
+        readString(address, `Expected response.PublicRpcs.${chain} item to be a string.`),
+      ),
+    ]),
+  );
 
   return {
     kind: "success",
     rpcs,
+    publicRpcs,
+    publicRpcsUpdatedAt:
+      response.PublicRpcsUpdatedAt == null
+        ? null
+        : readString(response.PublicRpcsUpdatedAt, "Expected response.PublicRpcsUpdatedAt to be a string."),
     providers,
     errorGroups,
   };

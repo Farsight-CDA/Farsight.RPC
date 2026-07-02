@@ -1,5 +1,4 @@
 using Farsight.Common.Extensions;
-using Farsight.Rpc.Api.Common;
 using Farsight.Rpc.Api.Persistence;
 using Farsight.Rpc.Api.Persistence.Entities.Rpc;
 using Farsight.Rpc.Api.Services;
@@ -89,46 +88,17 @@ public sealed class GET(AppDbContext dbContext, PublicRpcRegistry publicRpcRegis
             .GroupBy(rpc => rpc.Chain)
             .ToDictionary(group => group.Key, group => group.Select(MapRpc).ToImmutableArray());
 
-        if(!environment.EnablePublicRpcs)
-        {
-            await Send.OkAsync(new ApiKeyRpcsDto(
-               responseRpcs,
-               providers,
-               errorGroups
-           ), ct);
-            return;
-        }
-
-        foreach(string chain in environment.Chains)
-        {
-            var publicRpcs = publicRpcRegistry.GetWorkingRpcs(chain)
-                .Select(address => new RpcEndpointDto.Public
-                {
-                    Id = Guid.NewGuid(),
-                    Address = address,
-                    ProviderId = BuiltInRpcProviders.PublicRpcProviderId,
-                })
-                .Cast<RpcEndpointDto>()
-                .ToImmutableArray();
-
-            if(publicRpcs.Length == 0)
-            {
-                continue;
-            }
-
-            providers = providers.Add(new RpcProviderDto(
-                BuiltInRpcProviders.PublicRpcProviderId,
-                BuiltInRpcProviders.PUBLICRPCPROVIDERNAME,
-                BuiltInRpcProviders.PUBLICRPCPROVIDERRATELIMIT
-            ));
-
-            responseRpcs[chain] = responseRpcs.TryGetValue(chain, out var existingRpcs)
-                ? existingRpcs.AddRange(publicRpcs)
-                : publicRpcs;
-        }
+        var publicRpcs = environment.EnablePublicRpcs
+            ? environment.Chains
+                .Select(chain => new { Chain = chain, Rpcs = publicRpcRegistry.GetWorkingRpcs(chain) })
+                .Where(group => group.Rpcs.Length > 0)
+                .ToDictionary(group => group.Chain, group => group.Rpcs)
+            : [];
 
         await Send.OkAsync(new ApiKeyRpcsDto(
             responseRpcs,
+            publicRpcs,
+            environment.EnablePublicRpcs ? publicRpcRegistry.LastUpdatedAt : null,
             providers,
             errorGroups
         ), ct);

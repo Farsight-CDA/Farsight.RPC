@@ -26,6 +26,7 @@ public partial class PublicRpcRegistry : Singleton
     private readonly PublicRpcsConfiguration _publicRpcConfiguration;
 
     private ImmutableDictionary<string, ImmutableArray<Uri>> _publicRpcs = [];
+    public DateTimeOffset? LastUpdatedAt { get; private set; }
 
     public ImmutableArray<Uri> GetWorkingRpcs(string chain)
         => _publicRpcs.TryGetValue(chain, out var endpoints) ? endpoints : [];
@@ -87,6 +88,7 @@ public partial class PublicRpcRegistry : Singleton
                 x => ChainRegistry.Chains.First(y => y.ChainId == x.Key).Name,
                 x => x.Select(y => y.Address).ToImmutableArray()
             );
+        LastUpdatedAt = DateTimeOffset.UtcNow;
 
         _logger.LogInformation("Public RPC refresh completed, stored {validCount} / {totalCount} public endpoints",
             results.Count, candidates.Length);

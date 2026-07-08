@@ -70,6 +70,7 @@ Each `ChainMetadata` record contains:
 | Plume | ETH |
 | Polygon | POL |
 | PulseChain | PLS |
+| Rise Chain | ETH |
 | Rootstock | RBTC |
 | Scroll | ETH |
 | Sei | SEI |

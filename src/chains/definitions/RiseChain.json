@@ -1,0 +1,22 @@
+{
+  "Name": "Rise Chain",
+  "ChainId": 4153,
+  "CanReorg": true,
+  "SupportsPriorityFees": true,
+  "SupportsGasRefunds": true,
+  "BlockGasLimitM": 1500,
+  "NativeCurrency": {
+    "Name": "Ether",
+    "Symbol": "ETH",
+    "Decimals": 18,
+    "PythFeedId": "0xff61491a931112ddf1bd8147cd1b641375f79f5825126d665480874634fd0ace",
+    "WrappedTokenAddress": "0x4200000000000000000000000000000000000006"
+  },
+  "FlashCallerAddress": "0x31ab65b220487210bbde88b5b8fa1f9aaa77ae76",
+  "StablecoinAddresses": [
+    "0xe436820ba0C69702c1d3E601d421c0eF38262739",
+    "0x62b7f5A5Be488ea58f660C5aff465647213Bc6e9"
+  ],
+  "Api3": null,
+  "Pyth": null
+}

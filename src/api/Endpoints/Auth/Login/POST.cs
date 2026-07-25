@@ -30,10 +30,10 @@ public sealed class POST(AdminLoginConfiguration adminLoginConfiguration, JwtCon
 
     public override async Task HandleAsync(Request req, CancellationToken ct)
     {
-        string? configuredPassword = adminLoginConfiguration.Users
-            .SingleOrDefault(x => x.Username == req.Username)?.Password;
+        AdminLoginConfiguration.UserConfiguration? user = adminLoginConfiguration.Users
+            .SingleOrDefault(x => x.Username == req.Username);
 
-        if(configuredPassword is null || !IsValidPassword(req.Password, configuredPassword))
+        if(user is null || !IsValidPassword(req.Password, user.PasswordHash))
         {
             await Send.UnauthorizedAsync(ct);
             return;
@@ -53,11 +53,10 @@ public sealed class POST(AdminLoginConfiguration adminLoginConfiguration, JwtCon
         await Send.OkAsync(new Response(token, req.Username, expiresUtc), ct);
     }
 
-    private static bool IsValidPassword(string password, string configuredPassword)
+    private static bool IsValidPassword(string password, string passwordHash)
     {
-        byte[] providedPassword = Encoding.UTF8.GetBytes(password);
-        byte[] configuredPasswordBytes = Encoding.UTF8.GetBytes(configuredPassword);
-        return providedPassword.Length == configuredPasswordBytes.Length
-            && CryptographicOperations.FixedTimeEquals(providedPassword, configuredPasswordBytes);
+        byte[] providedHash = SHA256.HashData(Encoding.UTF8.GetBytes(password));
+        byte[] configuredHash = Convert.FromHexString(passwordHash);
+        return CryptographicOperations.FixedTimeEquals(providedHash, configuredHash);
     }
 }

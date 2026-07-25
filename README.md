@@ -17,7 +17,7 @@
 
 ## Admin users
 
-Admin login credentials are configured as a list in the API's `AdminLogin` configuration section. Every configured user has the same administrator access.
+Admin login credentials are configured as a list in the API's `AdminLogin` configuration section. Every configured user has the same administrator access. Passwords are configured as SHA-256 hashes instead of plaintext.
 
 ```json
 {
@@ -25,15 +25,21 @@ Admin login credentials are configured as a list in the API's `AdminLogin` confi
     "Users": [
       {
         "Username": "alice",
-        "Password": "alice-password"
+        "PasswordHash": "17a96502d336e4c18a43182a353d7f0a38414c6fc4daf678acae834a819cecee"
       },
       {
         "Username": "bob",
-        "Password": "bob-password"
+        "PasswordHash": "df53c27a66157885ba143e34f25d6380e12168b0f7da4f0c46efa54cd9a083b7"
       }
     ]
   }
 }
+```
+
+Generate each value with any standard SHA-256 tool. For example, on Linux:
+
+```bash
+printf %s 'your-password' | sha256sum
 ```
 
 ## SDKs

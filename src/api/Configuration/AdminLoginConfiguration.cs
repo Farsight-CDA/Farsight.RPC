@@ -22,7 +22,11 @@ public sealed class AdminLoginConfiguration
             RuleForEach(x => x.Users).ChildRules(user =>
             {
                 user.RuleFor(x => x.Username).NotEmpty();
-                user.RuleFor(x => x.Password).NotEmpty();
+                user.RuleFor(x => x.PasswordHash)
+                    .NotEmpty()
+                    .Length(64)
+                    .Matches("^[a-fA-F0-9]{64}$")
+                    .WithMessage("Admin login password hashes must be SHA-256 hexadecimal strings.");
             });
         }
     }
@@ -30,6 +34,6 @@ public sealed class AdminLoginConfiguration
     public sealed class UserConfiguration
     {
         public string Username { get; set; } = string.Empty;
-        public string Password { get; set; } = string.Empty;
+        public string PasswordHash { get; set; } = string.Empty;
     }
 }

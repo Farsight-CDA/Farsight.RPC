@@ -13,7 +13,8 @@ public sealed class POST(
     AdminLoginConfiguration adminLoginConfiguration,
     AppDbContext dbContext,
     SecurityKeyService securityKeyService,
-    AuthenticationTokenService tokenService) : Endpoint<POST.Request, POST.Response>
+    AuthenticationTokenService tokenService,
+    ILogger<POST> logger) : Endpoint<POST.Request, POST.Response>
 {
     public sealed record Request(
         Guid ChallengeId,
@@ -85,13 +86,21 @@ public sealed class POST(
         {
             assertion = await securityKeyService.VerifyAssertionAsync(req.Assertion, challenge.Options, securityKey, ct);
         }
-        catch(Fido2VerificationException)
+        catch(Fido2VerificationException ex)
         {
+            logger.LogWarning(ex,
+                "Security key login verification failed for user {Username} and challenge {ChallengeId}",
+                challenge.Username,
+                req.ChallengeId);
             await Send.UnauthorizedAsync(ct);
             return;
         }
-        catch(ArgumentException)
+        catch(ArgumentException ex)
         {
+            logger.LogWarning(ex,
+                "Security key login response was invalid for user {Username} and challenge {ChallengeId}",
+                challenge.Username,
+                req.ChallengeId);
             await Send.UnauthorizedAsync(ct);
             return;
         }

@@ -12,7 +12,8 @@ namespace Farsight.Rpc.Api.Endpoints.Auth.SecurityKeys;
 
 public sealed class POST(
     AppDbContext dbContext,
-    SecurityKeyService securityKeyService) : Endpoint<POST.Request, POST.Response>
+    SecurityKeyService securityKeyService,
+    ILogger<POST> logger) : Endpoint<POST.Request, POST.Response>
 {
     public sealed record Request(
         Guid ChallengeId,
@@ -77,13 +78,21 @@ public sealed class POST(
                 ct
             );
         }
-        catch(Fido2VerificationException)
+        catch(Fido2VerificationException ex)
         {
+            logger.LogWarning(ex,
+                "Security key registration verification failed for user {Username} and challenge {ChallengeId}",
+                username,
+                req.ChallengeId);
             ThrowError("The security key response is invalid.", StatusCodes.Status400BadRequest);
             return;
         }
-        catch(ArgumentException)
+        catch(ArgumentException ex)
         {
+            logger.LogWarning(ex,
+                "Security key registration response was invalid for user {Username} and challenge {ChallengeId}",
+                username,
+                req.ChallengeId);
             ThrowError("The security key response is invalid.", StatusCodes.Status400BadRequest);
             return;
         }

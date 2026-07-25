@@ -61,6 +61,7 @@ public static class App
         var instrumentationOptions = builder.Configuration.GetSection("Instrumentation").Get<InstrumentationConfiguration>()
             ?? new InstrumentationConfiguration();
 
+#if !DEBUG
         if(instrumentationOptions.EnableMetrics)
         {
             _ = builder.Services.AddOpenTelemetry()
@@ -74,6 +75,7 @@ public static class App
                     .AddPrometheusHttpListener(x => x.UriPrefixes = [instrumentationOptions.MetricsListenUrl])
                 );
         }
+#endif
 
         if(instrumentationOptions.EnableLogs)
         {

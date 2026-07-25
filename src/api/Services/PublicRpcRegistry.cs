@@ -31,8 +31,18 @@ public partial class PublicRpcRegistry : Singleton
     public ImmutableArray<Uri> GetWorkingRpcs(string chain)
         => _publicRpcs.TryGetValue(chain, out var endpoints) ? endpoints : [];
 
-    protected override async Task InitializeAsync(CancellationToken cancellationToken)
-        => await RefreshPublicRPCsAsync(cancellationToken);
+#if DEBUG
+    protected override Task InitializeAsync(CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("Public RPC probing is disabled in Debug builds");
+        return Task.CompletedTask;
+    }
+
+    protected override Task RunAsync(CancellationToken cancellationToken)
+        => Task.CompletedTask;
+#else
+    protected override Task InitializeAsync(CancellationToken cancellationToken)
+        => RefreshPublicRPCsAsync(cancellationToken);
 
     protected override async Task RunAsync(CancellationToken cancellationToken)
     {
@@ -50,6 +60,7 @@ public partial class PublicRpcRegistry : Singleton
             }
         }
     }
+#endif
 
     private async Task RefreshPublicRPCsAsync(CancellationToken cancellationToken)
     {

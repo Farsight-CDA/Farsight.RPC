@@ -21,7 +21,7 @@ public sealed class AdminLoginConfiguration
 
             RuleForEach(x => x.Users).ChildRules(user =>
             {
-                user.RuleFor(x => x.Username).NotEmpty();
+                user.RuleFor(x => x.Username).NotEmpty().MaximumLength(200);
                 user.RuleFor(x => x.PasswordHash)
                     .NotEmpty()
                     .Length(64)
@@ -33,7 +33,7 @@ public sealed class AdminLoginConfiguration
 
     public sealed class UserConfiguration
     {
-        public string Username { get; set; } = string.Empty;
-        public string PasswordHash { get; set; } = string.Empty;
+        public string Username { get; set; } = String.Empty;
+        public string PasswordHash { get; set; } = String.Empty;
     }
 }

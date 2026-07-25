@@ -13,6 +13,10 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     public DbSet<ConsumerApiKey> ConsumerApiKeys => Set<ConsumerApiKey>();
     public DbSet<RpcErrorGroup> RpcErrorGroups => Set<RpcErrorGroup>();
     public DbSet<RpcProvider> RpcProviders => Set<RpcProvider>();
+    public DbSet<SecurityKeyChallenge> SecurityKeyChallenges => Set<SecurityKeyChallenge>();
+    public DbSet<SecurityKeyChallenge.Login> SecurityKeyLoginChallenges => Set<SecurityKeyChallenge.Login>();
+    public DbSet<SecurityKeyChallenge.Registration> SecurityKeyRegistrationChallenges => Set<SecurityKeyChallenge.Registration>();
+    public DbSet<UserSecurityKey> UserSecurityKeys => Set<UserSecurityKey>();
 
     public DbSet<RpcEndpoint> Rpcs => Set<RpcEndpoint>();
     public DbSet<RpcEndpoint.Realtime> RealtimeRpcs => Set<RpcEndpoint.Realtime>();

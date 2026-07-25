@@ -1,15 +1,21 @@
 using Farsight.Rpc.Api.Auth;
 using Farsight.Rpc.Api.Configuration;
+using Farsight.Rpc.Api.Persistence;
+using Farsight.Rpc.Api.Persistence.Entities;
 using FastEndpoints;
-using FastEndpoints.Security;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
+using Fido2NetLib;
+using Microsoft.EntityFrameworkCore;
 using System.Security.Cryptography;
 using System.Text;
 
 namespace Farsight.Rpc.Api.Endpoints.Auth.Login;
 
-public sealed class POST(AdminLoginConfiguration adminLoginConfiguration, JwtConfiguration jwtConfiguration) : Endpoint<POST.Request, POST.Response>
+public sealed class POST(
+    AdminLoginConfiguration adminLoginConfiguration,
+    AppDbContext dbContext,
+    SecurityKeyConfiguration securityKeyConfiguration,
+    SecurityKeyService securityKeyService,
+    AuthenticationTokenService tokenService) : Endpoint<POST.Request, POST.Response>
 {
     public sealed record Request(
         string Username,
@@ -17,9 +23,12 @@ public sealed class POST(AdminLoginConfiguration adminLoginConfiguration, JwtCon
     );
 
     public new sealed record Response(
-        string Token,
+        string? Token,
         string Username,
-        DateTimeOffset ExpiresUtc
+        DateTimeOffset? ExpiresUtc,
+        bool RequiresTwoFactor,
+        Guid? TwoFactorChallengeId,
+        AssertionOptions? SecurityKeyOptions
     );
 
     public override void Configure()
@@ -30,7 +39,7 @@ public sealed class POST(AdminLoginConfiguration adminLoginConfiguration, JwtCon
 
     public override async Task HandleAsync(Request req, CancellationToken ct)
     {
-        AdminLoginConfiguration.UserConfiguration? user = adminLoginConfiguration.Users
+        var user = adminLoginConfiguration.Users
             .SingleOrDefault(x => x.Username == req.Username);
 
         if(user is null || !IsValidPassword(req.Password, user.PasswordHash))
@@ -39,18 +48,34 @@ public sealed class POST(AdminLoginConfiguration adminLoginConfiguration, JwtCon
             return;
         }
 
-        var expiresUtc = DateTimeOffset.UtcNow.AddMinutes(jwtConfiguration.ExpiryMinutes);
-        string token = JwtBearer.CreateToken(options =>
-        {
-            options.ExpireAt = expiresUtc.UtcDateTime;
-            options.User.Roles.Add(AuthRoles.ADMIN);
-            options.User.Claims.Add(new Claim(JwtRegisteredClaimNames.Sub, req.Username));
-            options.User.Claims.Add(new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()));
-            options.User.Claims.Add(new Claim(ClaimTypes.NameIdentifier, AuthRoles.ADMIN));
-            options.User.Claims.Add(new Claim(ClaimTypes.Name, req.Username));
-        });
+        var securityKeys = await dbContext.UserSecurityKeys
+            .Where(key => key.Username == req.Username)
+            .ToArrayAsync(ct);
 
-        await Send.OkAsync(new Response(token, req.Username, expiresUtc), ct);
+        if(securityKeys.Length > 0)
+        {
+            var options = securityKeyService.CreateAssertionOptions(securityKeys);
+            var now = DateTimeOffset.UtcNow;
+            await dbContext.SecurityKeyChallenges
+                .Where(challenge => challenge.ExpiresAt <= now)
+                .ExecuteDeleteAsync(ct);
+
+            var challenge = new SecurityKeyChallenge.Login
+            {
+                Id = Guid.NewGuid(),
+                Username = req.Username,
+                Options = options,
+                ExpiresAt = now.AddMinutes(securityKeyConfiguration.ChallengeExpiryMinutes),
+            };
+
+            dbContext.SecurityKeyLoginChallenges.Add(challenge);
+            await dbContext.SaveChangesAsync(ct);
+            await Send.OkAsync(new Response(null, req.Username, null, true, challenge.Id, options), ct);
+            return;
+        }
+
+        var accessToken = tokenService.CreateAccessToken(req.Username);
+        await Send.OkAsync(new Response(accessToken.Token, req.Username, accessToken.ExpiresUtc, false, null, null), ct);
     }
 
     private static bool IsValidPassword(string password, string passwordHash)

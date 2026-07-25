@@ -27,6 +27,7 @@ import ErrorGroupLayout from "./pages/ErrorGroupLayout";
 import ErrorGroupGeneralPage from "./pages/ErrorGroupGeneralPage";
 import ErrorGroupMatchedPage from "./pages/ErrorGroupMatchedPage";
 import HomePage from "./pages/HomePage";
+import AccountPage from "./pages/AccountPage";
 
 function ApplicationShell(props: RouteSectionProps) {
   return (
@@ -73,6 +74,14 @@ export default function App(props: AppProps) {
             component={() => (
               <RequireAuth>
                 <DashboardPage />
+              </RequireAuth>
+            )}
+          />
+          <Route
+            path="/account"
+            component={() => (
+              <RequireAuth>
+                <AccountPage />
               </RequireAuth>
             )}
           />

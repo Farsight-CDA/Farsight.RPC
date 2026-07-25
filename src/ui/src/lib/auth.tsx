@@ -4,6 +4,13 @@ import {
   createSignal,
   type ParentComponent,
 } from "solid-js";
+import {
+  isWebAuthnSupported,
+  serializeAssertion,
+  toRequestOptions,
+  webAuthnErrorMessage,
+  type AssertionOptionsJson,
+} from "./webauthn";
 
 export interface AuthState {
   token: string | null;
@@ -11,8 +18,20 @@ export interface AuthState {
   expiresUtc: string | null;
 }
 
+export type LoginResult =
+  | { kind: "success"; state: AuthState }
+  | {
+      kind: "requiresTwoFactor";
+      challengeId: string;
+      options: AssertionOptionsJson;
+    };
+
 interface AuthContextValue extends AuthState {
-  login: (username: string, password: string) => Promise<AuthState>;
+  login: (username: string, password: string) => Promise<LoginResult>;
+  loginWithSecurityKey: (
+    challengeId: string,
+    options: AssertionOptionsJson,
+  ) => Promise<AuthState>;
   logout: () => void;
   isAuthenticated: () => boolean;
 }
@@ -55,7 +74,15 @@ export const AuthProvider: ParentComponent<AuthProviderProps> = (props) => {
     return true;
   };
 
-  const login = async (user: string, password: string) => {
+  const applyAuthState = (state: AuthState): AuthState => {
+    setToken(state.token);
+    setUsername(state.username);
+    setExpiresUtc(state.expiresUtc);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    return state;
+  };
+
+  const login = async (user: string, password: string): Promise<LoginResult> => {
     const response = await fetch("/api/Auth/Login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -69,22 +96,89 @@ export const AuthProvider: ParentComponent<AuthProviderProps> = (props) => {
     }
 
     const data = (await response.json()) as {
+      token?: string;
+      username: string;
+      expiresUtc?: string;
+      requiresTwoFactor: boolean;
+      twoFactorChallengeId?: string;
+      securityKeyOptions?: AssertionOptionsJson;
+    };
+
+    if (data.requiresTwoFactor) {
+      if (!data.twoFactorChallengeId || !data.securityKeyOptions) {
+        throw new Error("Login failed");
+      }
+      return {
+        kind: "requiresTwoFactor",
+        challengeId: data.twoFactorChallengeId,
+        options: data.securityKeyOptions,
+      };
+    }
+
+    if (!data.token || !data.expiresUtc) {
+      throw new Error("Login failed");
+    }
+
+    const state = applyAuthState({
+      token: data.token,
+      username: data.username,
+      expiresUtc: data.expiresUtc,
+    });
+
+    return { kind: "success", state };
+  };
+
+  const loginWithSecurityKey = async (
+    challengeId: string,
+    options: AssertionOptionsJson,
+  ): Promise<AuthState> => {
+    if (!isWebAuthnSupported()) {
+      throw new Error("This browser does not support security keys.");
+    }
+
+    let credential: Credential | null;
+    try {
+      credential = await navigator.credentials.get({
+        publicKey: toRequestOptions(options),
+      });
+    } catch (err) {
+      throw new Error(
+        webAuthnErrorMessage(err, "Security key verification failed"),
+      );
+    }
+
+    if (!(credential instanceof PublicKeyCredential)) {
+      throw new Error("Security key verification failed");
+    }
+
+    const response = await fetch("/api/Auth/Login/SecurityKey", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        challengeId,
+        assertion: serializeAssertion(credential),
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(
+        response.status === 401
+          ? "Security key verification failed"
+          : "Login failed",
+      );
+    }
+
+    const data = (await response.json()) as {
       token: string;
       username: string;
       expiresUtc: string;
     };
-    const state: AuthState = {
+
+    return applyAuthState({
       token: data.token,
       username: data.username,
       expiresUtc: data.expiresUtc,
-    };
-
-    setToken(state.token);
-    setUsername(state.username);
-    setExpiresUtc(state.expiresUtc);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-
-    return state;
+    });
   };
 
   const logout = () => {
@@ -105,6 +199,7 @@ export const AuthProvider: ParentComponent<AuthProviderProps> = (props) => {
       return expiresUtc();
     },
     login,
+    loginWithSecurityKey,
     logout,
     isAuthenticated,
   };

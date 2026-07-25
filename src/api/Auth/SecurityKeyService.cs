@@ -52,7 +52,7 @@ public sealed partial class SecurityKeyService : Singleton
         => CreateFido2().GetAssertionOptions(new GetAssertionOptionsParams
         {
             AllowedCredentials = CreateCredentialDescriptors(keys),
-            UserVerification = UserVerificationRequirement.Preferred,
+            UserVerification = UserVerificationRequirement.Discouraged,
         });
 
     private static PublicKeyCredentialDescriptor[] CreateCredentialDescriptors(ReadOnlySpan<UserSecurityKey> keys)

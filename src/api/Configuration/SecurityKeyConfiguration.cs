@@ -34,7 +34,7 @@ public sealed class SecurityKeyConfiguration
                 .WithMessage("Every SecurityKeys origin must use ServerDomain or one of its subdomains.");
 
             RuleFor(x => x.ServerName).NotEmpty();
-            RuleFor(x => x.ChallengeExpiryMinutes).Equal(1);
+            RuleFor(x => x.ChallengeExpiryMinutes).InclusiveBetween(1, 30);
         }
 
         private static bool IsValidOrigin(string origin)

@@ -30,7 +30,10 @@ public sealed class POST(AdminLoginConfiguration adminLoginConfiguration, JwtCon
 
     public override async Task HandleAsync(Request req, CancellationToken ct)
     {
-        if(req.Username != adminLoginConfiguration.User || !IsValidPassword(req.Password))
+        string? configuredPassword = adminLoginConfiguration.Users
+            .SingleOrDefault(x => x.Username == req.Username)?.Password;
+
+        if(configuredPassword is null || !IsValidPassword(req.Password, configuredPassword))
         {
             await Send.UnauthorizedAsync(ct);
             return;
@@ -50,11 +53,11 @@ public sealed class POST(AdminLoginConfiguration adminLoginConfiguration, JwtCon
         await Send.OkAsync(new Response(token, req.Username, expiresUtc), ct);
     }
 
-    private bool IsValidPassword(string password)
+    private static bool IsValidPassword(string password, string configuredPassword)
     {
         byte[] providedPassword = Encoding.UTF8.GetBytes(password);
-        byte[] configuredPassword = Encoding.UTF8.GetBytes(adminLoginConfiguration.Password);
-        return providedPassword.Length == configuredPassword.Length
-            && CryptographicOperations.FixedTimeEquals(providedPassword, configuredPassword);
+        byte[] configuredPasswordBytes = Encoding.UTF8.GetBytes(configuredPassword);
+        return providedPassword.Length == configuredPasswordBytes.Length
+            && CryptographicOperations.FixedTimeEquals(providedPassword, configuredPasswordBytes);
     }
 }

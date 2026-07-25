@@ -8,15 +8,28 @@ public sealed class AdminLoginConfiguration
 {
     public const string SECTION_NAME = "AdminLogin";
 
-    public string User { get; set; } = "admin";
-    public string Password { get; set; } = "change-me";
+    public List<UserConfiguration> Users { get; set; } = [];
 
     public sealed class Validator : AbstractValidator<AdminLoginConfiguration>
     {
         public Validator()
         {
-            RuleFor(x => x.User).NotEmpty();
-            RuleFor(x => x.Password).NotEmpty();
+            RuleFor(x => x.Users)
+                .NotEmpty()
+                .Must(users => users is null || users.Select(x => x.Username).Distinct(StringComparer.Ordinal).Count() == users.Count)
+                .WithMessage("Admin login usernames must be unique.");
+
+            RuleForEach(x => x.Users).ChildRules(user =>
+            {
+                user.RuleFor(x => x.Username).NotEmpty();
+                user.RuleFor(x => x.Password).NotEmpty();
+            });
         }
+    }
+
+    public sealed class UserConfiguration
+    {
+        public string Username { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
     }
 }

@@ -15,6 +15,27 @@
 | **`src/ui`** | SolidJS + Vite + Tailwind admin front end |
 | **`docker/`** | Dockerfiles for API and UI |
 
+## Admin users
+
+Admin login credentials are configured as a list in the API's `AdminLogin` configuration section. Every configured user has the same administrator access.
+
+```json
+{
+  "AdminLogin": {
+    "Users": [
+      {
+        "Username": "alice",
+        "Password": "alice-password"
+      },
+      {
+        "Username": "bob",
+        "Password": "bob-password"
+      }
+    ]
+  }
+}
+```
+
 ## SDKs
 
 The SDKs return RPC endpoints grouped by chain plus provider metadata (name, rate limit). Configure base URL and API key once, then call the client when you need fresh configuration.

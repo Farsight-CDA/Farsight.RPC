@@ -43,12 +43,6 @@ public sealed class POST(
         var existingKeys = await dbContext.UserSecurityKeys
             .Where(key => key.Username == username)
             .ToArrayAsync(ct);
-        if(existingKeys.Length > 0
-            && !User.HasClaim(AuthenticationTokenService.SECURITY_KEY_VERIFIED_CLAIM, Boolean.TrueString))
-        {
-            await Send.ForbiddenAsync(ct);
-            return;
-        }
 
         var options = securityKeyService.CreateRegistrationOptions(username, existingKeys);
         var now = DateTimeOffset.UtcNow;

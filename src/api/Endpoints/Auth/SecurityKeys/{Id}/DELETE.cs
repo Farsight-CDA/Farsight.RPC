@@ -20,12 +20,6 @@ public sealed class DELETE(AppDbContext dbContext) : Endpoint<DELETE.Request>
 
     public override async Task HandleAsync(Request req, CancellationToken ct)
     {
-        if(!User.HasClaim(AuthenticationTokenService.SECURITY_KEY_VERIFIED_CLAIM, Boolean.TrueString))
-        {
-            await Send.ForbiddenAsync(ct);
-            return;
-        }
-
         string username = User.FindFirstValue(ClaimTypes.Name)
             ?? throw new InvalidOperationException("The authenticated user has no username claim.");
 

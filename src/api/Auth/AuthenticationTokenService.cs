@@ -8,8 +8,6 @@ namespace Farsight.Rpc.Api.Auth;
 
 public sealed partial class AuthenticationTokenService : Singleton
 {
-    public const string SECURITY_KEY_VERIFIED_CLAIM = "farsight:security_key_verified";
-
     [Inject]
     private readonly JwtConfiguration _jwtConfiguration;
 
@@ -27,7 +25,6 @@ public sealed partial class AuthenticationTokenService : Singleton
             if(securityKeyVerified)
             {
                 options.User.Claims.Add(new Claim(JwtRegisteredClaimNames.Amr, "fido2"));
-                options.User.Claims.Add(new Claim(SECURITY_KEY_VERIFIED_CLAIM, Boolean.TrueString));
             }
         });
 

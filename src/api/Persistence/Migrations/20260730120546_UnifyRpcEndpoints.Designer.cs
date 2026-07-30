@@ -3,6 +3,7 @@ using System;
 using Farsight.Rpc.Api.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Farsight.Rpc.Api.Persistence.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260730120546_UnifyRpcEndpoints")]
+    partial class UnifyRpcEndpoints
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -72,10 +75,6 @@ namespace Farsight.Rpc.Api.Persistence.Migrations
 
                     b.Property<DateTimeOffset?>("LastUsedAt")
                         .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("text");
 
                     b.HasKey("Id");
 
@@ -160,35 +159,6 @@ namespace Farsight.Rpc.Api.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("Rpcs", (string)null);
-                });
-
-            modelBuilder.Entity("Farsight.Rpc.Api.Persistence.Entities.Rpc.RpcRule", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.PrimitiveCollection<int[]>("AllOf")
-                        .IsRequired()
-                        .HasColumnType("integer[]");
-
-                    b.PrimitiveCollection<int[]>("AnyOf")
-                        .IsRequired()
-                        .HasColumnType("integer[]");
-
-                    b.Property<Guid>("ApplicationId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("EnvironmentId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("EnvironmentId");
-
-                    b.HasIndex("ApplicationId", "EnvironmentId");
-
-                    b.ToTable("RpcRules", (string)null);
                 });
 
             modelBuilder.Entity("Farsight.Rpc.Api.Persistence.Entities.RpcErrorGroup", b =>
@@ -406,30 +376,9 @@ namespace Farsight.Rpc.Api.Persistence.Migrations
                     b.Navigation("Provider");
                 });
 
-            modelBuilder.Entity("Farsight.Rpc.Api.Persistence.Entities.Rpc.RpcRule", b =>
-                {
-                    b.HasOne("Farsight.Rpc.Api.Persistence.Entities.ConsumerApplication", "Application")
-                        .WithMany("RpcRules")
-                        .HasForeignKey("ApplicationId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Farsight.Rpc.Api.Persistence.Entities.ApplicationEnvironment", "Environment")
-                        .WithMany("RpcRules")
-                        .HasForeignKey("EnvironmentId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Application");
-
-                    b.Navigation("Environment");
-                });
-
             modelBuilder.Entity("Farsight.Rpc.Api.Persistence.Entities.ApplicationEnvironment", b =>
                 {
                     b.Navigation("ApiKeys");
-
-                    b.Navigation("RpcRules");
 
                     b.Navigation("Rpcs");
                 });
@@ -439,8 +388,6 @@ namespace Farsight.Rpc.Api.Persistence.Migrations
                     b.Navigation("ApiKeys");
 
                     b.Navigation("Environments");
-
-                    b.Navigation("RpcRules");
 
                     b.Navigation("Rpcs");
                 });

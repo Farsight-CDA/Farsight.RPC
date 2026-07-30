@@ -9,7 +9,7 @@ namespace Farsight.Rpc.Types;
     UseStringEnumConverter = true
 )]
 [JsonSerializable(typeof(ApiKeyRpcsDto))]
-[JsonSerializable(typeof(RpcStructureDefinition))]
+[JsonSerializable(typeof(RpcProbeResult))]
 public partial class FarsightRpcJsonContext : JsonSerializerContext
 {
 }

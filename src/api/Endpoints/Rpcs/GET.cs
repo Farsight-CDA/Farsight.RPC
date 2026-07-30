@@ -53,7 +53,7 @@ public sealed class GET(AppDbContext dbContext, PublicRpcRegistry publicRpcRegis
             .AsNoTracking()
             .Where(rpc => rpc.ApplicationId == key.ApplicationId && rpc.EnvironmentId == key.EnvironmentId && environment.Chains.Contains(rpc.Chain))
             .OrderBy(rpc => rpc.Chain)
-            .ThenBy(rpc => EF.Property<string>(rpc, "RpcType"))
+            .ThenBy(rpc => rpc.Order)
             .ThenBy(rpc => rpc.Id)
             .ToArrayAsync(ct);
 
@@ -105,29 +105,12 @@ public sealed class GET(AppDbContext dbContext, PublicRpcRegistry publicRpcRegis
     }
 
     private static RpcEndpointDto MapRpc(RpcEndpoint rpc)
-        => rpc switch
+        => new()
         {
-            RpcEndpoint.Realtime realtime => new RpcEndpointDto.Realtime
-            {
-                Id = realtime.Id,
-                Address = realtime.Address,
-                ProviderId = realtime.ProviderId,
-            },
-            RpcEndpoint.Archive archive => new RpcEndpointDto.Archive
-            {
-                Id = archive.Id,
-                Address = archive.Address,
-                ProviderId = archive.ProviderId,
-                IndexerStepSize = archive.IndexerStepSize,
-                IndexerBlockOffset = archive.IndexerBlockOffset,
-            },
-            RpcEndpoint.Tracing tracing => new RpcEndpointDto.Tracing
-            {
-                Id = tracing.Id,
-                Address = tracing.Address,
-                ProviderId = tracing.ProviderId,
-                TracingMode = tracing.TracingMode,
-            },
-            _ => throw new NotSupportedException($"Unsupported RPC type '{rpc.GetType().Name}'.")
+            Id = rpc.Id,
+            Address = rpc.Address,
+            ProviderId = rpc.ProviderId,
+            Capabilities = rpc.Capabilities,
+            Order = rpc.Order,
         };
 }

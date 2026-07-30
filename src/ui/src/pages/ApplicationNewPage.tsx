@@ -4,7 +4,6 @@ import ColorPicker from "../components/ColorPicker";
 import LoadingSpinner from "../components/LoadingSpinner";
 import CloseIcon from "../components/icons/CloseIcon";
 import ListIcon from "../components/icons/ListIcon";
-import RpcStructureEditor from "../components/RpcStructureEditor";
 import { useAuth } from "../lib/auth";
 import {
   nameValidationHint,
@@ -12,7 +11,6 @@ import {
   validateName,
 } from "../lib/name-validation";
 import { useReferenceData } from "../lib/reference-data";
-import { defaultRpcStructure, normalizeRpcStructure } from "../lib/rpc-structure";
 
 async function readErrorMessage(
   response: Response,
@@ -40,7 +38,6 @@ export default function ApplicationNewPage() {
 
   const [name, setName] = createSignal("");
   const [color, setColor] = createSignal("#6B7280");
-  const [structure, setStructure] = createSignal(defaultRpcStructure);
   const [formError, setFormError] = createSignal<string | null>(null);
   const [loading, setLoading] = createSignal(false);
 
@@ -67,7 +64,6 @@ export default function ApplicationNewPage() {
         },
         body: JSON.stringify({
           name: appName,
-          structure: normalizeRpcStructure(structure()),
           color: color(),
         }),
       });
@@ -161,26 +157,6 @@ export default function ApplicationNewPage() {
                   value={color()}
                   onChange={setColor}
                   disabled={loading()}
-                />
-              </div>
-
-              <div class="flex flex-col gap-3">
-                <div>
-                  <p class="text-xs font-bold uppercase tracking-widest text-b-ink/70">
-                    RPC Structure
-                  </p>
-                  <p class="mt-1 text-xs font-semibold uppercase tracking-wider text-b-ink/40">
-                    Frontend-only requirements checked against each chain's RPCs
-                  </p>
-                </div>
-
-                <RpcStructureEditor
-                  value={structure()}
-                  disabled={loading()}
-                  onChange={(value) => {
-                    setStructure(value);
-                    setFormError(null);
-                  }}
                 />
               </div>
 

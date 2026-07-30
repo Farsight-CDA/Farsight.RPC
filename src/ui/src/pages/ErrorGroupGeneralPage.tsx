@@ -202,9 +202,9 @@ export default function ErrorGroupGeneralPage() {
                     onClick={startEditingName}
                     disabled={updateLoading() || deleteLoading()}
                     class="btn btn-sm btn-interactive btn-disabled btn-secondary shrink-0"
+                    title="Edit error group"
                   >
-                    <PencilIcon class="size-3.5" />
-                    Edit
+                    <PencilIcon class="size-4" />
                   </button>
                 </div>
               }
@@ -315,8 +315,9 @@ export default function ErrorGroupGeneralPage() {
               onClick={() => setShowDeleteConfirm(true)}
               disabled={isEditingName()}
               class="btn btn-sm btn-interactive btn-disabled btn-danger shrink-0"
+              title="Delete error group"
             >
-              Delete
+              <TrashIcon class="size-4" />
             </button>
           </Show>
         </div>

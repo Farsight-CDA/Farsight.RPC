@@ -3,7 +3,9 @@ import LoadingSpinner from "../components/LoadingSpinner";
 import ProviderIcon from "../components/icons/ProviderIcon";
 import LightningIcon from "../components/icons/LightningIcon";
 import EmptyStateIcon from "../components/icons/EmptyStateIcon";
+import PencilIcon from "../components/icons/PencilIcon";
 import RpcIcon from "../components/icons/RpcIcon";
+import TrashIcon from "../components/icons/TrashIcon";
 import { createModalBackdropHandlers } from "../lib/createModalBackdropHandlers";
 import { useAuth } from "../lib/auth";
 import {
@@ -62,12 +64,11 @@ export default function ApplicationProvidersPage() {
   >(null);
   const [deleteProviderLoading, setDeleteProviderLoading] = createSignal(false);
 
-  const [editingProviderId, setEditingProviderId] = createSignal<string | null>(
-    null,
-  );
-  const [editingProviderName, setEditingProviderName] = createSignal("");
-  const [editingProviderRateLimit, setEditingProviderRateLimit] =
-    createSignal("");
+  const [editProviderModalOpen, setEditProviderModalOpen] = createSignal(false);
+  const [providerToEdit, setProviderToEdit] =
+    createSignal<RpcProviderSummary | null>(null);
+  const [editProviderName, setEditProviderName] = createSignal("");
+  const [editProviderRateLimit, setEditProviderRateLimit] = createSignal("");
   const [editProviderError, setEditProviderError] = createSignal<string | null>(
     null,
   );
@@ -85,7 +86,22 @@ export default function ApplicationProvidersPage() {
     setProviderModalOpen(false);
   };
 
+  const openEditProviderModal = (provider: RpcProviderSummary) => {
+    setEditProviderError(null);
+    setProviderToEdit(provider);
+    setEditProviderName(provider.name);
+    setEditProviderRateLimit(String(provider.rateLimit));
+    setEditProviderModalOpen(true);
+  };
+
+  const closeEditProviderModal = () => {
+    if (editProviderLoading()) return;
+    setEditProviderModalOpen(false);
+    setProviderToEdit(null);
+  };
+
   useEscapeKey(providerModalOpen, closeProviderModal);
+  useEscapeKey(editProviderModalOpen, closeEditProviderModal);
   useEscapeKey(
     () => providerToDelete() !== null,
     () => {
@@ -95,6 +111,8 @@ export default function ApplicationProvidersPage() {
 
   const providerModalBackdropHandlers =
     createModalBackdropHandlers(closeProviderModal);
+  const editProviderModalBackdropHandlers =
+    createModalBackdropHandlers(closeEditProviderModal);
   const deleteProviderBackdropHandlers = createModalBackdropHandlers(() => {
     if (!deleteProviderLoading()) setProviderToDelete(null);
   });
@@ -160,8 +178,8 @@ export default function ApplicationProvidersPage() {
         );
       }
       setProviderToDelete(null);
-      if (editingProviderId() === provider.id) {
-        cancelEditingProvider();
+      if (providerToEdit()?.id === provider.id) {
+        closeEditProviderModal();
       }
       await referenceData.refreshRpcProviders();
       // Refresh RPCs since deleting a provider also deletes its dependent RPCs
@@ -175,27 +193,13 @@ export default function ApplicationProvidersPage() {
     }
   };
 
-  const startEditingProvider = (provider: RpcProviderSummary) => {
-    setEditProviderError(null);
-    setEditingProviderId(provider.id);
-    setEditingProviderName(provider.name);
-    setEditingProviderRateLimit(String(provider.rateLimit));
-  };
-
-  const cancelEditingProvider = () => {
-    if (editProviderLoading()) return;
-    setEditingProviderId(null);
-    setEditingProviderName("");
-    setEditingProviderRateLimit("");
-    setEditProviderError(null);
-  };
-
-  const handleUpdateProvider = async (providerId: string) => {
+  const handleUpdateProvider = async () => {
     const token = auth.token;
-    if (!token) return;
+    const provider = providerToEdit();
+    if (!token || !provider) return;
 
-    const name = editingProviderName();
-    const rateLimitStr = editingProviderRateLimit();
+    const name = editProviderName();
+    const rateLimitStr = editProviderRateLimit();
     const validationError = validateName(name);
     if (validationError) {
       setEditProviderError(validationError);
@@ -209,22 +213,19 @@ export default function ApplicationProvidersPage() {
     }
 
     // Skip API call if nothing has changed
-    const provider = providers().find((p) => p.id === providerId);
     if (
-      provider &&
       provider.name === name &&
       provider.rateLimit === rateLimit
     ) {
-      setEditingProviderId(null);
-      setEditingProviderName("");
-      setEditingProviderRateLimit("");
+      setEditProviderModalOpen(false);
+      setProviderToEdit(null);
       return;
     }
 
     setEditProviderError(null);
     setEditProviderLoading(true);
     try {
-      const response = await fetch(`/api/RpcProviders/${providerId}`, {
+      const response = await fetch(`/api/RpcProviders/${provider.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -241,9 +242,8 @@ export default function ApplicationProvidersPage() {
           ),
         );
       }
-      setEditingProviderId(null);
-      setEditingProviderName("");
-      setEditingProviderRateLimit("");
+      setEditProviderModalOpen(false);
+      setProviderToEdit(null);
       await referenceData.refreshRpcProviders();
     } catch (err) {
       setEditProviderError(
@@ -280,7 +280,8 @@ export default function ApplicationProvidersPage() {
                   providersState() === "pending" ||
                   createProviderLoading() ||
                   deleteProviderLoading() ||
-                  editProviderLoading()
+                  editProviderLoading() ||
+                  editProviderModalOpen()
                 }
                 class="btn btn-md btn-interactive btn-disabled btn-primary shrink-0"
               >
@@ -318,132 +319,71 @@ export default function ApplicationProvidersPage() {
                 providers().length > 0
               }
             >
-              <div class="flex flex-col gap-3">
-                <For each={providers()}>
-                  {(provider) => {
-                    const isEditing = () => editingProviderId() === provider.id;
-                    const isDeleting = () =>
-                      providerToDelete()?.id === provider.id;
-                    return (
-                      <div class="flex flex-col gap-3 border border-b-border bg-b-paper/40 p-4 shadow-[0_1px_0_rgba(0,0,0,0.35)] transition-colors hover:border-b-border-hover sm:flex-row sm:items-center sm:justify-between">
-                        <Show
-                          when={!isEditing()}
-                          fallback={
-                            <div class="flex w-full flex-col gap-3">
-                              <input
-                                type="text"
-                                required
-                                pattern={nameValidationPattern}
-                                value={editingProviderName()}
-                                onInput={(e) => {
-                                  setEditingProviderName(e.currentTarget.value);
-                                  setEditProviderError(null);
-                                }}
-                                class="h-11 w-full border border-b-border bg-b-paper px-4 text-sm font-semibold text-b-ink placeholder:text-b-ink/25 outline-none focus-visible:border-b-accent/50 focus-visible:ring-2 focus-visible:ring-b-accent/20 hover:border-b-border-hover transition-all duration-200"
-                                title={nameValidationHint}
-                                autocomplete="off"
-                              />
-                              <input
-                                type="number"
-                                required
-                                min={1}
-                                step={1}
-                                value={editingProviderRateLimit()}
-                                onInput={(e) => {
-                                  setEditingProviderRateLimit(
-                                    e.currentTarget.value,
-                                  );
-                                  setEditProviderError(null);
-                                }}
-                                class="h-11 w-full border border-b-border bg-b-paper px-4 text-sm font-semibold text-b-ink placeholder:text-b-ink/25 outline-none focus-visible:border-b-accent/50 focus-visible:ring-2 focus-visible:ring-b-accent/20 hover:border-b-border-hover transition-all duration-200"
-                                placeholder="Rate limit (req/s)"
-                              />
-                              <Show when={editProviderError()}>
-                                <p class="border border-red-500/40 bg-red-500/10 px-3 py-3 text-xs font-bold uppercase leading-snug text-red-400">
-                                  {editProviderError()}
-                                </p>
-                              </Show>
-                              <div class="flex flex-col gap-3 sm:flex-row sm:justify-end">
-                                <button
-                                  type="button"
-                                  onClick={cancelEditingProvider}
-                                  disabled={editProviderLoading()}
-                                  class="btn btn-sm btn-interactive btn-disabled btn-secondary"
-                                >
-                                  Cancel
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    void handleUpdateProvider(provider.id)
-                                  }
-                                  disabled={editProviderLoading()}
-                                  class="btn btn-sm btn-interactive btn-disabled btn-primary"
-                                >
-                                  <Show when={editProviderLoading()}>
-                                    <LoadingSpinner class="size-3.5 text-b-paper" />
-                                  </Show>
-                                  {editProviderLoading() ? "Saving…" : "Save"}
-                                </button>
+                  <div class="flex flex-col gap-3">
+                    <For each={providers()}>
+                      {(provider) => {
+                        const isDeleting = () =>
+                          providerToDelete()?.id === provider.id;
+                        return (
+                          <div class="flex flex-col gap-3 border border-b-border bg-b-paper/40 p-4 shadow-[0_1px_0_rgba(0,0,0,0.35)] transition-colors hover:border-b-border-hover sm:flex-row sm:items-center sm:justify-between">
+                            <div class="min-w-0 flex-1">
+                              <div class="flex items-center gap-2">
+                                <span class="font-['Anton',sans-serif] text-lg tracking-wide text-b-ink">
+                                  {provider.name}
+                                </span>
+                              </div>
+                              <div class="mt-2 flex items-center gap-4 text-xs font-semibold uppercase tracking-wider text-b-ink/50">
+                                <span class="inline-flex items-center gap-1">
+                                  <LightningIcon class="size-3.5" />
+                                  {provider.rateLimit} req/s
+                                </span>
+                                <span class="inline-flex items-center gap-1">
+                                  <RpcIcon class="size-3.5" />
+                                  {provider.rpcCount} RPCs
+                                </span>
                               </div>
                             </div>
-                          }
-                        >
-                          <div class="min-w-0 flex-1">
-                            <div class="flex items-center gap-2">
-                              <span class="font-['Anton',sans-serif] text-lg tracking-wide text-b-ink">
-                                {provider.name}
-                              </span>
-                            </div>
-                            <div class="mt-2 flex items-center gap-4 text-xs font-semibold uppercase tracking-wider text-b-ink/50">
-                              <span class="inline-flex items-center gap-1">
-                                <LightningIcon class="size-3.5" />
-                                {provider.rateLimit} req/s
-                              </span>
-                              <span class="inline-flex items-center gap-1">
-                                <RpcIcon class="size-3.5" />
-                                {provider.rpcCount} RPCs
-                              </span>
+                            <div class="flex shrink-0 items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => openEditProviderModal(provider)}
+                                disabled={
+                                  createProviderLoading() ||
+                                  deleteProviderLoading() ||
+                                  isDeleting()
+                                }
+                                class="btn btn-sm btn-interactive btn-disabled btn-secondary shrink-0"
+                                title="Edit provider"
+                              >
+                                <PencilIcon class="size-4" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setDeleteProviderError(null);
+                                  setProviderToDelete(provider);
+                                }}
+                                disabled={
+                                  createProviderLoading() ||
+                                  deleteProviderLoading() ||
+                                  editProviderModalOpen()
+                                }
+                                class="btn btn-sm btn-interactive btn-disabled btn-danger shrink-0"
+                                title="Delete provider"
+                              >
+                                <Show
+                                  when={isDeleting()}
+                                  fallback={<TrashIcon class="size-4" />}
+                                >
+                                  <LoadingSpinner class="size-4" />
+                                </Show>
+                              </button>
                             </div>
                           </div>
-                          <div class="flex flex-col gap-3 sm:flex-row">
-                            <button
-                              type="button"
-                              onClick={() => startEditingProvider(provider)}
-                              disabled={
-                                createProviderLoading() ||
-                                deleteProviderLoading() ||
-                                isDeleting()
-                              }
-                              class="btn btn-sm btn-interactive btn-disabled btn-secondary shrink-0"
-                            >
-                              Edit
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setDeleteProviderError(null);
-                                setProviderToDelete(provider);
-                              }}
-                              disabled={
-                                createProviderLoading() ||
-                                deleteProviderLoading() ||
-                                isEditing()
-                              }
-                              class="btn btn-sm btn-interactive btn-disabled btn-danger shrink-0"
-                            >
-                              <Show when={isDeleting()}>
-                                <LoadingSpinner class="size-3.5" />
-                              </Show>
-                              {isDeleting() ? "Deleting…" : "Delete"}
-                            </button>
-                          </div>
-                        </Show>
-                      </div>
-                    );
-                  }}
-                </For>
-              </div>
+                        );
+                      }}
+                    </For>
+                  </div>
             </Show>
 
             <Show
@@ -558,6 +498,116 @@ export default function ApplicationProvidersPage() {
                     <LoadingSpinner class="size-3.5 text-b-paper" />
                   </Show>
                   {createProviderLoading() ? "Creating…" : "Create"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </Show>
+
+      <Show when={editProviderModalOpen()}>
+        <div
+          class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm px-4 py-8"
+          role="presentation"
+          {...editProviderModalBackdropHandlers}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="edit-provider-title"
+            class="w-full max-w-md border border-b-border bg-b-field p-8 shadow-[0_25px_50px_rgba(0,0,0,0.5)]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p class="mb-2 text-xs font-bold uppercase tracking-[0.35em] text-b-accent">
+              Edit
+            </p>
+            <h3
+              id="edit-provider-title"
+              class="mb-8 font-['Anton',sans-serif] text-4xl uppercase leading-none tracking-wide text-b-ink"
+            >
+              Edit provider
+            </h3>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                void handleUpdateProvider();
+              }}
+              class="flex flex-col gap-6"
+            >
+              <div class="flex flex-col gap-2">
+                <label
+                  for="edit-provider-name"
+                  class="text-xs font-bold uppercase tracking-widest text-b-ink/70"
+                >
+                  Name
+                </label>
+                <input
+                  id="edit-provider-name"
+                  type="text"
+                  required
+                  pattern={nameValidationPattern}
+                  value={editProviderName()}
+                  onInput={(e) => {
+                    setEditProviderName(e.currentTarget.value);
+                    setEditProviderError(null);
+                  }}
+                  class="h-11 w-full border border-b-border bg-b-paper px-4 text-sm font-semibold text-b-ink placeholder:text-b-ink/25 outline-none focus-visible:border-b-accent/50 focus-visible:ring-2 focus-visible:ring-b-accent/20 hover:border-b-border-hover transition-all duration-200"
+                  placeholder="MY_PROVIDER"
+                  title={nameValidationHint}
+                  autocomplete="off"
+                />
+                <p class="text-xs font-semibold uppercase tracking-wider text-b-ink/40">
+                  {nameValidationHint}
+                </p>
+              </div>
+
+              <div class="flex flex-col gap-2">
+                <label
+                  for="edit-provider-rate-limit"
+                  class="text-xs font-bold uppercase tracking-widest text-b-ink/70"
+                >
+                  Rate limit (req/s)
+                </label>
+                <input
+                  id="edit-provider-rate-limit"
+                  type="number"
+                  required
+                  min={1}
+                  step={1}
+                  value={editProviderRateLimit()}
+                  onInput={(e) => {
+                    setEditProviderRateLimit(e.currentTarget.value);
+                    setEditProviderError(null);
+                  }}
+                  class="h-11 w-full border border-b-border bg-b-paper px-4 text-sm font-semibold text-b-ink outline-none focus-visible:border-b-accent/50 focus-visible:ring-2 focus-visible:ring-b-accent/20 hover:border-b-border-hover transition-all duration-200"
+                />
+              </div>
+
+              <Show when={editProviderError()}>
+                <p class="border border-red-500/40 bg-red-500/10 px-3 py-3 text-xs font-bold uppercase leading-snug text-red-400">
+                  {editProviderError()}
+                </p>
+              </Show>
+
+              <div class="flex flex-col gap-3 sm:flex-row sm:justify-end">
+                <button
+                  type="button"
+                  onClick={closeEditProviderModal}
+                  disabled={editProviderLoading()}
+                  class="btn btn-md btn-interactive btn-disabled btn-secondary"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={editProviderLoading()}
+                  class="btn btn-md btn-interactive btn-disabled btn-primary"
+                >
+                  <Show when={editProviderLoading()}>
+                    <LoadingSpinner class="size-3.5 text-b-paper" />
+                  </Show>
+                  {editProviderLoading() ? "Saving…" : "Save"}
                 </button>
               </div>
             </form>

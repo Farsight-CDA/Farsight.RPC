@@ -2,7 +2,6 @@ using Farsight.Rpc.Api.Auth;
 using Farsight.Rpc.Api.Persistence;
 using Farsight.Rpc.Api.Persistence.Entities;
 using Farsight.Rpc.Api.Validation;
-using Farsight.Rpc.Types;
 using FastEndpoints;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
@@ -14,7 +13,6 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request>
 {
     public sealed record Request(
         string Name,
-        RpcStructureDefinition? Structure,
         string Color
     );
 
@@ -23,10 +21,6 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request>
         public Validator()
         {
             RuleFor(x => x.Name).ApplyNameValidation();
-
-            RuleFor(x => x.Structure)
-                .NotNull()
-                .WithMessage("Structure is required.");
 
             RuleFor(x => x.Color)
                 .NotEmpty()
@@ -53,7 +47,6 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request>
         {
             Id = Guid.NewGuid(),
             Name = req.Name,
-            Structure = req.Structure ?? RpcStructureDefinition.Default,
             Color = req.Color,
         };
 

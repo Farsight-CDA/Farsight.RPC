@@ -18,4 +18,7 @@ public sealed record ApplicationEnvironment
 
     //Navigation Property
     public List<RpcEndpoint>? Rpcs { get; private set; }
+
+    //Navigation Property
+    public List<RpcRule>? RpcRules { get; private set; }
 }

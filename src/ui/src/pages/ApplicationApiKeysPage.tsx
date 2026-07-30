@@ -5,6 +5,8 @@ import KeyIcon from "../components/icons/KeyIcon";
 import CopyIcon from "../components/icons/CopyIcon";
 import EmptyStateIcon from "../components/icons/EmptyStateIcon";
 import ChevronDownIcon from "../components/icons/ChevronDownIcon";
+import PencilIcon from "../components/icons/PencilIcon";
+import TrashIcon from "../components/icons/TrashIcon";
 import { createModalBackdropHandlers } from "../lib/createModalBackdropHandlers";
 import { useAuth } from "../lib/auth";
 import { useReferenceData } from "../lib/reference-data";
@@ -13,6 +15,11 @@ import {
   type ConsumerApiKeySummary,
 } from "../lib/application-data";
 import { useEscapeKey } from "../lib/useEscapeKey";
+import {
+  nameValidationHint,
+  nameValidationPattern,
+  validateName,
+} from "../lib/name-validation";
 
 async function readErrorMessage(
   response: Response,
@@ -50,8 +57,17 @@ export default function ApplicationApiKeysPage() {
   const [newKeyEnvironmentId, setNewKeyEnvironmentId] = createSignal<
     string | undefined
   >(undefined);
+  const [newKeyName, setNewKeyName] = createSignal("");
   const [createKeyError, setCreateKeyError] = createSignal<string | null>(null);
   const [createKeyLoading, setCreateKeyLoading] = createSignal(false);
+  const [editingApiKeyId, setEditingApiKeyId] = createSignal<string | null>(
+    null,
+  );
+  const [editingApiKeyName, setEditingApiKeyName] = createSignal("");
+  const [editApiKeyError, setEditApiKeyError] = createSignal<string | null>(
+    null,
+  );
+  const [editApiKeyLoading, setEditApiKeyLoading] = createSignal(false);
   const [deleteKeyError, setDeleteKeyError] = createSignal<string | null>(null);
   const [deleteKeyLoading, setDeleteKeyLoading] = createSignal(false);
   const [createKeyModalOpen, setCreateKeyModalOpen] = createSignal(false);
@@ -80,6 +96,12 @@ export default function ApplicationApiKeysPage() {
     const app = applicationId();
     const environmentId = newKeyEnvironmentId();
     if (!token || !app || !environmentId) return;
+    const name = newKeyName();
+    const validationError = validateName(name);
+    if (validationError) {
+      setCreateKeyError(validationError);
+      return;
+    }
     setCreateKeyError(null);
     setCreateKeyLoading(true);
     try {
@@ -89,7 +111,7 @@ export default function ApplicationApiKeysPage() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ environmentId }),
+        body: JSON.stringify({ environmentId, name }),
       });
       if (!response.ok) {
         throw new Error(
@@ -101,12 +123,74 @@ export default function ApplicationApiKeysPage() {
         referenceData.refreshApplications(),
       ]);
       setCreateKeyModalOpen(false);
+      setNewKeyName("");
     } catch (err) {
       setCreateKeyError(
         err instanceof Error ? err.message : "Failed to create API key",
       );
     } finally {
       setCreateKeyLoading(false);
+    }
+  };
+
+  const startEditingApiKey = (apiKey: ConsumerApiKeySummary) => {
+    setEditApiKeyError(null);
+    setEditingApiKeyId(apiKey.id);
+    setEditingApiKeyName(apiKey.name);
+  };
+
+  const cancelEditingApiKey = () => {
+    if (editApiKeyLoading()) return;
+    setEditingApiKeyId(null);
+    setEditingApiKeyName("");
+    setEditApiKeyError(null);
+  };
+
+  const handleRenameApiKey = async (apiKey: ConsumerApiKeySummary) => {
+    const token = auth.token;
+    const app = applicationId();
+    if (!token || !app) return;
+
+    const name = editingApiKeyName();
+    const validationError = validateName(name);
+    if (validationError) {
+      setEditApiKeyError(validationError);
+      return;
+    }
+
+    if (apiKey.name === name) {
+      cancelEditingApiKey();
+      return;
+    }
+
+    setEditApiKeyError(null);
+    setEditApiKeyLoading(true);
+    try {
+      const response = await fetch(
+        `/api/Applications/${app}/ApiKeys/${apiKey.id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ name }),
+        },
+      );
+      if (!response.ok) {
+        throw new Error(
+          await readErrorMessage(response, "Failed to rename API key"),
+        );
+      }
+      setEditingApiKeyId(null);
+      setEditingApiKeyName("");
+      await applicationData.refreshApplication();
+    } catch (err) {
+      setEditApiKeyError(
+        err instanceof Error ? err.message : "Failed to rename API key",
+      );
+    } finally {
+      setEditApiKeyLoading(false);
     }
   };
 
@@ -146,12 +230,14 @@ export default function ApplicationApiKeysPage() {
 
   const openCreateKeyModal = () => {
     setCreateKeyError(null);
+    setNewKeyName("");
     setCreateKeyModalOpen(true);
   };
 
   const closeCreateKeyModal = () => {
     if (createKeyLoading()) return;
     setCreateKeyModalOpen(false);
+    setNewKeyName("");
   };
 
   useEscapeKey(createKeyModalOpen, closeCreateKeyModal);
@@ -278,54 +364,135 @@ export default function ApplicationApiKeysPage() {
                   <For each={apiKeys()}>
                     {(k) => (
                       <li class="border border-b-border bg-b-paper/40 shadow-[0_1px_0_rgba(0,0,0,0.35)] transition-colors hover:border-b-border-hover">
-                        <div class="flex flex-col gap-4 p-4 sm:flex-row sm:items-stretch sm:justify-between sm:gap-6">
-                          <div class="min-w-0 flex-1 flex flex-col gap-3">
-                            <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                              <span class="inline-flex items-center border border-b-accent/25 bg-b-accent/10 px-2 py-0.5 text-xs font-bold tracking-wider text-b-accent">
-                                {getEnvironmentName(k.environmentId)}
-                              </span>
-                              <p class="text-xs font-semibold uppercase tracking-wider text-b-ink/40">
-                                Last used{" "}
-                                <span class="font-bold normal-case tracking-normal text-b-ink/70">
-                                  {formatLastUsed(k.lastUsedAt)}
-                                </span>
+                        <Show
+                          when={editingApiKeyId() !== k.id}
+                          fallback={
+                            <form
+                              class="flex flex-col gap-3 p-4"
+                              onSubmit={(event) => {
+                                event.preventDefault();
+                                void handleRenameApiKey(k);
+                              }}
+                            >
+                              <label
+                                for={`api-key-name-${k.id}`}
+                                class="text-xs font-bold uppercase tracking-widest text-b-ink/70"
+                              >
+                                Key name
+                              </label>
+                              <input
+                                id={`api-key-name-${k.id}`}
+                                type="text"
+                                required
+                                pattern={nameValidationPattern}
+                                value={editingApiKeyName()}
+                                onInput={(event) => {
+                                  setEditingApiKeyName(event.currentTarget.value);
+                                  setEditApiKeyError(null);
+                                }}
+                                class="h-11 w-full border border-b-border bg-b-paper px-4 text-sm font-semibold text-b-ink placeholder:text-b-ink/25 outline-none transition-all duration-200 hover:border-b-border-hover focus-visible:border-b-accent/50 focus-visible:ring-2 focus-visible:ring-b-accent/20"
+                                title={nameValidationHint}
+                                autocomplete="off"
+                                autofocus
+                              />
+                              <Show when={editApiKeyError()}>
+                                <p class="border border-red-500/40 bg-red-500/10 px-3 py-3 text-xs font-bold uppercase leading-snug text-red-400">
+                                  {editApiKeyError()}
+                                </p>
+                              </Show>
+                              <div class="flex flex-col gap-3 sm:flex-row sm:justify-end">
+                                <button
+                                  type="button"
+                                  onClick={cancelEditingApiKey}
+                                  disabled={editApiKeyLoading()}
+                                  class="btn btn-sm btn-interactive btn-disabled btn-secondary"
+                                >
+                                  Cancel
+                                </button>
+                                <button
+                                  type="submit"
+                                  disabled={editApiKeyLoading()}
+                                  class="btn btn-sm btn-interactive btn-disabled btn-primary"
+                                >
+                                  <Show when={editApiKeyLoading()}>
+                                    <LoadingSpinner class="size-3.5 text-b-paper" />
+                                  </Show>
+                                  {editApiKeyLoading() ? "Saving…" : "Save"}
+                                </button>
+                              </div>
+                            </form>
+                          }
+                        >
+                          <div class="flex flex-col gap-4 p-4 sm:flex-row sm:items-stretch sm:justify-between sm:gap-6">
+                            <div class="min-w-0 flex-1 flex flex-col gap-3">
+                              <p class="font-['Anton',sans-serif] text-xl tracking-wide text-b-ink">
+                                {k.name}
                               </p>
+                              <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                                <span class="inline-flex items-center border border-b-accent/25 bg-b-accent/10 px-2 py-0.5 text-xs font-bold tracking-wider text-b-accent">
+                                  {getEnvironmentName(k.environmentId)}
+                                </span>
+                                <p class="text-xs font-semibold uppercase tracking-wider text-b-ink/40">
+                                  Last used{" "}
+                                  <span class="font-bold normal-case tracking-normal text-b-ink/70">
+                                    {formatLastUsed(k.lastUsedAt)}
+                                  </span>
+                                </p>
+                              </div>
+                              <div class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-2">
+                                <code class="select-all font-mono text-xs font-semibold tracking-wide text-b-ink/85">
+                                  {formatKeyPreview(k.key)}
+                                </code>
+                                <button
+                                  type="button"
+                                  onClick={() => handleCopyApiKey(k)}
+                                  disabled={
+                                    createKeyLoading() ||
+                                    deleteKeyLoading() ||
+                                    editApiKeyLoading()
+                                  }
+                                  class="btn btn-sm btn-interactive btn-disabled btn-secondary inline-flex shrink-0 items-center justify-center gap-2"
+                                >
+                                  <CopyIcon class="size-3.5 opacity-80" />
+                                  {copiedKeyId() === k.id
+                                    ? "Copied"
+                                    : "Copy full key"}
+                                </button>
+                              </div>
                             </div>
-                            <div class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-2">
-                              <code class="select-all font-mono text-xs font-semibold tracking-wide text-b-ink/85">
-                                {formatKeyPreview(k.key)}
-                              </code>
+                            <div class="flex shrink-0 items-center justify-end gap-2 border-t border-b-border/60 pt-3 sm:border-l sm:border-t-0 sm:pl-6 sm:pt-0">
                               <button
                                 type="button"
-                                onClick={() => handleCopyApiKey(k)}
+                                onClick={() => startEditingApiKey(k)}
                                 disabled={
-                                  createKeyLoading() || deleteKeyLoading()
+                                  createKeyLoading() ||
+                                  deleteKeyLoading() ||
+                                  editApiKeyLoading()
                                 }
-                                class="btn btn-sm btn-interactive btn-disabled btn-secondary inline-flex shrink-0 items-center justify-center gap-2"
+                                class="btn btn-sm btn-interactive btn-disabled btn-secondary"
+                                title="Rename API key"
                               >
-                                <CopyIcon class="size-3.5 opacity-80" />
-                                {copiedKeyId() === k.id
-                                  ? "Copied"
-                                  : "Copy full key"}
+                                <PencilIcon class="size-4" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setDeleteKeyError(null);
+                                  setApiKeyToDelete(k);
+                                }}
+                                disabled={
+                                  createKeyLoading() ||
+                                  deleteKeyLoading() ||
+                                  editApiKeyLoading()
+                                }
+                                class="btn btn-sm btn-interactive btn-disabled btn-danger"
+                                title="Revoke API key"
+                              >
+                                <TrashIcon class="size-4" />
                               </button>
                             </div>
                           </div>
-                          <div class="flex shrink-0 flex-col justify-center border-t border-b-border/60 pt-3 sm:border-l sm:border-t-0 sm:pl-6 sm:pt-0">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setDeleteKeyError(null);
-                                setApiKeyToDelete(k);
-                              }}
-                              disabled={
-                                createKeyLoading() || deleteKeyLoading()
-                              }
-                              class="btn btn-sm btn-interactive btn-disabled btn-danger w-full sm:w-auto"
-                            >
-                              Revoke
-                            </button>
-                          </div>
-                        </div>
+                        </Show>
                       </li>
                     )}
                   </For>
@@ -376,6 +543,34 @@ export default function ApplicationApiKeysPage() {
             </h3>
 
             <form onSubmit={handleCreateKey} class="flex flex-col gap-6">
+              <div class="flex flex-col gap-2">
+                <label
+                  for="new-key-name"
+                  class="text-xs font-bold uppercase tracking-widest text-b-ink/70"
+                >
+                  Key name
+                </label>
+                <input
+                  id="new-key-name"
+                  type="text"
+                  required
+                  pattern={nameValidationPattern}
+                  value={newKeyName()}
+                  onInput={(event) => {
+                    setNewKeyName(event.currentTarget.value);
+                    setCreateKeyError(null);
+                  }}
+                  placeholder="Production integration"
+                  class="h-11 w-full border border-b-border bg-b-field px-4 text-sm font-semibold text-b-ink placeholder:text-b-ink/25 outline-none transition-all duration-200 hover:border-b-border-hover focus-visible:border-b-accent/50 focus-visible:ring-2 focus-visible:ring-b-accent/20"
+                  title={nameValidationHint}
+                  autocomplete="off"
+                  autofocus
+                />
+                <p class="text-xs font-semibold text-b-ink/45">
+                  Use a label that identifies the client or integration.
+                </p>
+              </div>
+
               <div class="flex flex-col gap-2">
                 <label
                   for="new-key-environment"
@@ -444,7 +639,11 @@ export default function ApplicationApiKeysPage() {
                 </button>
                 <button
                   type="submit"
-                  disabled={createKeyLoading() || !newKeyEnvironmentId()}
+                  disabled={
+                    createKeyLoading() ||
+                    !newKeyEnvironmentId() ||
+                    newKeyName().trim().length === 0
+                  }
                   class="btn btn-md btn-interactive btn-disabled btn-primary"
                 >
                   <Show when={createKeyLoading()}>
@@ -478,14 +677,15 @@ export default function ApplicationApiKeysPage() {
               id="delete-api-key-title"
               class="mb-4 font-['Anton',sans-serif] text-4xl uppercase leading-none tracking-wide text-b-ink"
             >
-              API key
+              {apiKeyToDelete()!.name}
             </h3>
             <p class="mb-4 text-sm font-semibold text-b-ink/70">
-              Permanently revoke this key for{" "}
+              Permanently revoke this key for the{" "}
               <span class="font-bold text-red-400">
                 {getEnvironmentName(apiKeyToDelete()!.environmentId)}
               </span>
-              ?
+              {" "}
+              environment?
             </p>
             <p class="mb-8 text-xs text-b-ink/40">
               Clients using this key will stop working immediately.

@@ -336,9 +336,9 @@ export default function AccountPage() {
                             }}
                             disabled={addLoading() || removeLoading()}
                             class="btn btn-sm btn-interactive btn-disabled btn-danger shrink-0"
+                            title="Remove security key"
                           >
-                            <TrashIcon class="size-3.5" />
-                            Remove
+                            <TrashIcon class="size-4" />
                           </button>
                         </div>
                       </li>

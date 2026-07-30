@@ -2,8 +2,11 @@ import { For, createMemo, createSignal, Show } from "solid-js";
 import { useParams } from "@solidjs/router";
 import LoadingSpinner from "../components/LoadingSpinner";
 import EmptyStateIcon from "../components/icons/EmptyStateIcon";
+import CheckmarkIcon from "../components/icons/CheckmarkIcon";
 import EnvironmentIcon from "../components/icons/EnvironmentIcon";
+import PencilIcon from "../components/icons/PencilIcon";
 import RpcIcon from "../components/icons/RpcIcon";
+import TrashIcon from "../components/icons/TrashIcon";
 
 import { createModalBackdropHandlers } from "../lib/createModalBackdropHandlers";
 import { useAuth } from "../lib/auth";
@@ -62,8 +65,7 @@ export default function ApplicationEnvironmentsPage() {
   );
 
   const getEnvironmentRpcCount = (environmentId: string) =>
-    rpcsByEnvironment()[environmentId]?.filter((rpc) => rpc.type !== "Public")
-      .length ?? 0;
+    rpcsByEnvironment()[environmentId]?.length ?? 0;
 
   const getActiveChainCount = (environment: ApplicationEnvironmentSummary) =>
     new Set(environment.chains ?? []).size;
@@ -76,10 +78,13 @@ export default function ApplicationEnvironmentsPage() {
   const [createEnvironmentLoading, setCreateEnvironmentLoading] =
     createSignal(false);
 
-  const [editingEnvironmentId, setEditingEnvironmentId] = createSignal<
-    string | null
-  >(null);
-  const [editingEnvironmentName, setEditingEnvironmentName] = createSignal("");
+  const [editEnvironmentModalOpen, setEditEnvironmentModalOpen] =
+    createSignal(false);
+  const [environmentToEdit, setEnvironmentToEdit] =
+    createSignal<ApplicationEnvironmentSummary | null>(null);
+  const [editEnvironmentName, setEditEnvironmentName] = createSignal("");
+  const [editEnvironmentEnablePublicRpcs, setEditEnvironmentEnablePublicRpcs] =
+    createSignal(false);
   const [editEnvironmentError, setEditEnvironmentError] = createSignal<
     string | null
   >(null);
@@ -92,13 +97,6 @@ export default function ApplicationEnvironmentsPage() {
   const [deleteEnvironmentLoadingId, setDeleteEnvironmentLoadingId] =
     createSignal<string | null>(null);
 
-  const [publicRpcToggleError, setPublicRpcToggleError] = createSignal<
-    string | null
-  >(null);
-  const [publicRpcToggleLoadingId, setPublicRpcToggleLoadingId] = createSignal<
-    string | null
-  >(null);
-
   const openEnvironmentModal = () => {
     setCreateEnvironmentError(null);
     setNewEnvironmentName("");
@@ -110,10 +108,31 @@ export default function ApplicationEnvironmentsPage() {
     setEnvironmentModalOpen(false);
   };
 
+  const openEditEnvironmentModal = (
+    environment: ApplicationEnvironmentSummary,
+  ) => {
+    setEditEnvironmentError(null);
+    setEnvironmentToEdit(environment);
+    setEditEnvironmentName(environment.name);
+    setEditEnvironmentEnablePublicRpcs(environment.enablePublicRpcs);
+    setEditEnvironmentModalOpen(true);
+  };
+
+  const closeEditEnvironmentModal = () => {
+    if (editEnvironmentLoading()) return;
+    setEditEnvironmentModalOpen(false);
+    setEnvironmentToEdit(null);
+    setEditEnvironmentName("");
+    setEditEnvironmentEnablePublicRpcs(false);
+  };
+
   useEscapeKey(environmentModalOpen, closeEnvironmentModal);
+  useEscapeKey(editEnvironmentModalOpen, closeEditEnvironmentModal);
 
   const environmentModalBackdropHandlers =
     createModalBackdropHandlers(closeEnvironmentModal);
+  const editEnvironmentModalBackdropHandlers =
+    createModalBackdropHandlers(closeEditEnvironmentModal);
 
   const handleCreateEnvironment = async (e: SubmitEvent) => {
     e.preventDefault();
@@ -160,70 +179,89 @@ export default function ApplicationEnvironmentsPage() {
     }
   };
 
-  const startEditingEnvironment = (
-    environment: ApplicationEnvironmentSummary,
-  ) => {
-    setEditEnvironmentError(null);
-    setEditingEnvironmentId(environment.id);
-    setEditingEnvironmentName(environment.name);
-  };
-
-  const cancelEditingEnvironment = () => {
-    if (editEnvironmentLoading()) return;
-    setEditingEnvironmentId(null);
-    setEditingEnvironmentName("");
-    setEditEnvironmentError(null);
-  };
-
-  const handleRenameEnvironment = async (environmentId: string) => {
+  const handleUpdateEnvironment = async () => {
     const token = auth.token;
     const app = application();
-    if (!token || !app) return;
+    const environment = environmentToEdit();
+    if (!token || !app || !environment) return;
 
-    const name = editingEnvironmentName();
+    const name = editEnvironmentName();
+    const enablePublicRpcs = editEnvironmentEnablePublicRpcs();
     const validationError = validateName(name);
     if (validationError) {
       setEditEnvironmentError(validationError);
       return;
     }
 
-    // Skip API call if name hasn't changed
-    const environment = environments().find((e) => e.id === environmentId);
-    if (environment && environment.name === name) {
-      setEditingEnvironmentId(null);
-      setEditingEnvironmentName("");
+    const nameChanged = environment.name !== name;
+    const publicRpcsChanged = environment.enablePublicRpcs !== enablePublicRpcs;
+
+    // Skip API calls if nothing has changed
+    if (!nameChanged && !publicRpcsChanged) {
+      setEditEnvironmentModalOpen(false);
+      setEnvironmentToEdit(null);
+      setEditEnvironmentName("");
+      setEditEnvironmentEnablePublicRpcs(false);
       return;
     }
 
     setEditEnvironmentError(null);
     setEditEnvironmentLoading(true);
+
     try {
-      const response = await fetch(
-        `/api/Applications/${app.id}/Environments/${environmentId}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
+      if (nameChanged) {
+        const response = await fetch(
+          `/api/Applications/${app.id}/Environments/${environment.id}`,
+          {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ name }),
           },
-          body: JSON.stringify({ name }),
-        },
-      );
-      if (!response.ok) {
-        throw new Error(
-          await readErrorMessage(
-            response,
-            "Failed to rename environment",
-            "An environment with this name already exists.",
-          ),
         );
+        if (!response.ok) {
+          throw new Error(
+            await readErrorMessage(
+              response,
+              "Failed to rename environment",
+              "An environment with this name already exists.",
+            ),
+          );
+        }
       }
-      setEditingEnvironmentId(null);
-      setEditingEnvironmentName("");
+
+      if (publicRpcsChanged) {
+        const response = await fetch(
+          `/api/Applications/${app.id}/Environments/${environment.id}/PublicRpcs`,
+          {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ enablePublicRpcs }),
+          },
+        );
+        if (!response.ok) {
+          throw new Error(
+            await readErrorMessage(
+              response,
+              "Failed to update public RPC discovery",
+            ),
+          );
+        }
+      }
+
+      setEditEnvironmentModalOpen(false);
+      setEnvironmentToEdit(null);
+      setEditEnvironmentName("");
+      setEditEnvironmentEnablePublicRpcs(false);
       await applicationData.refreshApplication();
     } catch (err) {
       setEditEnvironmentError(
-        err instanceof Error ? err.message : "Failed to rename environment",
+        err instanceof Error ? err.message : "Failed to update environment",
       );
     } finally {
       setEditEnvironmentLoading(false);
@@ -259,8 +297,8 @@ export default function ApplicationEnvironmentsPage() {
           await readErrorMessage(response, "Failed to delete environment"),
         );
       }
-      if (editingEnvironmentId() === environment.id) {
-        cancelEditingEnvironment();
+      if (environmentToEdit()?.id === environment.id) {
+        closeEditEnvironmentModal();
       }
       await Promise.all([
         applicationData.refreshApplication(),
@@ -272,24 +310,6 @@ export default function ApplicationEnvironmentsPage() {
       );
     } finally {
       setDeleteEnvironmentLoadingId(null);
-    }
-  };
-
-  const handleTogglePublicRpcs = async (
-    environment: ApplicationEnvironmentSummary,
-  ) => {
-    setPublicRpcToggleError(null);
-    setPublicRpcToggleLoadingId(environment.id);
-    try {
-      await applicationData.updateEnvironmentSettings(environment.id, {
-        enablePublicRpcs: !environment.enablePublicRpcs,
-      });
-    } catch (err) {
-      setPublicRpcToggleError(
-        err instanceof Error ? err.message : "Failed to update environment",
-      );
-    } finally {
-      setPublicRpcToggleLoadingId(null);
     }
   };
 
@@ -318,7 +338,8 @@ export default function ApplicationEnvironmentsPage() {
                 disabled={
                   environmentsState() === "pending" ||
                   createEnvironmentLoading() ||
-                  editEnvironmentLoading()
+                  editEnvironmentLoading() ||
+                  editEnvironmentModalOpen()
                 }
                 class="btn btn-md btn-interactive btn-disabled btn-primary shrink-0"
               >
@@ -353,12 +374,6 @@ export default function ApplicationEnvironmentsPage() {
               </p>
             </Show>
 
-            <Show when={publicRpcToggleError()}>
-              <p class="mb-4 border border-red-500/40 bg-red-500/10 px-3 py-3 text-xs font-bold uppercase leading-snug text-red-400">
-                {publicRpcToggleError()}
-              </p>
-            </Show>
-
             <Show
               when={
                 !isInitialEnvironmentLoadPending() &&
@@ -368,147 +383,94 @@ export default function ApplicationEnvironmentsPage() {
               }
             >
               <div class="flex flex-col gap-3">
-                <For each={environments()}>
-                  {(environment) => {
-                    const isEditing = () =>
-                      editingEnvironmentId() === environment.id;
-                    const isDeleting = () =>
-                      deleteEnvironmentLoadingId() === environment.id;
-                    const isTogglingPublicRpcs = () =>
-                      publicRpcToggleLoadingId() === environment.id;
-                    return (
-                      <div class="border border-b-border bg-b-paper/40 p-4 shadow-[0_1px_0_rgba(0,0,0,0.35)] transition-colors hover:border-b-border-hover">
-                        <Show
-                          when={!isEditing()}
-                          fallback={
-                            <div class="flex flex-col gap-3">
-                              <input
-                                type="text"
-                                required
-                                pattern={nameValidationPattern}
-                                value={editingEnvironmentName()}
-                                onInput={(e) => {
-                                  setEditingEnvironmentName(
-                                    e.currentTarget.value,
-                                  );
-                                  setEditEnvironmentError(null);
-                                }}
-                                class="h-11 w-full border border-b-border bg-b-paper px-4 text-sm font-semibold text-b-ink placeholder:text-b-ink/25 outline-none focus-visible:border-b-accent/50 focus-visible:ring-2 focus-visible:ring-b-accent/20 hover:border-b-border-hover transition-all duration-200"
-                                title={nameValidationHint}
-                                autocomplete="off"
-                              />
-                              <Show when={editEnvironmentError()}>
-                                <p class="border border-red-500/40 bg-red-500/10 px-3 py-3 text-xs font-bold uppercase leading-snug text-red-400">
-                                  {editEnvironmentError()}
-                                </p>
-                              </Show>
-                              <div class="flex flex-col gap-3 sm:flex-row sm:justify-end">
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    void handleRenameEnvironment(environment.id)
-                                  }
-                                  disabled={editEnvironmentLoading()}
-                                  class="btn btn-sm btn-interactive btn-disabled btn-primary"
-                                >
-                                  <Show when={editEnvironmentLoading()}>
-                                    <LoadingSpinner class="size-3.5 text-b-paper" />
-                                  </Show>
-                                  {editEnvironmentLoading()
-                                    ? "Saving…"
-                                    : environment.name === editingEnvironmentName()
-                                      ? "Cancel"
-                                      : "Save"}
-                                </button>
+                    <For each={environments()}>
+                      {(environment) => {
+                        const isDeleting = () =>
+                          deleteEnvironmentLoadingId() === environment.id;
+                        return (
+                          <div class="border border-b-border bg-b-paper/40 p-4 shadow-[0_1px_0_rgba(0,0,0,0.35)] transition-colors hover:border-b-border-hover">
+                            <div class="flex flex-col gap-4">
+                              <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                <div>
+                                  <p class="font-['Anton',sans-serif] text-xl tracking-wide text-b-ink">
+                                    {environment.name}
+                                  </p>
+                                  <div class="mt-2 flex flex-wrap items-center gap-4 text-xs font-semibold uppercase tracking-wider text-b-ink/50">
+                                    <Show when={!rpcsError()}>
+                                      <span class="inline-flex items-center gap-1">
+                                        <RpcIcon class="size-3.5" />
+                                        {getEnvironmentRpcCount(environment.id)} RPC
+                                        {getEnvironmentRpcCount(environment.id) === 1
+                                          ? ""
+                                          : "s"}
+                                      </span>
+                                    </Show>
+                                    <span>
+                                      {getActiveChainCount(environment)} active chain
+                                      {getActiveChainCount(environment) === 1
+                                        ? ""
+                                        : "s"}
+                                    </span>
+                                  </div>
+                                </div>
+                                <div class="flex shrink-0 items-center gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      openEditEnvironmentModal(environment)
+                                    }
+                                    disabled={isDeleting() || editEnvironmentModalOpen()}
+                                    class="btn btn-sm btn-interactive btn-disabled btn-secondary"
+                                    title="Edit environment"
+                                  >
+                                    <PencilIcon class="size-4" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      void handleDeleteEnvironment(environment)
+                                    }
+                                    disabled={isDeleting() || editEnvironmentModalOpen()}
+                                    class="btn btn-sm btn-interactive btn-disabled btn-danger"
+                                    title="Delete environment"
+                                  >
+                                    <Show
+                                      when={isDeleting()}
+                                      fallback={<TrashIcon class="size-4" />}
+                                    >
+                                      <LoadingSpinner class="size-4" />
+                                    </Show>
+                                  </button>
+                                </div>
                               </div>
-                            </div>
-                          }
-                        >
-                          <div class="flex flex-col gap-4">
-                          <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                            <div>
-                              <p class="font-['Anton',sans-serif] text-xl tracking-wide text-b-ink">
-                                {environment.name}
-                              </p>
-                              <div class="mt-2 flex flex-wrap items-center gap-4 text-xs font-semibold uppercase tracking-wider text-b-ink/50">
-                                <Show when={!rpcsError()}>
-                                  <span class="inline-flex items-center gap-1">
-                                    <RpcIcon class="size-3.5" />
-                                    {getEnvironmentRpcCount(environment.id)} RPC
-                                    {getEnvironmentRpcCount(environment.id) === 1
-                                      ? ""
-                                      : "s"}
-                                  </span>
-                                </Show>
-                                <span>
-                                  {getActiveChainCount(environment)} active chain
-                                  {getActiveChainCount(environment) === 1
-                                    ? ""
-                                    : "s"}
+                              <div class="flex items-center justify-between border-t border-b-border/60 pt-3">
+                                <p class="text-xs font-bold uppercase tracking-widest text-b-ink/70">
+                                  Public RPC discovery
+                                </p>
+                                <span
+                                  class={`inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider ${
+                                    environment.enablePublicRpcs
+                                      ? "text-green-400"
+                                      : "text-red-400"
+                                  }`}
+                                >
+                                  <span
+                                    class={`inline-block size-2 rounded-full ${
+                                      environment.enablePublicRpcs
+                                        ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]"
+                                        : "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]"
+                                    }`}
+                                  />
+                                  {environment.enablePublicRpcs
+                                    ? "Enabled"
+                                    : "Disabled"}
                                 </span>
                               </div>
                             </div>
                           </div>
-                          <div class="flex flex-col gap-3 border-t border-b-border/60 pt-3 sm:flex-row sm:items-center sm:justify-between">
-                            <div>
-                              <p class="text-xs font-bold uppercase tracking-widest text-b-ink/70">
-                                Public RPC discovery
-                              </p>
-                              <p class="mt-1 text-xs font-semibold uppercase tracking-wider text-b-ink/45">
-                                {environment.enablePublicRpcs
-                                  ? "Enabled for this environment"
-                                  : "Disabled for this environment"}
-                              </p>
-                            </div>
-                            <div class="flex flex-col gap-3 sm:flex-row sm:justify-end">
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  void handleTogglePublicRpcs(environment)
-                                }
-                                disabled={isDeleting() || isTogglingPublicRpcs()}
-                                class="btn btn-sm btn-interactive btn-disabled btn-secondary"
-                              >
-                                <Show when={isTogglingPublicRpcs()}>
-                                  <LoadingSpinner class="size-3.5" />
-                                </Show>
-                                {isTogglingPublicRpcs()
-                                  ? "Saving…"
-                                  : environment.enablePublicRpcs
-                                    ? "Disable"
-                                    : "Enable"}
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  startEditingEnvironment(environment)
-                                }
-                                disabled={isDeleting()}
-                                class="btn btn-sm btn-interactive btn-disabled btn-secondary"
-                              >
-                                Rename
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  void handleDeleteEnvironment(environment)
-                                }
-                                disabled={isDeleting()}
-                                class="btn btn-sm btn-interactive btn-disabled btn-danger"
-                              >
-                                <Show when={isDeleting()}>
-                                  <LoadingSpinner class="size-3.5" />
-                                </Show>
-                                {isDeleting() ? "Deleting…" : "Delete"}
-                              </button>
-                            </div>
-                          </div>
-                          </div>
-                        </Show>
-                      </div>
-                    );
-                  }}
-                </For>
+                        );
+                      }}
+                    </For>
               </div>
             </Show>
 
@@ -608,6 +570,131 @@ export default function ApplicationEnvironmentsPage() {
                     <LoadingSpinner class="size-3.5 text-b-paper" />
                   </Show>
                   {createEnvironmentLoading() ? "Creating…" : "Create"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </Show>
+
+      <Show when={editEnvironmentModalOpen()}>
+        <div
+          class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm px-4 py-8"
+          role="presentation"
+          {...editEnvironmentModalBackdropHandlers}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="edit-environment-title"
+            class="w-full max-w-md border border-b-border bg-b-field p-8 shadow-[0_25px_50px_rgba(0,0,0,0.5)]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p class="mb-2 text-xs font-bold uppercase tracking-[0.35em] text-b-accent">
+              Edit
+            </p>
+            <h3
+              id="edit-environment-title"
+              class="mb-8 font-['Anton',sans-serif] text-4xl uppercase leading-none tracking-wide text-b-ink"
+            >
+              Edit environment
+            </h3>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                void handleUpdateEnvironment();
+              }}
+              class="flex flex-col gap-6"
+            >
+              <div class="flex flex-col gap-2">
+                <label
+                  for="edit-environment-name"
+                  class="text-xs font-bold uppercase tracking-widest text-b-ink/70"
+                >
+                  Name
+                </label>
+                <input
+                  id="edit-environment-name"
+                  type="text"
+                  required
+                  pattern={nameValidationPattern}
+                  value={editEnvironmentName()}
+                  onInput={(e) => {
+                    setEditEnvironmentName(e.currentTarget.value);
+                    setEditEnvironmentError(null);
+                  }}
+                  class="h-11 w-full border border-b-border bg-b-paper px-4 text-sm font-semibold text-b-ink placeholder:text-b-ink/25 outline-none focus-visible:border-b-accent/50 focus-visible:ring-2 focus-visible:ring-b-accent/20 hover:border-b-border-hover transition-all duration-200"
+                  placeholder="DEV"
+                  title={nameValidationHint}
+                  autocomplete="off"
+                />
+                <p class="text-xs font-semibold uppercase tracking-wider text-b-ink/40">
+                  {nameValidationHint}
+                </p>
+              </div>
+
+              <div class="flex flex-col gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditEnvironmentEnablePublicRpcs(
+                      (value) => !value,
+                    );
+                    setEditEnvironmentError(null);
+                  }}
+                  disabled={editEnvironmentLoading()}
+                  class={`inline-flex w-full items-center justify-between border px-4 py-3 text-left transition-all duration-200 ${
+                    editEnvironmentEnablePublicRpcs()
+                      ? "border-b-accent bg-b-accent/10 text-b-ink"
+                      : "border-b-border bg-b-paper text-b-ink/70 hover:border-b-border-hover"
+                  } disabled:cursor-not-allowed disabled:opacity-50`}
+                >
+                  <span class="text-xs font-bold uppercase tracking-widest">
+                    Public RPC Discovery
+                  </span>
+                  <div
+                    class={`flex size-5 shrink-0 items-center justify-center border transition-all duration-200 ${
+                      editEnvironmentEnablePublicRpcs()
+                        ? "border-b-accent bg-b-accent"
+                        : "border-b-border bg-b-field"
+                    }`}
+                  >
+                    <Show when={editEnvironmentEnablePublicRpcs()}>
+                      <CheckmarkIcon class="size-3.5 text-b-paper" />
+                    </Show>
+                  </div>
+                </button>
+                <p class="text-xs font-semibold uppercase tracking-wider text-b-ink/40">
+                  Allow public RPC endpoints to be discovered for this
+                  environment.
+                </p>
+              </div>
+
+              <Show when={editEnvironmentError()}>
+                <p class="border border-red-500/40 bg-red-500/10 px-3 py-3 text-xs font-bold uppercase leading-snug text-red-400">
+                  {editEnvironmentError()}
+                </p>
+              </Show>
+
+              <div class="flex flex-col gap-3 sm:flex-row sm:justify-end">
+                <button
+                  type="button"
+                  onClick={closeEditEnvironmentModal}
+                  disabled={editEnvironmentLoading()}
+                  class="btn btn-md btn-interactive btn-disabled btn-secondary"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={editEnvironmentLoading()}
+                  class="btn btn-md btn-interactive btn-disabled btn-primary"
+                >
+                  <Show when={editEnvironmentLoading()}>
+                    <LoadingSpinner class="size-3.5 text-b-paper" />
+                  </Show>
+                  {editEnvironmentLoading() ? "Saving…" : "Save"}
                 </button>
               </div>
             </form>

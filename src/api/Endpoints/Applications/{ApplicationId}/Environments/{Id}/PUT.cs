@@ -15,7 +15,7 @@ public sealed class PUT(AppDbContext dbContext) : Endpoint<PUT.Request>
     public sealed record Request(
         [property: RouteParam] Guid ApplicationId,
         [property: RouteParam] Guid EnvironmentId,
-        string Name,
+        string? Name,
         string[]? Chains
     );
 
@@ -23,16 +23,24 @@ public sealed class PUT(AppDbContext dbContext) : Endpoint<PUT.Request>
     {
         public Validator()
         {
-            RuleFor(x => x.Name).ApplyNameValidation();
+            RuleFor(x => x)
+                .Must(x => x.Name is not null || x.Chains is not null)
+                .WithMessage("At least one field (Name or Chains) must be provided.");
 
-            RuleForEach(x => x.Chains)
-                .Cascade(CascadeMode.Stop)
-                .Must(static chain => !String.IsNullOrWhiteSpace(chain))
-                .WithMessage(ChainValidation.REQUIRED_MESSAGE)
-                .MaximumLength(30)
-                .WithMessage(ChainValidation.LENGTH_MESSAGE)
-                .Must(ChainRegistry.IsRegisteredChain)
-                .WithMessage(ChainValidation.INVALID_MESSAGE);
+            When(
+                x => x.Name is not null,
+                () => RuleFor(x => x.Name!).ApplyNameValidation());
+
+            When(
+                x => x.Chains is not null,
+                () => RuleForEach(x => x.Chains!)
+                    .Cascade(CascadeMode.Stop)
+                    .Must(static chain => !String.IsNullOrWhiteSpace(chain))
+                    .WithMessage(ChainValidation.REQUIRED_MESSAGE)
+                    .MaximumLength(30)
+                    .WithMessage(ChainValidation.LENGTH_MESSAGE)
+                    .Must(ChainRegistry.IsRegisteredChain)
+                    .WithMessage(ChainValidation.INVALID_MESSAGE));
         }
     }
 
@@ -52,12 +60,10 @@ public sealed class PUT(AppDbContext dbContext) : Endpoint<PUT.Request>
             ThrowError("Environment not found.", 404);
         }
 
-        if(await dbContext.ApplicationEnvironments.AnyAsync(existingEnvironment => existingEnvironment.ApplicationId == req.ApplicationId && existingEnvironment.Id != req.EnvironmentId && existingEnvironment.Name == req.Name, ct))
+        if(req.Name is not null)
         {
-            ThrowError("An environment with this name already exists.", 409);
+            environment.Name = req.Name;
         }
-
-        environment.Name = req.Name;
 
         if(req.Chains is not null)
         {

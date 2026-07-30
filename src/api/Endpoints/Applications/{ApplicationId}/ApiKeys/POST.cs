@@ -1,6 +1,7 @@
 using Farsight.Rpc.Api.Auth;
 using Farsight.Rpc.Api.Persistence;
 using Farsight.Rpc.Api.Persistence.Entities;
+using Farsight.Rpc.Api.Validation;
 using FastEndpoints;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
@@ -12,7 +13,8 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request>
 {
     public sealed record Request(
         [property: RouteParam] Guid ApplicationId,
-        Guid EnvironmentId
+        Guid EnvironmentId,
+        string Name
     );
 
     public sealed class Validator : Validator<Request>
@@ -22,6 +24,8 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request>
             RuleFor(x => x.EnvironmentId)
                 .Must(static environmentId => environmentId != Guid.Empty)
                 .WithMessage("Environment is required.");
+
+            RuleFor(x => x.Name).ApplyNameValidation();
         }
     }
 
@@ -48,6 +52,7 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request>
             Id = Guid.NewGuid(),
             ApplicationId = req.ApplicationId,
             EnvironmentId = req.EnvironmentId,
+            Name = req.Name,
             Key = Convert.ToHexString(RandomNumberGenerator.GetBytes(32)).ToLowerInvariant(),
         };
 

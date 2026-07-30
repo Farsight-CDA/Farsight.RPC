@@ -19,9 +19,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     public DbSet<UserSecurityKey> UserSecurityKeys => Set<UserSecurityKey>();
 
     public DbSet<RpcEndpoint> Rpcs => Set<RpcEndpoint>();
-    public DbSet<RpcEndpoint.Realtime> RealtimeRpcs => Set<RpcEndpoint.Realtime>();
-    public DbSet<RpcEndpoint.Archive> ArchiveRpcs => Set<RpcEndpoint.Archive>();
-    public DbSet<RpcEndpoint.Tracing> TracingRpcs => Set<RpcEndpoint.Tracing>();
+    public DbSet<RpcRule> RpcRules => Set<RpcRule>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

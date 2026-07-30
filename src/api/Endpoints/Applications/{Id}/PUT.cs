@@ -1,7 +1,6 @@
 using Farsight.Rpc.Api.Auth;
 using Farsight.Rpc.Api.Persistence;
 using Farsight.Rpc.Api.Validation;
-using Farsight.Rpc.Types;
 using FastEndpoints;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
@@ -14,7 +13,6 @@ public sealed class PUT(AppDbContext dbContext) : Endpoint<PUT.Request>
     public sealed record Request(
         [property: RouteParam] Guid ApplicationId,
         string? Name,
-        RpcStructureDefinition? Structure,
         string? Color
     );
 
@@ -23,8 +21,8 @@ public sealed class PUT(AppDbContext dbContext) : Endpoint<PUT.Request>
         public Validator()
         {
             RuleFor(x => x)
-                .Must(x => x.Name is not null || x.Color is not null || x.Structure is not null)
-                .WithMessage("At least one field (Name, Color, Structure) must be provided.");
+                .Must(x => x.Name is not null || x.Color is not null)
+                .WithMessage("At least one field (Name or Color) must be provided.");
 
             When(
                 x => x.Name is not null,
@@ -58,21 +56,12 @@ public sealed class PUT(AppDbContext dbContext) : Endpoint<PUT.Request>
 
         if(req.Name is not null)
         {
-            if(await dbContext.ConsumerApplications.AnyAsync(a => a.Id != req.ApplicationId && a.Name == req.Name, ct))
-            {
-                ThrowError("An application with this name already exists.", 409);
-            }
             application.Name = req.Name;
         }
 
         if(req.Color is not null)
         {
             application.Color = req.Color;
-        }
-
-        if(req.Structure is not null)
-        {
-            application.Structure = req.Structure;
         }
 
         try

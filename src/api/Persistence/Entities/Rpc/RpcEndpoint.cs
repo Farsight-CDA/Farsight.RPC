@@ -4,12 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace Farsight.Rpc.Api.Persistence.Entities.Rpc;
 
-[JsonPolymorphic(TypeDiscriminatorPropertyName = "type")]
-[JsonDerivedType(typeof(Realtime), nameof(RpcType.Realtime))]
-[JsonDerivedType(typeof(Archive), nameof(RpcType.Archive))]
-[JsonDerivedType(typeof(Tracing), nameof(RpcType.Tracing))]
-[JsonDerivedType(typeof(Public), nameof(RpcType.Public))]
-public abstract class RpcEndpoint
+public sealed class RpcEndpoint
 {
     public required Guid Id { get; init; }
     public required Guid EnvironmentId { get; init; }
@@ -17,7 +12,10 @@ public abstract class RpcEndpoint
 
     public required Uri Address { get; init; }
 
-    public required Guid ProviderId { get; init; }
+    public required Guid ProviderId { get; set; }
+    public required RpcCapability[] Capabilities { get; set; }
+    public required int Order { get; set; }
+
     //Navigation Property
     [JsonIgnore]
     public RpcProvider? Provider { get; private set; } = null;
@@ -30,18 +28,4 @@ public abstract class RpcEndpoint
     //Navigation Property
     [JsonIgnore]
     public ApplicationEnvironment? Environment { get; private set; } = null;
-
-    public sealed class Realtime : RpcEndpoint;
-    public sealed class Public : RpcEndpoint;
-
-    public sealed class Archive : RpcEndpoint
-    {
-        public ulong IndexerStepSize { get; set; }
-        public ulong IndexerBlockOffset { get; set; }
-    }
-
-    public sealed class Tracing : RpcEndpoint
-    {
-        public required TracingMode TracingMode { get; init; }
-    }
 }

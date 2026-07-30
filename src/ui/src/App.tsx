@@ -14,8 +14,8 @@ import ApplicationRpcsPage from "./pages/ApplicationRpcsPage";
 import ApplicationApiKeysPage from "./pages/ApplicationApiKeysPage";
 import ApplicationGeneralPage from "./pages/ApplicationGeneralPage";
 import ApplicationEnvironmentsPage from "./pages/ApplicationEnvironmentsPage";
-import ApplicationStructuresPage from "./pages/ApplicationStructuresPage";
 import ApplicationProvidersPage from "./pages/ApplicationProvidersPage";
+import ApplicationRulesPage from "./pages/ApplicationRulesPage";
 import {
   ReferenceDataProvider,
   type ReferenceDataSnapshot,
@@ -121,13 +121,13 @@ export default function App(props: AppProps) {
             <Route path="/" component={ApplicationRpcsPage} />
             <Route path="/rpcs" component={ApplicationRpcsPage} />
             <Route path="/api-keys" component={ApplicationApiKeysPage} />
-            <Route path="/structures" component={ApplicationStructuresPage} />
             <Route
               path="/environments"
               component={ApplicationEnvironmentsPage}
             />
             <Route path="/general" component={ApplicationGeneralPage} />
             <Route path="/providers" component={ApplicationProvidersPage} />
+            <Route path="/rules" component={ApplicationRulesPage} />
           </Route>
           <Route path="*" component={() => <Navigate href="/" />} />
         </Router>

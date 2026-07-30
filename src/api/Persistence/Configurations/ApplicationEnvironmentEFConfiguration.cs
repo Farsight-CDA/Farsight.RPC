@@ -42,6 +42,10 @@ internal sealed class ApplicationEnvironmentEFConfiguration : IEntityTypeConfigu
             .WithOne(x => x.Environment)
             .HasForeignKey(x => x.EnvironmentId);
 
+        entity.HasMany(x => x.RpcRules)
+            .WithOne(x => x.Environment)
+            .HasForeignKey(x => x.EnvironmentId);
+
         entity.ToTable("ApplicationEnvironments");
     }
 }

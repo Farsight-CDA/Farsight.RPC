@@ -1,5 +1,5 @@
 import { createEffect, createMemo, createSignal, For, Show } from "solid-js";
-import { useParams } from "@solidjs/router";
+import { useParams, useSearchParams } from "@solidjs/router";
 import LoadingSpinner from "../components/LoadingSpinner";
 import SearchIcon from "../components/icons/SearchIcon";
 import PencilIcon from "../components/icons/PencilIcon";
@@ -11,6 +11,7 @@ import RpcIcon from "../components/icons/RpcIcon";
 import PlusIcon from "../components/icons/PlusIcon";
 import ChevronDownIcon from "../components/icons/ChevronDownIcon";
 import CheckmarkIcon from "../components/icons/CheckmarkIcon";
+import CopyIcon from "../components/icons/CopyIcon";
 import WarningIcon from "../components/icons/WarningIcon";
 import { createModalBackdropHandlers } from "../lib/createModalBackdropHandlers";
 import { useAuth } from "../lib/auth";
@@ -22,15 +23,92 @@ import {
   useApplicationData,
   type ApplicationRpc,
 } from "../lib/application-data";
+import { chainRuleValidation } from "../lib/rule-validation";
 import { useEnvironment } from "../lib/environment-context";
 import { useEscapeKey } from "../lib/useEscapeKey";
-import {
-  formatRequirement,
-  requirementMatches,
-  rpcTypeStructureKey,
-  rpcTypes,
-  type RpcTypeName,
-} from "../lib/rpc-structure";
+
+const allCapabilities: RpcCapability[] = [
+  "Archive",
+  "DebugApi",
+  "TracingApi",
+  "StateOverrides",
+  "BlockOverrides",
+  "Subscriptions",
+];
+
+type RpcCapability =
+  | "Archive"
+  | "DebugApi"
+  | "TracingApi"
+  | "StateOverrides"
+  | "BlockOverrides"
+  | "Subscriptions";
+
+function formatCapability(capability: RpcCapability): string {
+  switch (capability) {
+    case "DebugApi":
+      return "Debug API";
+    case "TracingApi":
+      return "Tracing API";
+    case "StateOverrides":
+      return "State Overrides";
+    case "BlockOverrides":
+      return "Block Overrides";
+    default:
+      return capability;
+  }
+}
+
+function capabilityStyle(capability: RpcCapability): string {
+  switch (capability) {
+    case "Archive":
+      return "border-blue-500/30 bg-blue-500/10 text-blue-400";
+    case "DebugApi":
+      return "border-purple-500/30 bg-purple-500/10 text-purple-400";
+    case "TracingApi":
+      return "border-pink-500/30 bg-pink-500/10 text-pink-400";
+    case "StateOverrides":
+      return "border-amber-500/30 bg-amber-500/10 text-amber-400";
+    case "BlockOverrides":
+      return "border-cyan-500/30 bg-cyan-500/10 text-cyan-400";
+    case "Subscriptions":
+      return "border-emerald-500/30 bg-emerald-500/10 text-emerald-400";
+    default:
+      return "border-b-border bg-b-paper/20 text-b-ink/50";
+  }
+}
+
+function CopyEndpointButton(props: { address: string }) {
+  const [copied, setCopied] = createSignal(false);
+  let timer: ReturnType<typeof setTimeout> | undefined;
+
+  const handleCopy = () => {
+    void navigator.clipboard.writeText(props.address);
+    if (timer !== undefined) {
+      clearTimeout(timer);
+    }
+    setCopied(true);
+    timer = setTimeout(() => {
+      setCopied(false);
+      timer = undefined;
+    }, 2000);
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={handleCopy}
+      class="inline-flex size-6 shrink-0 items-center justify-center rounded border border-b-border bg-b-field text-b-ink transition-all duration-200 hover:border-b-border-hover hover:bg-b-stripe focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-b-accent"
+      title={copied() ? "Copied" : "Copy endpoint URL"}
+    >
+      {copied() ? (
+        <CheckmarkIcon class="size-3 text-b-accent" />
+      ) : (
+        <CopyIcon class="size-3 opacity-70" />
+      )}
+    </button>
+  );
+}
 
 async function readErrorMessage(
   response: Response,
@@ -52,13 +130,25 @@ async function readErrorMessage(
 const rpcValidationTimeoutMs = 15_000;
 const rpcValidationTimedOutMessage = "RPC validation timed out.";
 
+type ProbeResult = {
+  chainId?: number | string;
+  latestBlockNumber?: number | string;
+  latestBlockTime?: string;
+  compatibility?: {
+    supportsPush0?: boolean;
+    supportsMCopy?: boolean;
+    supportsTStore?: boolean;
+    supportsBaseFee?: boolean;
+  };
+  capabilities?: string[];
+};
+
 async function validateRpcEndpoint(
   token: string,
   address: string,
   chain: string,
-  rpcType: ApplicationRpc["type"],
 ): Promise<
-  | { ok: true; chainId: string; tracingMode?: string }
+  | { ok: true; result: ProbeResult }
   | { ok: false; message: string }
 > {
   const controller = new AbortController();
@@ -74,7 +164,7 @@ async function validateRpcEndpoint(
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({ address: address.trim(), chain, rpcType }),
+      body: JSON.stringify({ address: address.trim(), chain }),
       signal: controller.signal,
     });
     if (!response.ok) {
@@ -83,19 +173,8 @@ async function validateRpcEndpoint(
         message: await readErrorMessage(response, "RPC validation failed"),
       };
     }
-    const data = (await response.json()) as {
-      chainId?: number | string;
-      tracingMode?: string;
-    };
-    const chainId =
-      data.chainId === undefined || data.chainId === null
-        ? "unknown"
-        : String(data.chainId);
-    return {
-      ok: true,
-      chainId,
-      tracingMode: data.tracingMode ?? undefined,
-    };
+    const data = (await response.json()) as ProbeResult;
+    return { ok: true, result: data };
   } catch (error) {
     if (error instanceof DOMException && error.name === "AbortError") {
       return { ok: false, message: rpcValidationTimedOutMessage };
@@ -138,7 +217,13 @@ export default function ApplicationRpcsPage() {
   const referenceData = useReferenceData();
   const applicationData = useApplicationData();
   const params = useParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const applicationId = () => params.applicationId;
+
+  const requestedChain = () => {
+    const value = searchParams.chain;
+    return Array.isArray(value) ? value[0] : value;
+  };
 
   const allChains = referenceData.chains.data;
   const allChainsState = referenceData.chains.state;
@@ -149,32 +234,9 @@ export default function ApplicationRpcsPage() {
   const rpcs = applicationData.rpcs.data;
   const rpcsState = applicationData.rpcs.state;
   const rpcsError = applicationData.rpcs.error;
-
-  const appStructure = applicationData.structure;
-
-  const typeOverviewStyles = {
-    Realtime: {
-      badge: "border-green-500/30 bg-green-500/10 text-green-400",
-      dot: "bg-green-500",
-    },
-    Archive: {
-      badge: "border-blue-500/30 bg-blue-500/10 text-blue-400",
-      dot: "bg-blue-500",
-    },
-    Tracing: {
-      badge: "border-purple-500/30 bg-purple-500/10 text-purple-400",
-      dot: "bg-purple-500",
-    },
-  };
-
-  const structureOverviewItems = createMemo(() => {
-    const structure = appStructure();
-    return rpcTypes.map((type) => ({
-      type,
-      rule: formatRequirement(structure[rpcTypeStructureKey[type]]),
-      style: typeOverviewStyles[type],
-    }));
-  });
+  const publicRpcs = applicationData.publicRpcs.data;
+  const publicRpcsState = applicationData.publicRpcs.state;
+  const rules = applicationData.rules.data;
 
   const environment = useEnvironment();
   const selectedEnvironment = createMemo(
@@ -184,8 +246,8 @@ export default function ApplicationRpcsPage() {
         .find((item) => item.id === environment.selectedEnvironmentId()) ??
       null,
   );
+
   const [filterText, setFilterText] = createSignal("");
-  const [activeChain, setActiveChain] = createSignal<string | null>(null);
   const [isAddingChains, setIsAddingChains] = createSignal(false);
   const [chainsToAdd, setChainsToAdd] = createSignal<Set<string>>(new Set());
   const [chainMutationError, setChainMutationError] = createSignal<
@@ -196,61 +258,51 @@ export default function ApplicationRpcsPage() {
   const [createRpcModalOpen, setCreateRpcModalOpen] = createSignal(false);
   const [selectedChainForRpc, setSelectedChainForRpc] =
     createSignal<string>("");
-  const [newRpcType, setNewRpcType] = createSignal<
-    "Realtime" | "Archive" | "Tracing"
-  >("Realtime");
-  const [createRpcTypeConfirmed, setCreateRpcTypeConfirmed] =
-    createSignal(false);
+  const [createStep, setCreateStep] = createSignal<1 | 2>(1);
   const [newRpcAddress, setNewRpcAddress] = createSignal("");
   const [newRpcProviderId, setNewRpcProviderId] = createSignal<string>("");
-  const [newRpcTracingMode, setNewRpcTracingMode] = createSignal<
-    "" | "Debug" | "Trace"
-  >("");
-  const [newRpcIndexerStepSize, setNewRpcIndexerStepSize] = createSignal("");
-  const [newRpcIndexerBlockOffset, setNewRpcIndexerBlockOffset] =
-    createSignal("");
+  const [newRpcCapabilities, setNewRpcCapabilities] = createSignal<
+    Set<RpcCapability>
+  >(new Set());
   const [createRpcError, setCreateRpcError] = createSignal<string | null>(null);
   const [createRpcLoading, setCreateRpcLoading] = createSignal(false);
   const [createRpcTestStatus, setCreateRpcTestStatus] = createSignal<
     "untested" | "testing" | "passed" | "failed"
   >("untested");
-  const [createRpcTestChainId, setCreateRpcTestChainId] = createSignal("");
+  const [createRpcTestResult, setCreateRpcTestResult] =
+    createSignal<ProbeResult | null>(null);
   const [createRpcTestError, setCreateRpcTestError] = createSignal<
     string | null
   >(null);
   const [createRpcSaveConfirm, setCreateRpcSaveConfirm] = createSignal(false);
   const [createProviderAutoInferred, setCreateProviderAutoInferred] =
     createSignal(false);
-  const [createTracingModeAutoInferred, setCreateTracingModeAutoInferred] =
+  const [createCapabilitiesAutoInferred, setCreateCapabilitiesAutoInferred] =
     createSignal(false);
 
   const [editRpcModalOpen, setEditRpcModalOpen] = createSignal(false);
   const [rpcToEdit, setRpcToEdit] = createSignal<ApplicationRpc | null>(null);
-  const [editRpcAddress, setEditRpcAddress] = createSignal("");
   const [editRpcProviderId, setEditRpcProviderId] = createSignal<string>("");
-  const [editRpcTracingMode, setEditRpcTracingMode] = createSignal<
-    "" | "Debug" | "Trace"
-  >("Debug");
-  const [editRpcIndexerStepSize, setEditRpcIndexerStepSize] = createSignal("1");
-  const [editRpcIndexerBlockOffset, setEditRpcIndexerBlockOffset] =
-    createSignal("1");
+  const [editRpcCapabilities, setEditRpcCapabilities] = createSignal<
+    Set<RpcCapability>
+  >(new Set());
+  const [editDetectedCapabilities, setEditDetectedCapabilities] =
+    createSignal<Set<RpcCapability>>(new Set());
   const [editRpcError, setEditRpcError] = createSignal<string | null>(null);
   const [editRpcLoading, setEditRpcLoading] = createSignal(false);
   const [editRpcTestStatus, setEditRpcTestStatus] = createSignal<
     "untested" | "testing" | "passed" | "failed"
   >("untested");
-  const [editRpcTestChainId, setEditRpcTestChainId] = createSignal("");
+  const [editRpcTestResult, setEditRpcTestResult] =
+    createSignal<ProbeResult | null>(null);
   const [editRpcTestError, setEditRpcTestError] = createSignal<string | null>(
     null,
   );
   const [editRpcSaveConfirm, setEditRpcSaveConfirm] = createSignal(false);
   const [editProviderAutoInferred, setEditProviderAutoInferred] =
     createSignal(false);
-  const [editTracingModeAutoInferred, setEditTracingModeAutoInferred] =
-    createSignal(false);
 
   let newRpcAddressInput!: HTMLInputElement;
-  let editRpcAddressInput!: HTMLInputElement;
 
   const [rpcToDelete, setRpcToDelete] = createSignal<ApplicationRpc | null>(
     null,
@@ -263,6 +315,11 @@ export default function ApplicationRpcsPage() {
     null,
   );
   const [disableChainLoading, setDisableChainLoading] = createSignal(false);
+
+  // Drag and drop state
+  const [dragRpcId, setDragRpcId] = createSignal<string | null>(null);
+  const [dragOverIndex, setDragOverIndex] = createSignal<number | null>(null);
+  const [orderUpdateLoading, setOrderUpdateLoading] = createSignal(false);
 
   createEffect(() => {
     const prods = providers();
@@ -310,32 +367,57 @@ export default function ApplicationRpcsPage() {
     return list;
   });
 
-  createEffect(() => {
+  const activeChain = createMemo(() => {
     const list = filteredChains();
-    const current = activeChain();
-    if (list.length === 0) {
-      setActiveChain(null);
-      return;
+    const requested = requestedChain();
+    return requested && list.includes(requested) ? requested : (list[0] ?? null);
+  });
+
+  const failingChains = createMemo(() => {
+    const envId = environment.selectedEnvironmentId();
+    if (!envId) return new Set<string>();
+    const allRules = rules();
+    const allRpcs = rpcs();
+    const result = new Set<string>();
+    for (const chain of availableChains()) {
+      if (!chainRuleValidation(chain, envId, allRpcs, allRules)) {
+        result.add(chain);
+      }
     }
-    if (!current || !list.includes(current)) {
-      setActiveChain(list[0]);
+    return result;
+  });
+
+  const setActiveChain = (chain: string) => {
+    setSearchParams({ chain });
+  };
+
+  createEffect(() => {
+    const selected = activeChain();
+    if (requestedChain() !== selected) {
+      setSearchParams({ chain: selected ?? undefined }, { replace: true });
     }
   });
+
+  const providersHref = () => {
+    const query = new URLSearchParams();
+    const environmentId = environment.selectedEnvironmentId();
+    if (environmentId) query.set("environment", environmentId);
+    const search = query.toString();
+    return `/applications/${applicationId()}/providers${search ? `?${search}` : ""}`;
+  };
 
   const activeChainRpcs = createMemo(() => {
     const chain = activeChain();
     const env = environment.selectedEnvironmentId() || "";
     if (!chain) return [];
-    return getChainRpcs(chain, env);
+    return getChainRpcs(chain, env).sort((a, b) => a.order - b.order);
   });
 
-  const configuredActiveChainRpcs = createMemo(() =>
-    activeChainRpcs().filter((rpc) => rpc.type !== "Public"),
-  );
-
-  const publicActiveChainRpcs = createMemo(() =>
-    activeChainRpcs().filter((rpc) => rpc.type === "Public"),
-  );
+  const activePublicRpcs = createMemo(() => {
+    const chain = activeChain();
+    if (!chain) return [];
+    return publicRpcs().filter((rpc) => rpc.chain === chain);
+  });
 
   const [expandedPublicRpcGroups, setExpandedPublicRpcGroups] = createSignal<
     Set<string>
@@ -357,55 +439,6 @@ export default function ApplicationRpcsPage() {
     }
     setExpandedPublicRpcGroups(next);
   };
-
-  type ChainStructureStatus = "valid" | "warning";
-
-  const getChainTypeCounts = (
-    chain: string,
-    env: string,
-  ): Record<RpcTypeName, number> => {
-    const chainRpcs = rpcs().filter(
-      (rpc) => rpc.chain === chain && rpc.environmentId === env,
-    );
-    const counts: Record<RpcTypeName, number> = {
-      Realtime: 0,
-      Archive: 0,
-      Tracing: 0,
-    };
-    for (const rpc of chainRpcs) {
-      if (rpc.type === "Public") continue;
-      counts[rpc.type] = (counts[rpc.type] ?? 0) + 1;
-    }
-    return counts;
-  };
-
-  const matchesStructure = (typeCounts: Record<RpcTypeName, number>): boolean =>
-    rpcTypes.every((type) =>
-      requirementMatches(typeCounts[type], appStructure()[rpcTypeStructureKey[type]]),
-    );
-
-  const chainStructureStatuses = createMemo(() => {
-    const env = environment.selectedEnvironmentId() || "";
-    const statuses: Record<string, ChainStructureStatus> = {};
-
-    for (const chain of availableChains()) {
-      const typeCounts = getChainTypeCounts(chain, env);
-      statuses[chain] = matchesStructure(typeCounts) ? "valid" : "warning";
-    }
-
-    return statuses;
-  });
-
-  const activeChainMismatchInfo = createMemo(() => {
-    const chain = activeChain();
-    const env = environment.selectedEnvironmentId() || "";
-    if (!chain) return null;
-
-    const typeCounts = getChainTypeCounts(chain, env);
-    if (matchesStructure(typeCounts)) return null;
-
-    return { typeCounts, structure: appStructure() };
-  });
 
   const toggleAddChainsMode = () => {
     setChainMutationError(null);
@@ -437,11 +470,9 @@ export default function ApplicationRpcsPage() {
     setChainMutationError(null);
     setChainMutationLoading(true);
     try {
-      // Add chains one by one
       for (const chain of chains) {
         await applicationData.addEnvironmentChain(environmentId, chain);
       }
-      // Activate the first added chain
       setActiveChain(chains[0]);
       setIsAddingChains(false);
       setChainsToAdd(new Set<string>());
@@ -458,16 +489,13 @@ export default function ApplicationRpcsPage() {
     const environmentId = environment.selectedEnvironmentId();
     if (!environmentId) return;
 
-    // Check if chain has RPCs
     const chainRpcs = getChainRpcs(chain, environmentId);
     if (chainRpcs.length > 0) {
-      // Show confirmation modal if RPCs exist
       setDisableChainError(null);
       setChainToDisable(chain);
       return;
     }
 
-    // Disable directly if no RPCs
     await performDisableChain(chain);
   };
 
@@ -491,32 +519,29 @@ export default function ApplicationRpcsPage() {
 
   const openCreateRpcModal = (chain: string) => {
     setCreateRpcError(null);
+    setCreateStep(1);
     setCreateRpcTestStatus("untested");
-    setCreateRpcTestChainId("");
+    setCreateRpcTestResult(null);
     setCreateRpcTestError(null);
     setCreateRpcSaveConfirm(false);
     setCreateProviderAutoInferred(false);
-    setCreateTracingModeAutoInferred(false);
+    setCreateCapabilitiesAutoInferred(false);
     setSelectedChainForRpc(chain);
-    setNewRpcType("Realtime");
-    setCreateRpcTypeConfirmed(false);
     setNewRpcAddress("");
     setNewRpcProviderId("");
-    setNewRpcTracingMode("");
-    setNewRpcIndexerStepSize("");
-    setNewRpcIndexerBlockOffset("");
+    setNewRpcCapabilities(new Set<RpcCapability>());
     setCreateRpcModalOpen(true);
   };
 
   const closeCreateRpcModal = () => {
     if (createRpcLoading()) return;
+    setCreateStep(1);
     setCreateRpcTestStatus("untested");
-    setCreateRpcTestChainId("");
+    setCreateRpcTestResult(null);
     setCreateRpcTestError(null);
     setCreateRpcSaveConfirm(false);
     setCreateProviderAutoInferred(false);
-    setCreateTracingModeAutoInferred(false);
-    setCreateRpcTypeConfirmed(false);
+    setCreateCapabilitiesAutoInferred(false);
     setCreateRpcModalOpen(false);
     setSelectedChainForRpc("");
   };
@@ -524,53 +549,38 @@ export default function ApplicationRpcsPage() {
   const openEditRpcModal = async (rpc: ApplicationRpc) => {
     setEditRpcError(null);
     setEditRpcTestStatus("untested");
-    setEditRpcTestChainId("");
+    setEditRpcTestResult(null);
     setEditRpcTestError(null);
     setEditRpcSaveConfirm(false);
     setEditProviderAutoInferred(false);
-    setEditTracingModeAutoInferred(false);
+    setEditDetectedCapabilities(new Set<RpcCapability>());
     setRpcToEdit(rpc);
-    setEditRpcAddress(rpc.address);
     setEditRpcProviderId(rpc.providerId);
-    setEditRpcTracingMode(
-      rpc.type === "Tracing" && rpc.tracingMode === "Trace" ? "Trace" : "Debug",
-    );
-    setEditRpcIndexerStepSize(
-      rpc.type === "Archive" && rpc.indexerStepSize
-        ? String(rpc.indexerStepSize)
-        : "1",
-    );
-    setEditRpcIndexerBlockOffset(
-      rpc.type === "Archive" && rpc.indexerBlockOffset !== undefined
-        ? String(rpc.indexerBlockOffset)
-        : "1",
+    setEditRpcCapabilities(
+      new Set(rpc.capabilities.filter(isKnownCapability)),
     );
     setEditRpcModalOpen(true);
 
-    if (isValidRpcAddress(rpc.address)) {
-      const token = auth.token;
-      if (token) {
-        setEditRpcTestStatus("testing");
-        try {
-          const result = await validateRpcEndpoint(
-            token,
-            rpc.address,
-            rpc.chain,
-            rpc.type,
+    const token = auth.token;
+    if (token && isValidRpcAddress(rpc.address)) {
+      setEditRpcTestStatus("testing");
+      try {
+        const result = await validateRpcEndpoint(token, rpc.address, rpc.chain);
+        if (result.ok) {
+          setEditRpcTestStatus("passed");
+          setEditRpcTestResult(result.result);
+          setEditDetectedCapabilities(
+            autoApplyCapabilities(result.result.capabilities),
           );
-          if (result.ok) {
-            setEditRpcTestStatus("passed");
-            setEditRpcTestChainId(result.chainId);
-          } else {
-            setEditRpcTestStatus("failed");
-            setEditRpcTestError(result.message);
-          }
-        } catch (err) {
+        } else {
           setEditRpcTestStatus("failed");
-          setEditRpcTestError(
-            err instanceof Error ? err.message : "RPC validation failed",
-          );
+          setEditRpcTestError(result.message);
         }
+      } catch (err) {
+        setEditRpcTestStatus("failed");
+        setEditRpcTestError(
+          err instanceof Error ? err.message : "RPC validation failed",
+        );
       }
     }
   };
@@ -578,11 +588,11 @@ export default function ApplicationRpcsPage() {
   const closeEditRpcModal = () => {
     if (editRpcLoading()) return;
     setEditRpcTestStatus("untested");
-    setEditRpcTestChainId("");
+    setEditRpcTestResult(null);
     setEditRpcTestError(null);
     setEditRpcSaveConfirm(false);
     setEditProviderAutoInferred(false);
-    setEditTracingModeAutoInferred(false);
+    setEditDetectedCapabilities(new Set<RpcCapability>());
     setEditRpcModalOpen(false);
     setRpcToEdit(null);
   };
@@ -613,17 +623,46 @@ export default function ApplicationRpcsPage() {
     if (!disableChainLoading()) setChainToDisable(null);
   });
 
-  const runCreateRpcTest = async () => {
+  function isKnownCapability(value: string): value is RpcCapability {
+    return (allCapabilities as readonly string[]).includes(value);
+  }
+
+  function toggleCapability(
+    current: Set<RpcCapability>,
+    capability: RpcCapability,
+  ): Set<RpcCapability> {
+    const next = new Set(current);
+    if (next.has(capability)) {
+      next.delete(capability);
+    } else {
+      next.add(capability);
+    }
+    return next;
+  }
+
+  function autoApplyCapabilities(
+    capabilities: string[] | undefined,
+  ): Set<RpcCapability> {
+    const next = new Set<RpcCapability>();
+    if (!capabilities) return next;
+    for (const capability of capabilities) {
+      if (isKnownCapability(capability)) {
+        next.add(capability);
+      }
+    }
+    return next;
+  }
+
+  const runCreateRpcTest = async (): Promise<boolean> => {
     const token = auth.token;
-    if (!token) return;
     const chain = selectedChainForRpc();
-    if (!chain) return;
+    if (!token || !chain) return false;
     const address = newRpcAddress().trim();
     if (!isValidRpcAddress(address)) {
       setCreateRpcError(addressHint);
       newRpcAddressInput.setCustomValidity(addressHint);
       newRpcAddressInput.reportValidity();
-      return;
+      return false;
     }
 
     const inferredProvider = inferProviderFromUrl(address, providers());
@@ -634,90 +673,38 @@ export default function ApplicationRpcsPage() {
 
     setCreateRpcError(null);
     setCreateRpcTestStatus("testing");
-    setCreateRpcTestChainId("");
+    setCreateRpcTestResult(null);
     setCreateRpcTestError(null);
     setCreateRpcSaveConfirm(false);
+    setCreateCapabilitiesAutoInferred(false);
     try {
-      const result = await validateRpcEndpoint(
-        token,
-        address,
-        chain,
-        newRpcType(),
-      );
+      const result = await validateRpcEndpoint(token, address, chain);
       if (result.ok) {
         setCreateRpcTestStatus("passed");
-        setCreateRpcTestChainId(result.chainId);
-        if (
-          result.tracingMode &&
-          (result.tracingMode === "Debug" || result.tracingMode === "Trace")
-        ) {
-          setNewRpcTracingMode(result.tracingMode);
-          setCreateTracingModeAutoInferred(true);
+        setCreateRpcTestResult(result.result);
+        const detected = autoApplyCapabilities(result.result.capabilities);
+        if (detected.size > 0) {
+          setNewRpcCapabilities(detected);
+          setCreateCapabilitiesAutoInferred(true);
         }
+        return true;
       } else {
         setCreateRpcTestStatus("failed");
         setCreateRpcTestError(result.message);
+        return false;
       }
     } catch (err) {
       setCreateRpcTestStatus("failed");
       setCreateRpcTestError(
         err instanceof Error ? err.message : "RPC validation failed",
       );
+      return false;
     }
   };
 
-  const runEditRpcTest = async (inferFromUrl = false) => {
-    const token = auth.token;
-    const rpc = rpcToEdit();
-    if (!token || !rpc) return;
-    const address = editRpcAddress().trim();
-    if (!isValidRpcAddress(address)) {
-      setEditRpcError(addressHint);
-      editRpcAddressInput.setCustomValidity(addressHint);
-      editRpcAddressInput.reportValidity();
-      return;
-    }
-
-    if (inferFromUrl) {
-      const inferredProvider = inferProviderFromUrl(address, providers());
-      if (inferredProvider) {
-        setEditRpcProviderId(inferredProvider);
-        setEditProviderAutoInferred(true);
-      }
-    }
-
-    setEditRpcError(null);
-    setEditRpcTestStatus("testing");
-    setEditRpcTestChainId("");
-    setEditRpcTestError(null);
-    setEditRpcSaveConfirm(false);
-    try {
-      const result = await validateRpcEndpoint(
-        token,
-        address,
-        rpc.chain,
-        rpc.type,
-      );
-      if (result.ok) {
-        setEditRpcTestStatus("passed");
-        setEditRpcTestChainId(result.chainId);
-        if (
-          inferFromUrl &&
-          result.tracingMode &&
-          (result.tracingMode === "Debug" || result.tracingMode === "Trace")
-        ) {
-          setEditRpcTracingMode(result.tracingMode);
-          setEditTracingModeAutoInferred(true);
-        }
-      } else {
-        setEditRpcTestStatus("failed");
-        setEditRpcTestError(result.message);
-      }
-    } catch (err) {
-      setEditRpcTestStatus("failed");
-      setEditRpcTestError(
-        err instanceof Error ? err.message : "RPC validation failed",
-      );
+  const handleCreateContinue = async () => {
+    if (await runCreateRpcTest()) {
+      setCreateStep(2);
     }
   };
 
@@ -728,7 +715,6 @@ export default function ApplicationRpcsPage() {
     const env = environment.selectedEnvironmentId();
     const providerId = newRpcProviderId();
     const chain = selectedChainForRpc();
-    const rpcType = newRpcType();
     if (!token || !app || !env || !providerId || !chain) return;
 
     const address = newRpcAddress().trim();
@@ -750,35 +736,30 @@ export default function ApplicationRpcsPage() {
       return;
     }
 
-    const body: Record<string, number | string> = {
-      environmentId: env,
-      chain,
-      address,
-      providerId,
-    };
-
-    if (rpcType === "Tracing") {
-      const tracingMode = newRpcTracingMode();
-      if (!tracingMode) return;
-      body.tracingMode = tracingMode;
-    }
-
-    if (rpcType === "Archive") {
-      if (!newRpcIndexerStepSize() || !newRpcIndexerBlockOffset()) return;
-      body.indexerStepSize = Number.parseInt(newRpcIndexerStepSize(), 10);
-      body.indexerBlockOffset = Number.parseInt(newRpcIndexerBlockOffset(), 10);
-    }
+    const chainRpcs = getChainRpcs(chain, env);
+    const maxOrder = chainRpcs.reduce(
+      (max, rpc) => Math.max(max, rpc.order),
+      -1,
+    );
+    const order = maxOrder + 1;
 
     setCreateRpcError(null);
     setCreateRpcLoading(true);
     try {
-      const response = await fetch(`/api/Applications/${app}/Rpcs/${rpcType}`, {
+      const response = await fetch(`/api/Applications/${app}/Rpcs`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(body),
+        body: JSON.stringify({
+          environmentId: env,
+          chain,
+          address,
+          providerId,
+          capabilities: Array.from(newRpcCapabilities()),
+          order,
+        }),
       });
       if (!response.ok) {
         throw new Error(
@@ -789,6 +770,7 @@ export default function ApplicationRpcsPage() {
       await referenceData.refreshRpcProviders();
       setCreateRpcModalOpen(false);
       setNewRpcAddress("");
+      setNewRpcCapabilities(new Set<RpcCapability>());
       setActiveChain(chain);
     } catch (err) {
       setCreateRpcError(
@@ -806,14 +788,6 @@ export default function ApplicationRpcsPage() {
     const rpc = rpcToEdit();
     if (!token || !app || !rpc) return;
 
-    const address = editRpcAddress().trim();
-    if (!isValidRpcAddress(address)) {
-      setEditRpcError(addressHint);
-      editRpcAddressInput.setCustomValidity(addressHint);
-      editRpcAddressInput.reportValidity();
-      return;
-    }
-
     if (
       editRpcTestStatus() === "untested" ||
       editRpcTestStatus() === "testing"
@@ -828,32 +802,18 @@ export default function ApplicationRpcsPage() {
     setEditRpcError(null);
     setEditRpcLoading(true);
     try {
-      const body: Record<string, number | string> = {
-        address,
-        providerId: editRpcProviderId(),
-      };
-
-      if (rpc.type === "Tracing") {
-        body.tracingMode = editRpcTracingMode();
-      }
-
-      if (rpc.type === "Archive") {
-        body.indexerStepSize = Number.parseInt(editRpcIndexerStepSize(), 10);
-        body.indexerBlockOffset = Number.parseInt(
-          editRpcIndexerBlockOffset(),
-          10,
-        );
-      }
-
       const response = await fetch(
-        `/api/Applications/${app}/Rpcs/${rpc.type}/${rpc.id}`,
+        `/api/Applications/${app}/Rpcs/${rpc.id}`,
         {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify(body),
+          body: JSON.stringify({
+            providerId: editRpcProviderId(),
+            capabilities: Array.from(editRpcCapabilities()),
+          }),
         },
       );
       if (!response.ok) {
@@ -904,676 +864,687 @@ export default function ApplicationRpcsPage() {
     }
   };
 
+  const handleReorder = async (fromIndex: number, toIndex: number) => {
+    const token = auth.token;
+    const app = applicationId();
+    const env = environment.selectedEnvironmentId();
+    const chain = activeChain();
+    if (!token || !app || !env || !chain) return;
+
+    const items = activeChainRpcs();
+    if (
+      fromIndex < 0 ||
+      fromIndex >= items.length ||
+      toIndex < 0 ||
+      toIndex > items.length ||
+      fromIndex === toIndex ||
+      fromIndex + 1 === toIndex
+    ) {
+      return;
+    }
+
+    const item = items[fromIndex];
+    const without = items.filter((_, i) => i !== fromIndex);
+    let adjustedTo = toIndex;
+    if (fromIndex < toIndex) {
+      adjustedTo = toIndex - 1;
+    }
+    const reordered = [
+      ...without.slice(0, adjustedTo),
+      item,
+      ...without.slice(adjustedTo),
+    ];
+    const rpcIds = reordered.map((rpc) => rpc.id);
+
+    setOrderUpdateLoading(true);
+    try {
+      const response = await fetch(`/api/Applications/${app}/Rpcs/Order`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          environmentId: env,
+          chain,
+          rpcIds,
+        }),
+      });
+      if (!response.ok) {
+        throw new Error(
+          await readErrorMessage(response, "Failed to reorder RPCs"),
+        );
+      }
+      await applicationData.refreshRpcs();
+    } catch (err) {
+      setChainMutationError(
+        err instanceof Error ? err.message : "Failed to reorder RPCs",
+      );
+    } finally {
+      setOrderUpdateLoading(false);
+      setDragRpcId(null);
+      setDragOverIndex(null);
+    }
+  };
+
   const getProviderName = (providerId: string) => {
     const provider = providers().find((p) => p.id === providerId);
     return provider?.name ?? "Unknown";
   };
 
-  const getTypeColor = (type: string) => {
-    switch (type) {
-      case "Realtime":
-        return "text-green-400 border-green-500/30 bg-green-500/10";
-      case "Archive":
-        return "text-blue-400 border-blue-500/30 bg-blue-500/10";
-      case "Tracing":
-        return "text-purple-400 border-purple-500/30 bg-purple-500/10";
-      case "Public":
-        return "text-b-accent border-b-accent/30 bg-b-accent/10";
-      default:
-        return "text-b-ink/50 border-b-border bg-b-field";
-    }
+  const getCompatibilitySummary = (result: ProbeResult | null): string | null => {
+    if (!result?.compatibility) return null;
+    const items: string[] = [];
+    if (result.compatibility.supportsPush0) items.push("PUSH0");
+    if (result.compatibility.supportsMCopy) items.push("MCOPY");
+    if (result.compatibility.supportsTStore) items.push("TSTORE");
+    if (result.compatibility.supportsBaseFee) items.push("BASEFEE");
+    return items.length > 0 ? items.join(", ") : null;
   };
 
   return (
     <>
       <div class="flex min-h-0 flex-1 flex-col gap-6">
-      <section class="flex min-h-0 flex-1 flex-col border border-b-border bg-b-field overflow-hidden">
-      <div class="border-b border-b-border bg-b-paper/30 px-6 py-4">
-        <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div class="flex items-center gap-3">
-            <div class="flex size-10 items-center justify-center border border-b-accent/30 bg-b-accent/10">
-              <RpcIcon class="size-5 text-b-accent" />
-            </div>
-            <div>
-              <h2 class="font-['Anton',sans-serif] text-xl uppercase tracking-wide text-b-ink">
-                RPCs
-              </h2>
-              <p class="text-xs font-bold uppercase tracking-widest text-b-ink/50">
-                Configure RPC endpoints per environment
-              </p>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={() => {
-              const ch = activeChain();
-              if (ch) openCreateRpcModal(ch);
-            }}
-            disabled={
-              providersState() === "pending" ||
-              createRpcLoading() ||
-              deleteRpcLoading() ||
-              editRpcLoading() ||
-              !selectedEnvironment()
-            }
-            class="btn btn-md btn-interactive btn-disabled btn-primary shrink-0"
-          >
-            Add RPC
-          </button>
-        </div>
-      </div>
-
-      <div class="flex flex-col gap-3 flex-1 min-h-0 overflow-hidden">
-        <Show
-          when={allChainsState() === "pending" || rpcsState() === "pending"}
-        >
-          <div class="flex flex-col items-center justify-center gap-4 py-16">
-            <LoadingSpinner class="size-8" />
-            <p class="text-sm font-bold uppercase tracking-widest text-b-ink/80">
-              Loading chains and RPCs…
-            </p>
-          </div>
-        </Show>
-
-        <Show
-          when={
-            allChainsState() === "refreshing" || rpcsState() === "refreshing"
-          }
-        >
-          <div class="flex items-center gap-3 text-xs font-bold uppercase tracking-widest text-b-ink/80">
-            <LoadingSpinner class="size-4" />
-            Updating…
-          </div>
-        </Show>
-
-        <Show when={allChainsError()}>
-          <div class="mx-auto max-w-md">
-            <p class="border-4 border-red-500/50 bg-red-500/10 px-4 py-4 text-center text-xs font-bold uppercase leading-snug text-red-400">
-              {allChainsError()!.message}
-            </p>
-          </div>
-        </Show>
-
-        <Show when={rpcsError()}>
-          <div class="mx-auto max-w-md">
-            <p class="border-4 border-red-500/50 bg-red-500/10 px-4 py-4 text-center text-xs font-bold uppercase leading-snug text-red-400">
-              {rpcsError()!.message}
-            </p>
-          </div>
-        </Show>
-
-        <Show when={chainMutationError()}>
-          <div class="mx-auto max-w-md">
-            <p class="border-4 border-red-500/50 bg-red-500/10 px-4 py-4 text-center text-xs font-bold uppercase leading-snug text-red-400">
-              {chainMutationError()}
-            </p>
-          </div>
-        </Show>
-
-        <Show
-          when={
-            !allChainsError() &&
-            !rpcsError() &&
-            environment.environmentsState() === "ready" &&
-            environment.environments().length === 0
-          }
-        >
-          <div class="flex flex-col items-center justify-center gap-3 py-8 border border-b-border/50 bg-b-paper/20">
-            <EmptyStateIcon class="size-10 text-b-ink/20" />
-            <p class="text-sm font-semibold uppercase tracking-wider text-b-ink/50">
-              Add an environment before configuring RPCs.
-            </p>
-          </div>
-        </Show>
-
-        <Show
-          when={
-            !allChainsError() &&
-            !rpcsError() &&
-            environment.environments().length > 0 &&
-            (allChainsState() === "ready" ||
-              allChainsState() === "refreshing") &&
-            (rpcsState() === "ready" || rpcsState() === "refreshing")
-          }
-        >
-          {/* Current Structure overview bar */}
-          <div class="flex flex-wrap items-center gap-3 border border-b-border bg-b-field px-4 py-2 shrink-0">
-            <span class="text-[0.65rem] font-bold uppercase tracking-widest text-b-ink/50">
-              Current Structure:
-            </span>
-            <For each={structureOverviewItems()}>
-              {(item) => (
-                <div
-                  class={`inline-flex items-center gap-2 border px-2.5 py-1 ${item.style.badge}`}
-                >
-                  <span
-                    class={`inline-block size-1.5 rounded-full ${item.style.dot}`}
-                  />
-                  <span class="text-xs font-bold tracking-wider">
-                    {item.type}
-                  </span>
-                  <span class="text-xs font-bold tracking-wider opacity-80">
-                    {item.rule}
-                  </span>
-                </div>
-              )}
-            </For>
-          </div>
-
-          <div class="flex flex-col gap-4 lg:flex-row lg:items-stretch lg:gap-6 flex-1 min-h-0 overflow-hidden">
-            <aside class="flex max-h-[min(22rem,52vh)] min-h-0 flex-col overflow-hidden border border-b-border bg-b-field lg:max-h-none lg:w-72 lg:shrink-0">
-              <div class="shrink-0 space-y-3 border-b border-b-border p-4">
-                <div class="flex items-center justify-between gap-2">
-                  <p class="text-xs font-bold uppercase tracking-[0.35em] text-b-accent">
-                    <Show when={isAddingChains()} fallback="Chains">
-                      Add Chains
-                    </Show>
-                  </p>
-                  <span class="tabular-nums text-[0.65rem] font-bold uppercase tracking-widest text-b-ink/45">
-                    <Show
-                      when={isAddingChains()}
-                      fallback={`${filteredChains().length}/${availableChains().length}`}
-                    >
-                      {chainsToAdd().size}/{filteredInactiveChains().length}
-                    </Show>
-                  </span>
-                </div>
-                <div class="relative">
-                  <input
-                    type="text"
-                    value={filterText()}
-                    onInput={(e) => setFilterText(e.currentTarget.value)}
-                    placeholder="Filter chains..."
-                    class="h-10 w-full border border-b-border bg-b-paper px-3 pr-10 text-sm font-semibold text-b-ink placeholder:text-b-ink/25 outline-none focus-visible:border-b-accent/50 focus-visible:ring-2 focus-visible:ring-b-accent/20 hover:border-b-border-hover transition-all duration-200"
-                  />
-                  <div class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2">
-                    <SearchIcon class="size-4 text-b-ink/30" />
-                  </div>
-                </div>
+        <section class="flex min-h-0 flex-1 flex-col border border-b-border bg-b-field overflow-hidden">
+          <div class="border-b border-b-border bg-b-paper/30 px-6 py-4">
+            <div class="flex items-center gap-3">
+              <div class="flex size-10 items-center justify-center border border-b-accent/30 bg-b-accent/10">
+                <RpcIcon class="size-5 text-b-accent" />
               </div>
-              <div class="min-h-0 flex-1 overflow-y-auto overscroll-contain p-2 [scrollbar-gutter:stable]">
-                {/* Toggle Add Mode Button */}
-                <Show
-                  when={!isAddingChains()}
-                  fallback={
-                    <button
-                      type="button"
-                      onClick={cancelAddChains}
-                      disabled={chainMutationLoading()}
-                      class="mb-1 flex w-full items-center justify-center gap-2 border border-dashed border-b-border/50 bg-b-paper/10 px-3 py-2.5 text-left transition-all duration-150 hover:border-red-500/50 hover:bg-red-500/10"
-                    >
-                      <span class="text-xs font-bold uppercase tracking-wider text-b-ink/70">
-                        Cancel
-                      </span>
-                    </button>
-                  }
-                >
-                  <button
-                    type="button"
-                    onClick={toggleAddChainsMode}
-                    disabled={
-                      chainMutationLoading() || inactiveChains().length === 0
-                    }
-                    class="mb-1 flex w-full items-center justify-center gap-2 border border-dashed border-b-border/50 bg-b-paper/10 px-3 py-2.5 text-left transition-all duration-150 hover:border-b-accent/50 hover:bg-b-accent/5 disabled:opacity-40"
-                  >
-                    <PlusIcon class="size-4 text-b-accent" />
-                    <span class="text-xs font-bold uppercase tracking-wider text-b-accent">
-                      Add Chain
-                    </span>
-                  </button>
-                </Show>
+              <div>
+                <h2 class="font-['Anton',sans-serif] text-xl uppercase tracking-wide text-b-ink">
+                  RPCs
+                </h2>
+                <p class="text-xs font-bold uppercase tracking-widest text-b-ink/50">
+                  Configure RPC endpoints per environment
+                </p>
+              </div>
+            </div>
+          </div>
 
-                {/* Active Chains List */}
-                <Show when={!isAddingChains()}>
-                  <For each={filteredChains()}>
-                    {(chain) => {
-                      const isActive = () => activeChain() === chain;
-                      const structureStatus = () =>
-                        chainStructureStatuses()[chain] ?? "warning";
-                      const isWarning = () => structureStatus() === "warning";
-                      return (
-                        <div
-                          role="button"
-                          tabindex="0"
-                          onClick={() => setActiveChain(chain)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter" || e.key === " ") {
-                              e.preventDefault();
-                              setActiveChain(chain);
-                            }
-                          }}
-                          class={`group mb-1 flex w-full cursor-pointer items-center justify-between border px-3 py-2.5 text-left transition-all duration-150 last:mb-0 ${
-                            isActive()
-                              ? isWarning()
-                                ? "border-red-500/50 bg-red-500/20 text-b-ink shadow-[inset_2px_0_0_0_var(--color-red-500)]"
-                                : "border-b-accent bg-b-accent/10 text-b-ink shadow-[inset_2px_0_0_0_var(--color-b-accent)]"
-                              : isWarning()
-                                ? "border-red-500/30 bg-red-500/10 text-b-ink/85 hover:border-red-500/50 hover:bg-red-500/20"
-                                : "border-transparent bg-b-paper/15 text-b-ink/85 hover:border-b-border-hover hover:bg-b-paper/35"
-                          }`}
+          <div class="flex flex-col gap-3 flex-1 min-h-0 overflow-hidden">
+            <Show
+              when={
+                allChainsState() === "pending" ||
+                rpcsState() === "pending" ||
+                publicRpcsState() === "pending"
+              }
+            >
+              <div class="flex flex-col items-center justify-center gap-4 py-16">
+                <LoadingSpinner class="size-8" />
+                <p class="text-sm font-bold uppercase tracking-widest text-b-ink/80">
+                  Loading chains and RPCs…
+                </p>
+              </div>
+            </Show>
+
+            <Show
+              when={
+                allChainsState() === "refreshing" ||
+                rpcsState() === "refreshing" ||
+                publicRpcsState() === "refreshing"
+              }
+            >
+              <div class="flex items-center gap-3 text-xs font-bold uppercase tracking-widest text-b-ink/80">
+                <LoadingSpinner class="size-4" />
+                Updating…
+              </div>
+            </Show>
+
+            <Show when={allChainsError()}>
+              <div class="mx-auto max-w-md">
+                <p class="border-4 border-red-500/50 bg-red-500/10 px-4 py-4 text-center text-xs font-bold uppercase leading-snug text-red-400">
+                  {allChainsError()!.message}
+                </p>
+              </div>
+            </Show>
+
+            <Show when={rpcsError()}>
+              <div class="mx-auto max-w-md">
+                <p class="border-4 border-red-500/50 bg-red-500/10 px-4 py-4 text-center text-xs font-bold uppercase leading-snug text-red-400">
+                  {rpcsError()!.message}
+                </p>
+              </div>
+            </Show>
+
+            <Show when={chainMutationError()}>
+              <div class="mx-auto max-w-md">
+                <p class="border-4 border-red-500/50 bg-red-500/10 px-4 py-4 text-center text-xs font-bold uppercase leading-snug text-red-400">
+                  {chainMutationError()}
+                </p>
+              </div>
+            </Show>
+
+            <Show
+              when={
+                !allChainsError() &&
+                !rpcsError() &&
+                environment.environmentsState() === "ready" &&
+                environment.environments().length === 0
+              }
+            >
+              <div class="flex flex-col items-center justify-center gap-3 py-8 border border-b-border/50 bg-b-paper/20">
+                <EmptyStateIcon class="size-10 text-b-ink/20" />
+                <p class="text-sm font-semibold uppercase tracking-wider text-b-ink/50">
+                  Add an environment before configuring RPCs.
+                </p>
+              </div>
+            </Show>
+
+            <Show
+              when={
+                !allChainsError() &&
+                !rpcsError() &&
+                environment.environments().length > 0 &&
+                (allChainsState() === "ready" ||
+                  allChainsState() === "refreshing") &&
+                (rpcsState() === "ready" || rpcsState() === "refreshing") &&
+                (publicRpcsState() === "ready" ||
+                  publicRpcsState() === "refreshing")
+              }
+            >
+              <div class="flex flex-col gap-4 lg:flex-row lg:items-stretch lg:gap-6 flex-1 min-h-0 overflow-hidden">
+                <aside class="flex max-h-[min(22rem,52vh)] min-h-0 flex-col overflow-hidden border border-b-border bg-b-field lg:max-h-none lg:w-72 lg:shrink-0">
+                  <div class="shrink-0 space-y-3 border-b border-b-border p-4">
+                    <div class="flex items-center justify-between gap-2">
+                      <p class="text-xs font-bold uppercase tracking-[0.35em] text-b-accent">
+                        <Show when={isAddingChains()} fallback="Chains">
+                          Add Chains
+                        </Show>
+                      </p>
+                      <span class="tabular-nums text-[0.65rem] font-bold uppercase tracking-widest text-b-ink/45">
+                        <Show
+                          when={isAddingChains()}
+                          fallback={`${filteredChains().length}/${availableChains().length}`}
                         >
-                          <div class="flex min-w-0 flex-1 items-center gap-2">
-                            <Show when={structureStatus() === "valid"}>
-                              <span title="Matches a supported structure">
-                                <CheckmarkIcon class="size-4 shrink-0 text-green-400" />
-                              </span>
-                            </Show>
-                            <Show when={structureStatus() === "warning"}>
-                              <span title="Does not match any supported structure">
-                                <WarningIcon class="size-4 shrink-0 text-red-400" />
-                              </span>
-                            </Show>
-                            <span class="min-w-0 truncate font-['Anton',sans-serif] text-base tracking-wide">
-                              {chain}
-                            </span>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              void handleDisableChain(chain);
-                            }}
-                            disabled={
-                              chainMutationLoading() ||
-                              createRpcLoading() ||
-                              deleteRpcLoading() ||
-                              editRpcLoading()
-                            }
-                            class="ml-2 shrink-0 opacity-0 transition-opacity duration-150 hover:text-red-400 group-hover:opacity-100 focus:opacity-100 disabled:opacity-30"
-                            title={`Disable ${chain}`}
-                          >
-                            <TrashIcon class="size-4" />
-                          </button>
-                        </div>
-                      );
-                    }}
-                  </For>
-                </Show>
-
-                {/* Inactive Chains List (Add Mode) */}
-                <Show when={isAddingChains()}>
-                  <Show
-                    when={filteredInactiveChains().length > 0}
-                    fallback={
-                      <div class="border border-dashed border-b-border/50 bg-b-paper/10 px-3 py-4 text-center">
-                        <p class="text-xs font-semibold uppercase tracking-wider text-b-ink/50">
-                          No available chains to add
-                        </p>
+                          {chainsToAdd().size}/{filteredInactiveChains().length}
+                        </Show>
+                      </span>
+                    </div>
+                    <div class="relative">
+                      <input
+                        type="text"
+                        value={filterText()}
+                        onInput={(e) => setFilterText(e.currentTarget.value)}
+                        placeholder="Filter chains..."
+                        class="h-10 w-full border border-b-border bg-b-paper px-3 pr-10 text-sm font-semibold text-b-ink placeholder:text-b-ink/25 outline-none focus-visible:border-b-accent/50 focus-visible:ring-2 focus-visible:ring-b-accent/20 hover:border-b-border-hover transition-all duration-200"
+                      />
+                      <div class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2">
+                        <SearchIcon class="size-4 text-b-ink/30" />
                       </div>
-                    }
-                  >
-                    <For each={filteredInactiveChains()}>
-                      {(chain) => {
-                        const isSelected = () => chainsToAdd().has(chain);
-                        return (
-                          <div
-                            role="button"
-                            tabindex="0"
-                            onClick={() => toggleChainSelection(chain)}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter" || e.key === " ") {
-                                e.preventDefault();
-                                toggleChainSelection(chain);
-                              }
-                            }}
-                            class={`group mb-1 flex w-full cursor-pointer items-center gap-3 border px-3 py-2.5 text-left transition-all duration-150 last:mb-0 ${
-                              isSelected()
-                                ? "border-b-accent bg-b-accent/10 text-b-ink shadow-[inset_2px_0_0_0_var(--color-b-accent)]"
-                                : "border-transparent bg-b-paper/15 text-b-ink/85 hover:border-b-border-hover hover:bg-b-paper/35"
-                            }`}
-                          >
-                            <div
-                              class={`flex size-4 shrink-0 items-center justify-center border transition-all duration-150 ${
-                                isSelected()
-                                  ? "border-b-accent bg-b-accent"
-                                  : "border-b-border bg-b-paper"
-                              }`}
-                            >
-                              <Show when={isSelected()}>
-                                <CheckmarkIcon class="size-3 text-b-paper" />
-                              </Show>
-                            </div>
-                            <span class="min-w-0 truncate font-['Anton',sans-serif] text-base tracking-wide">
-                              {chain}
-                            </span>
-                          </div>
-                        );
-                      }}
-                    </For>
-                  </Show>
-                </Show>
-              </div>
-
-              {/* Add Selected Button */}
-              <Show when={isAddingChains()}>
-                <div class="shrink-0 border-t border-b-border p-2">
-                  <button
-                    type="button"
-                    onClick={handleAddChains}
-                    disabled={
-                      chainMutationLoading() || chainsToAdd().size === 0
-                    }
-                    class="flex w-full items-center justify-center gap-2 border border-b-accent bg-b-accent px-3 py-2.5 text-left transition-all duration-150 hover:bg-b-accent-hover disabled:opacity-40"
-                  >
-                    <Show when={chainMutationLoading()}>
-                      <LoadingSpinner class="size-3.5 text-b-paper" />
-                    </Show>
-                    <span class="text-xs font-bold uppercase tracking-wider text-b-paper">
-                      {chainMutationLoading()
-                        ? "Adding…"
-                        : `Add Selected (${chainsToAdd().size})`}
-                    </span>
-                  </button>
-                </div>
-              </Show>
-            </aside>
-
-            <section class="flex min-h-[min(24rem,55vh)] min-w-0 flex-1 flex-col overflow-hidden border border-b-border bg-b-field lg:min-h-0">
-              <Show
-                when={activeChain()}
-                fallback={
-                  <div class="flex flex-1 flex-col items-center justify-center gap-3 p-10">
+                    </div>
+                  </div>
+                  <div class="min-h-0 flex-1 overflow-y-auto overscroll-contain p-2 [scrollbar-gutter:stable]">
                     <Show
-                      when={availableChains().length > 0}
+                      when={!isAddingChains()}
                       fallback={
-                        <>
-                          <LightningIcon class="size-10 text-b-ink/20" />
-                          <p class="text-center text-sm font-semibold uppercase tracking-wider text-b-ink/50">
-                            No chains added for this environment.
-                          </p>
-                          <button
-                            type="button"
-                            onClick={toggleAddChainsMode}
-                            disabled={
-                              chainMutationLoading() ||
-                              inactiveChains().length === 0
-                            }
-                            class="btn btn-md btn-interactive btn-disabled btn-primary"
-                          >
-                            <PlusIcon class="size-4" />
-                            Add Chain
-                          </button>
-                        </>
+                        <button
+                          type="button"
+                          onClick={cancelAddChains}
+                          disabled={chainMutationLoading()}
+                          class="mb-1 flex w-full items-center justify-center gap-2 border border-dashed border-b-border/50 bg-b-paper/10 px-3 py-2.5 text-left transition-all duration-150 hover:border-red-500/50 hover:bg-red-500/10"
+                        >
+                          <span class="text-xs font-bold uppercase tracking-wider text-b-ink/70">
+                            Cancel
+                          </span>
+                        </button>
                       }
                     >
-                      <Show
-                        when={filteredChains().length > 0}
-                        fallback={
-                          <>
-                            <SearchIcon class="size-10 text-b-ink/20" />
-                            <p class="text-center text-sm font-semibold uppercase tracking-wider text-b-ink/50">
-                              No chains match your filter.
-                            </p>
-                          </>
-                        }
-                      >
-                        <>
-                          <EmptyStateIcon class="size-10 text-b-ink/20" />
-                          <p class="text-center text-xs font-semibold uppercase tracking-wider text-b-ink/45">
-                            Select a chain from the list
-                          </p>
-                        </>
-                      </Show>
-                    </Show>
-                  </div>
-                }
-              >
-                <div class="flex min-h-0 flex-1 flex-col">
-                  <div class="flex shrink-0 flex-col gap-3 border-b border-b-border p-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div class="min-w-0">
-                      <p class="text-[0.65rem] font-bold uppercase tracking-[0.35em] text-b-accent">
-                        Chain
-                      </p>
-                      <h2 class="flex items-center gap-2 truncate font-['Anton',sans-serif] text-2xl tracking-wide text-b-ink">
-                        {activeChain()}
-                        <Show
-                          when={
-                            chainStructureStatuses()[activeChain()!] === "valid"
-                          }
-                        >
-                          <span title="Matches a supported structure">
-                            <CheckmarkIcon class="size-5 shrink-0 text-green-400" />
-                          </span>
-                        </Show>
-                        <Show
-                          when={
-                            chainStructureStatuses()[activeChain()!] ===
-                            "warning"
-                          }
-                        >
-                          <span title="Does not match any supported structure">
-                            <WarningIcon class="size-5 shrink-0 text-red-400" />
-                          </span>
-                        </Show>
-                      </h2>
-                      <p class="mt-1 text-[0.65rem] font-bold tracking-widest text-b-ink/45">
-                        {activeChainRpcs().length} RPC
-                        {activeChainRpcs().length !== 1 ? "s" : ""} ·{" "}
-                        {selectedEnvironment()?.name}
-                      </p>
-                    </div>
-                    <div class="flex shrink-0 flex-col gap-2 self-start sm:self-center">
                       <button
                         type="button"
-                        onClick={() => {
-                          const ch = activeChain();
-                          if (ch) openCreateRpcModal(ch);
-                        }}
+                        onClick={toggleAddChainsMode}
                         disabled={
-                          providersState() === "pending" ||
-                          createRpcLoading() ||
-                          deleteRpcLoading() ||
-                          editRpcLoading() ||
-                          !selectedEnvironment()
+                          chainMutationLoading() || inactiveChains().length === 0
                         }
-                        class="btn btn-sm btn-interactive btn-disabled btn-primary"
+                        class="mb-1 flex w-full items-center justify-center gap-2 border border-dashed border-b-border/50 bg-b-paper/10 px-3 py-2.5 text-left transition-all duration-150 hover:border-b-accent/50 hover:bg-b-accent/5 disabled:opacity-40"
                       >
-                        <PlusIcon class="size-4" />
-                        Add RPC
+                        <PlusIcon class="size-4 text-b-accent" />
+                        <span class="text-xs font-bold uppercase tracking-wider text-b-accent">
+                          Add Chain
+                        </span>
                       </button>
-                    </div>
-                  </div>
-                  <Show when={activeChainMismatchInfo()}>
-                    {(info) => (
-                      <div class="mx-4 mt-4 flex items-start gap-2 border border-red-500/30 bg-red-500/10 px-3 py-3">
-                        <WarningIcon class="size-4 shrink-0 text-red-400 mt-0.5" />
-                        <div class="flex-1">
-                          <p class="text-xs font-bold uppercase tracking-wider text-red-400">
-                            Does not match any supported structure
-                          </p>
-                          <Show
-                            when={
-                              Object.entries(info().typeCounts).filter(
-                                ([, count]) => count > 0,
-                              ).length > 0
-                            }
-                            fallback={
-                              <p class="mt-2 text-[0.65rem] font-bold uppercase tracking-wider text-b-ink/50">
-                                Has no RPCs configured yet
-                              </p>
-                            }
-                          >
-                            <div class="mt-2 flex flex-wrap items-center gap-1 text-[0.6rem] font-bold uppercase tracking-wider text-b-ink/50">
-                              <span>Has:</span>
-                              <For
-                                each={Object.entries(info().typeCounts).filter(
-                                  ([, count]) => count > 0,
-                                )}
-                              >
-                                {([type, count]) => (
-                                  <span class="border border-b-border bg-b-paper/20 px-1.5 py-0.5">
-                                    {count}x {type}
-                                  </span>
-                                )}
-                              </For>
-                            </div>
-                          </Show>
-                          <div class="mt-1.5 flex flex-col gap-1">
-                            <div class="flex flex-wrap items-center gap-1 text-[0.6rem] font-bold tracking-wider text-b-ink/40">
-                              <span>Needs:</span>
-                              <For each={rpcTypes}>
-                                {(type) => (
-                                  <span class="border border-b-border/50 bg-b-paper/10 px-1.5 py-0.5">
-                                    {formatRequirement(info().structure[rpcTypeStructureKey[type]])} {type}
-                                  </span>
-                                )}
-                              </For>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </Show>
-                  <div class="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4">
-                    <Show when={activeChainRpcs().length > 0}>
-                      <div class="flex flex-col gap-3">
-                        <For each={configuredActiveChainRpcs()}>
-                          {(rpc) => (
-                            <div class="flex flex-col gap-3 border border-b-border bg-b-paper/20 p-4 sm:flex-row sm:items-start sm:justify-between transition-colors hover:border-b-border-hover">
-                              <div class="min-w-0 flex-1">
-                                <div class="flex flex-wrap items-center gap-2">
-                                  <span
-                                    class={`inline-flex items-center border px-2 py-0.5 text-xs font-bold tracking-wider ${getTypeColor(rpc.type)}`}
-                                  >
-                                    {rpc.type}
-                                  </span>
-                                  <span class="inline-flex items-center gap-1 text-xs font-semibold tracking-wider text-b-ink/50">
-                                    <ProviderIcon class="size-3.5" />
-                                    {getProviderName(rpc.providerId)}
-                                  </span>
-                                </div>
-                                <div class="mt-3">
-                                  <code class="break-all font-mono text-xs font-semibold text-b-ink/80">
-                                    {rpc.address}
-                                  </code>
-                                </div>
-                                <Show
-                                  when={
-                                    rpc.type === "Tracing" && rpc.tracingMode
-                                  }
-                                >
-                                  <div class="mt-2 flex items-center gap-4 text-xs font-semibold uppercase tracking-wider text-b-ink/40">
-                                    <span>Mode: {rpc.tracingMode}</span>
-                                  </div>
+                    </Show>
+
+                    <Show when={!isAddingChains()}>
+                      <For each={filteredChains()}>
+                        {(chain) => {
+                          const isActive = () => activeChain() === chain;
+                          const isFailing = () => failingChains().has(chain);
+                          return (
+                            <div
+                              role="button"
+                              tabindex="0"
+                              onClick={() => setActiveChain(chain)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter" || e.key === " ") {
+                                  e.preventDefault();
+                                  setActiveChain(chain);
+                                }
+                              }}
+                              class={`group mb-1 flex w-full cursor-pointer items-center justify-between border px-3 py-2.5 text-left transition-all duration-150 last:mb-0 ${
+                                isActive()
+                                  ? "border-b-accent bg-b-accent/10 text-b-ink shadow-[inset_2px_0_0_0_var(--color-b-accent)]"
+                                  : "border-transparent bg-b-paper/15 text-b-ink/85 hover:border-b-border-hover hover:bg-b-paper/35"
+                              } ${
+                                isFailing()
+                                  ? isActive()
+                                    ? "bg-red-500/15"
+                                    : "border-red-500/30 bg-red-500/10 hover:border-red-500/50 hover:bg-red-500/20"
+                                  : ""
+                              }`}
+                            >
+                              <span class="min-w-0 truncate font-['Anton',sans-serif] text-base tracking-wide">
+                                {chain}
+                              </span>
+                              <div class="ml-2 flex shrink-0 items-center gap-2">
+                                <Show when={failingChains().has(chain)}>
+                                  <WarningIcon class="size-4 text-amber-300" />
                                 </Show>
-                                <Show when={rpc.type === "Archive"}>
-                                  <div class="mt-2 flex items-center gap-4 text-xs font-semibold uppercase tracking-wider text-b-ink/40">
-                                <Show when={rpc.indexerStepSize}>
-                                  <span>Step: {rpc.indexerStepSize}</span>
-                                </Show>
-                                <Show when={rpc.indexerBlockOffset !== undefined}>
-                                  <span>
-                                    Offset: {rpc.indexerBlockOffset}
-                                  </span>
-                                    </Show>
-                                  </div>
-                                </Show>
-                              </div>
-                              <div class="flex shrink-0 items-center gap-2">
                                 <button
                                   type="button"
-                                  onClick={() => openEditRpcModal(rpc)}
-                                  disabled={
-                                    createRpcLoading() ||
-                                    deleteRpcLoading() ||
-                                    editRpcLoading()
-                                  }
-                                  class="btn btn-sm btn-interactive btn-disabled btn-secondary"
-                                  title="Edit RPC"
-                                >
-                                  <PencilIcon class="size-4" />
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setDeleteRpcError(null);
-                                    setRpcToDelete(rpc);
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    void handleDisableChain(chain);
                                   }}
                                   disabled={
+                                    chainMutationLoading() ||
                                     createRpcLoading() ||
                                     deleteRpcLoading() ||
                                     editRpcLoading()
                                   }
-                                  class="btn btn-sm btn-interactive btn-disabled btn-danger"
-                                  title="Delete RPC"
+                                  class="shrink-0 opacity-0 transition-opacity duration-150 hover:text-red-400 group-hover:opacity-100 focus:opacity-100 disabled:opacity-30"
+                                  title={`Disable ${chain}`}
                                 >
                                   <TrashIcon class="size-4" />
                                 </button>
                               </div>
                             </div>
-                          )}
-                        </For>
+                          );
+                        }}
+                      </For>
+                    </Show>
 
-                        <Show when={publicActiveChainRpcs().length > 0}>
-                          <div class="border border-b-border bg-b-paper/20 transition-colors hover:border-b-border-hover">
-                            <button
-                              type="button"
-                              onClick={toggleActivePublicRpcGroup}
-                              class="flex w-full items-center justify-between gap-3 p-4 text-left"
-                              aria-expanded={isActivePublicRpcGroupExpanded()}
-                            >
-                              <div class="min-w-0 flex-1">
-                                <div class="flex flex-wrap items-center gap-2">
-                                  <span
-                                    class={`inline-flex items-center border px-2 py-0.5 text-xs font-bold tracking-wider ${getTypeColor("Public")}`}
-                                  >
-                                    Public
-                                  </span>
-                                  <span class="text-xs font-semibold uppercase tracking-wider text-b-ink/50">
-                                    {publicActiveChainRpcs().length} node
-                                    {publicActiveChainRpcs().length === 1
-                                      ? ""
-                                      : "s"}
-                                  </span>
-                                </div>
-                                <p class="mt-2 text-xs font-semibold uppercase tracking-wider text-b-ink/40">
-                                  Discovered public RPC endpoints
-                                </p>
-                              </div>
-                              <ChevronDownIcon
-                                class={`size-4 shrink-0 text-b-ink/50 transition-transform ${
-                                  isActivePublicRpcGroupExpanded()
-                                    ? "rotate-180"
-                                    : ""
+                    <Show when={isAddingChains()}>
+                      <Show
+                        when={filteredInactiveChains().length > 0}
+                        fallback={
+                          <div class="border border-dashed border-b-border/50 bg-b-paper/10 px-3 py-4 text-center">
+                            <p class="text-xs font-semibold uppercase tracking-wider text-b-ink/50">
+                              No available chains to add
+                            </p>
+                          </div>
+                        }
+                      >
+                        <For each={filteredInactiveChains()}>
+                          {(chain) => {
+                            const isSelected = () => chainsToAdd().has(chain);
+                            return (
+                              <div
+                                role="button"
+                                tabindex="0"
+                                onClick={() => toggleChainSelection(chain)}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter" || e.key === " ") {
+                                    e.preventDefault();
+                                    toggleChainSelection(chain);
+                                  }
+                                }}
+                                class={`group mb-1 flex w-full cursor-pointer items-center gap-3 border px-3 py-2.5 text-left transition-all duration-150 last:mb-0 ${
+                                  isSelected()
+                                    ? "border-b-accent bg-b-accent/10 text-b-ink shadow-[inset_2px_0_0_0_var(--color-b-accent)]"
+                                    : "border-transparent bg-b-paper/15 text-b-ink/85 hover:border-b-border-hover hover:bg-b-paper/35"
                                 }`}
-                              />
-                            </button>
-                            <Show when={isActivePublicRpcGroupExpanded()}>
-                              <div class="border-t border-b-border/60 px-4 pb-4">
-                                <div class="flex flex-col gap-2 pt-3">
-                                  <For each={publicActiveChainRpcs()}>
-                                    {(rpc) => (
-                                      <div class="border border-b-border/60 bg-b-field/40 px-3 py-3">
-                                        <code class="break-all font-mono text-xs font-semibold text-b-ink/80">
-                                          {rpc.address}
-                                        </code>
-                                      </div>
-                                    )}
-                                  </For>
+                              >
+                                <div
+                                  class={`flex size-4 shrink-0 items-center justify-center border transition-all duration-150 ${
+                                    isSelected()
+                                      ? "border-b-accent bg-b-accent"
+                                      : "border-b-border bg-b-paper"
+                                  }`}
+                                >
+                                  <Show when={isSelected()}>
+                                    <CheckmarkIcon class="size-3 text-b-paper" />
+                                  </Show>
                                 </div>
+                                <span class="min-w-0 truncate font-['Anton',sans-serif] text-base tracking-wide">
+                                  {chain}
+                                </span>
+                              </div>
+                            );
+                          }}
+                        </For>
+                      </Show>
+                    </Show>
+                  </div>
+
+                  <Show when={isAddingChains()}>
+                    <div class="shrink-0 border-t border-b-border p-2">
+                      <button
+                        type="button"
+                        onClick={handleAddChains}
+                        disabled={
+                          chainMutationLoading() || chainsToAdd().size === 0
+                        }
+                        class="flex w-full items-center justify-center gap-2 border border-b-accent bg-b-accent px-3 py-2.5 text-left transition-all duration-150 hover:bg-b-accent-hover disabled:opacity-40"
+                      >
+                        <Show when={chainMutationLoading()}>
+                          <LoadingSpinner class="size-3.5 text-b-paper" />
+                        </Show>
+                        <span class="text-xs font-bold uppercase tracking-wider text-b-paper">
+                          {chainMutationLoading()
+                            ? "Adding…"
+                            : `Add Selected (${chainsToAdd().size})`}
+                        </span>
+                      </button>
+                    </div>
+                  </Show>
+                </aside>
+
+                <section class="flex min-h-[min(24rem,55vh)] min-w-0 flex-1 flex-col overflow-hidden border border-b-border bg-b-field lg:min-h-0">
+                  <Show
+                    when={activeChain()}
+                    fallback={
+                      <div class="flex flex-1 flex-col items-center justify-center gap-3 p-10">
+                        <Show
+                          when={availableChains().length > 0}
+                          fallback={
+                            <>
+                              <LightningIcon class="size-10 text-b-ink/20" />
+                              <p class="text-center text-sm font-semibold uppercase tracking-wider text-b-ink/50">
+                                No chains added for this environment.
+                              </p>
+                              <button
+                                type="button"
+                                onClick={toggleAddChainsMode}
+                                disabled={
+                                  chainMutationLoading() ||
+                                  inactiveChains().length === 0
+                                }
+                                class="btn btn-md btn-interactive btn-disabled btn-primary"
+                              >
+                                <PlusIcon class="size-4" />
+                                Add Chain
+                              </button>
+                            </>
+                          }
+                        >
+                          <Show
+                            when={filteredChains().length > 0}
+                            fallback={
+                              <>
+                                <SearchIcon class="size-10 text-b-ink/20" />
+                                <p class="text-center text-sm font-semibold uppercase tracking-wider text-b-ink/50">
+                                  No chains match your filter.
+                                </p>
+                              </>
+                            }
+                          >
+                            <>
+                              <EmptyStateIcon class="size-10 text-b-ink/20" />
+                              <p class="text-center text-xs font-semibold uppercase tracking-wider text-b-ink/45">
+                                Select a chain from the list
+                              </p>
+                            </>
+                          </Show>
+                        </Show>
+                      </div>
+                    }
+                  >
+                    <div class="flex min-h-0 flex-1 flex-col">
+                      <div class="flex shrink-0 flex-col gap-3 border-b border-b-border p-4 sm:flex-row sm:items-center sm:justify-between">
+                        <div class="min-w-0">
+                          <p class="text-[0.65rem] font-bold uppercase tracking-[0.35em] text-b-accent">
+                            Chain
+                          </p>
+                          <h2 class="flex items-center gap-2 truncate font-['Anton',sans-serif] text-2xl tracking-wide text-b-ink">
+                            {activeChain()}
+                          </h2>
+                          <p class="mt-1 text-[0.65rem] font-bold tracking-widest text-b-ink/45">
+                            {activeChainRpcs().length} RPC
+                            {activeChainRpcs().length !== 1 ? "s" : ""} ·{" "}
+                            {selectedEnvironment()?.name}
+                          </p>
+                        </div>
+                        <div class="flex shrink-0 flex-col self-start sm:self-center">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const ch = activeChain();
+                              if (ch) openCreateRpcModal(ch);
+                            }}
+                            disabled={
+                              providersState() === "pending" ||
+                              createRpcLoading() ||
+                              deleteRpcLoading() ||
+                              editRpcLoading() ||
+                              !selectedEnvironment()
+                            }
+                            class="btn btn-sm btn-interactive btn-disabled btn-primary"
+                          >
+                            <PlusIcon class="size-4" />
+                            Add RPC
+                          </button>
+                        </div>
+                      </div>
+
+                      <div
+                        class="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4"
+                        onDragOver={(e) => {
+                          if (!dragRpcId()) return;
+
+                          e.preventDefault();
+                          if (e.dataTransfer) {
+                            e.dataTransfer.dropEffect = "move";
+                          }
+
+                          const items = Array.from(
+                            e.currentTarget.querySelectorAll<HTMLElement>(
+                              "[data-rpc-sort-item]",
+                            ),
+                          );
+                          const overIndex = items.findIndex((item) => {
+                            const rect = item.getBoundingClientRect();
+                            return e.clientY < rect.top + rect.height / 2;
+                          });
+                          setDragOverIndex(
+                            overIndex === -1 ? items.length : overIndex,
+                          );
+                        }}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          const draggedId = dragRpcId();
+                          const toIndex = dragOverIndex();
+                          if (!draggedId || toIndex === null) return;
+
+                          const fromIndex = activeChainRpcs().findIndex(
+                            (rpc) => rpc.id === draggedId,
+                          );
+                          if (fromIndex === -1) return;
+
+                          void handleReorder(fromIndex, toIndex);
+                        }}
+                      >
+                        <Show when={activeChainRpcs().length > 0 || activePublicRpcs().length > 0}>
+                          <div class="flex flex-col gap-3">
+                            <For each={activeChainRpcs()}>
+                              {(rpc, index) => (
+                                <>
+                                  <Show when={dragOverIndex() === index()}>
+                                    <div class="h-0.5 bg-b-accent" />
+                                  </Show>
+                                  <div
+                                    data-rpc-sort-item
+                                    draggable="true"
+                                    onDragStart={(e) => {
+                                      e.dataTransfer?.setData(
+                                        "text/plain",
+                                        rpc.id,
+                                      );
+                                      if (e.dataTransfer) {
+                                        e.dataTransfer.effectAllowed = "move";
+                                      }
+                                      setDragRpcId(rpc.id);
+                                    }}
+                                    onDragEnd={() => {
+                                      setDragRpcId(null);
+                                      setDragOverIndex(null);
+                                    }}
+                                    class={`flex cursor-move flex-col gap-3 border border-b-border bg-b-paper/20 p-4 transition-colors hover:border-b-border-hover ${
+                                      dragRpcId() === rpc.id
+                                        ? "opacity-40"
+                                        : ""
+                                    } ${orderUpdateLoading() ? "pointer-events-none opacity-60" : ""}`}
+                                  >
+                                    <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                                      <div class="min-w-0 flex-1">
+                                        <div class="flex flex-wrap items-center gap-2">
+                                          <span class="font-mono text-xs font-bold text-b-accent">
+                                            #{index() + 1}
+                                          </span>
+                                          <span class="inline-flex items-center gap-1 text-xs font-semibold tracking-wider text-b-ink/50">
+                                            <ProviderIcon class="size-3.5" />
+                                            {getProviderName(rpc.providerId)}
+                                          </span>
+                                        </div>
+                                        <div class="mt-3 flex items-center gap-2">
+                                          <code class="break-all font-mono text-xs font-semibold text-b-ink/80">
+                                            {rpc.address}
+                                          </code>
+                                          <CopyEndpointButton address={rpc.address} />
+                                        </div>
+                                        <Show when={rpc.capabilities.length > 0}>
+                                          <div class="mt-3 flex flex-wrap items-center gap-1.5">
+                                            <For each={rpc.capabilities}>
+                                              {(capability) => (
+                                                <Show
+                                                  when={isKnownCapability(capability) ? capability : undefined}
+                                                >
+                                                  {(cap) => (
+                                                    <span
+                                                      class={`inline-flex items-center border px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-wider ${capabilityStyle(cap())}`}
+                                                    >
+                                                      {formatCapability(cap())}
+                                                    </span>
+                                                  )}
+                                                </Show>
+                                              )}
+                                            </For>
+                                          </div>
+                                        </Show>
+                                      </div>
+                                      <div class="flex shrink-0 items-center gap-2">
+                                        <button
+                                          type="button"
+                                          onClick={() => openEditRpcModal(rpc)}
+                                          disabled={
+                                            createRpcLoading() ||
+                                            deleteRpcLoading() ||
+                                            editRpcLoading() ||
+                                            orderUpdateLoading()
+                                          }
+                                          class="btn btn-sm btn-interactive btn-disabled btn-secondary"
+                                          title="Edit RPC"
+                                        >
+                                          <PencilIcon class="size-4" />
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            setDeleteRpcError(null);
+                                            setRpcToDelete(rpc);
+                                          }}
+                                          disabled={
+                                            createRpcLoading() ||
+                                            deleteRpcLoading() ||
+                                            editRpcLoading() ||
+                                            orderUpdateLoading()
+                                          }
+                                          class="btn btn-sm btn-interactive btn-disabled btn-danger"
+                                          title="Delete RPC"
+                                        >
+                                          <TrashIcon class="size-4" />
+                                        </button>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </>
+                              )}
+                            </For>
+                            <Show when={dragOverIndex() === activeChainRpcs().length}>
+                              <div class="h-0.5 bg-b-accent" />
+                            </Show>
+
+                            <Show when={activePublicRpcs().length > 0}>
+                              <div class="border border-b-border bg-b-paper/20 transition-colors hover:border-b-border-hover">
+                                <button
+                                  type="button"
+                                  onClick={toggleActivePublicRpcGroup}
+                                  class="flex w-full items-center justify-between gap-3 p-4 text-left"
+                                  aria-expanded={isActivePublicRpcGroupExpanded()}
+                                >
+                                  <div class="min-w-0 flex-1">
+                                    <div class="flex flex-wrap items-center gap-2">
+                                      <span class="inline-flex items-center border px-2 py-0.5 text-xs font-bold tracking-wider text-b-accent border-b-accent/30 bg-b-accent/10">
+                                        Public
+                                      </span>
+                                      <span class="text-xs font-semibold uppercase tracking-wider text-b-ink/50">
+                                        {activePublicRpcs().length} node
+                                        {activePublicRpcs().length === 1
+                                          ? ""
+                                          : "s"}
+                                      </span>
+                                    </div>
+                                    <p class="mt-2 text-xs font-semibold uppercase tracking-wider text-b-ink/40">
+                                      Discovered public RPC endpoints
+                                    </p>
+                                  </div>
+                                  <ChevronDownIcon
+                                    class={`size-4 shrink-0 text-b-ink/50 transition-transform ${
+                                      isActivePublicRpcGroupExpanded()
+                                        ? "rotate-180"
+                                        : ""
+                                    }`}
+                                  />
+                                </button>
+                                <Show when={isActivePublicRpcGroupExpanded()}>
+                                  <div class="border-t border-b-border/60 px-4 pb-4">
+                                    <div class="flex flex-col gap-2 pt-3">
+                                      <For each={activePublicRpcs()}>
+                                        {(rpc) => (
+                                          <div class="border border-b-border/60 bg-b-field/40 px-3 py-3">
+                                            <div class="flex items-center gap-2">
+                                              <code class="break-all font-mono text-xs font-semibold text-b-ink/80">
+                                                {rpc.address}
+                                              </code>
+                                              <CopyEndpointButton address={rpc.address} />
+                                            </div>
+                                          </div>
+                                        )}
+                                      </For>
+                                    </div>
+                                  </div>
+                                </Show>
                               </div>
                             </Show>
                           </div>
                         </Show>
-                      </div>
-                    </Show>
 
-                    <Show when={activeChainRpcs().length === 0}>
-                      <div class="flex flex-col items-center justify-center gap-3 border border-b-border/50 bg-b-field/30 py-12">
-                        <EmptyStateIcon class="size-8 text-b-ink/20" />
-                        <p class="text-xs font-semibold uppercase tracking-wider text-b-ink/50">
-                          No RPCs configured for this chain
-                        </p>
+                        <Show when={activeChainRpcs().length === 0 && activePublicRpcs().length === 0}>
+                          <div class="flex flex-col items-center justify-center gap-3 border border-b-border/50 bg-b-field/30 py-12">
+                            <EmptyStateIcon class="size-8 text-b-ink/20" />
+                            <p class="text-xs font-semibold uppercase tracking-wider text-b-ink/50">
+                              No RPCs configured for this chain
+                            </p>
+                          </div>
+                        </Show>
                       </div>
-                    </Show>
-                  </div>
-                </div>
-              </Show>
-            </section>
+                    </div>
+                  </Show>
+                </section>
+              </div>
+            </Show>
           </div>
-        </Show>
-      </div>
-      </section>
+        </section>
       </div>
 
       <Show when={createRpcModalOpen()}>
@@ -1602,368 +1573,324 @@ export default function ApplicationRpcsPage() {
               {selectedChainForRpc()} / {selectedEnvironment()?.name}
             </p>
 
-            <Show when={!createRpcTypeConfirmed()}>
-              <div class="flex flex-col gap-6">
-                <div class="flex flex-col gap-2">
-                  <label class="text-xs font-bold uppercase tracking-widest text-b-ink/70">
-                    Select Type
-                  </label>
-                  <div class="grid grid-cols-1 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setNewRpcType("Realtime");
-                        setCreateRpcTypeConfirmed(true);
-                      }}
-                      class="flex items-center gap-3 px-4 py-4 text-xs font-bold uppercase tracking-wider border border-b-border bg-b-paper text-b-ink/70 hover:border-green-500/50 hover:bg-green-500/10 hover:text-green-400 transition-all duration-200"
-                    >
-                      <span class="size-2.5 rounded-full bg-green-500/50" />
-                      Realtime
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setNewRpcType("Archive");
-                        setCreateRpcTypeConfirmed(true);
-                      }}
-                      class="flex items-center gap-3 px-4 py-4 text-xs font-bold uppercase tracking-wider border border-b-border bg-b-paper text-b-ink/70 hover:border-blue-500/50 hover:bg-blue-500/10 hover:text-blue-400 transition-all duration-200"
-                    >
-                      <span class="size-2.5 rounded-full bg-blue-500/50" />
-                      Archive
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setNewRpcType("Tracing");
-                        setCreateRpcTypeConfirmed(true);
-                      }}
-                      class="flex items-center gap-3 px-4 py-4 text-xs font-bold uppercase tracking-wider border border-b-border bg-b-paper text-b-ink/70 hover:border-purple-500/50 hover:bg-purple-500/10 hover:text-purple-400 transition-all duration-200"
-                    >
-                      <span class="size-2.5 rounded-full bg-purple-500/50" />
-                      Tracing
-                    </button>
-                  </div>
-                </div>
-                <div class="flex justify-end">
-                  <button
-                    type="button"
-                    onClick={closeCreateRpcModal}
-                    class="btn btn-md btn-interactive btn-secondary"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            </Show>
-
-            <Show when={createRpcTypeConfirmed()}>
-              <form onSubmit={handleCreateRpc} class="flex flex-col gap-6">
-                <div class="flex flex-col gap-2">
-                  <label class="text-xs font-bold uppercase tracking-widest text-b-ink/70">
-                    Type
-                  </label>
-                  <div class="flex h-11 items-center border border-b-border bg-b-field px-4">
-                    <span
-                      class={`text-sm font-bold tracking-wider ${
-                        newRpcType() === "Realtime"
-                          ? "text-green-400"
-                          : newRpcType() === "Archive"
-                            ? "text-blue-400"
-                            : "text-purple-400"
-                      }`}
-                    >
-                      {newRpcType()}
-                    </span>
-                  </div>
-                </div>
-
-                <div class="flex flex-col gap-2">
-                  <label
-                    for="rpc-address"
-                    class="text-xs font-bold uppercase tracking-widest text-b-ink/70"
-                  >
-                    Address
-                  </label>
-                  <input
-                    ref={newRpcAddressInput}
-                    id="rpc-address"
-                    type="url"
-                    required
-                    value={newRpcAddress()}
-                    onInput={(e) => {
-                      setNewRpcAddress(e.currentTarget.value);
-                      validateRpcAddressInput(e.currentTarget);
-                      if (createRpcError() === addressHint)
-                        setCreateRpcError(null);
-                      setCreateRpcTestStatus("untested");
-                      setCreateRpcTestChainId("");
-                      setCreateRpcTestError(null);
-                      setCreateRpcSaveConfirm(false);
-                      setCreateProviderAutoInferred(false);
-                      setCreateTracingModeAutoInferred(false);
-                    }}
-                    onBlur={(e) => {
-                      validateRpcAddressInput(e.currentTarget);
-                      if (isValidRpcAddress(newRpcAddress().trim())) {
-                        void runCreateRpcTest();
-                      }
-                    }}
-                    class="h-11 w-full border border-b-border bg-b-paper px-4 text-sm font-semibold text-b-ink placeholder:text-b-ink/25 outline-none focus-visible:border-b-accent/50 focus-visible:ring-2 focus-visible:ring-b-accent/20 hover:border-b-border-hover transition-all duration-200"
-                    placeholder="https://rpc.example.com"
-                    title={addressHint}
-                    autocomplete="off"
-                  />
-                  <p class="text-xs font-semibold uppercase tracking-wider text-b-ink/40">
-                    {addressHint}
-                  </p>
-                  <Show when={createRpcTestStatus() === "testing"}>
-                    <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-b-ink/50">
-                      <LoadingSpinner class="size-3.5" />
-                      <span>Testing endpoint…</span>
+            <form onSubmit={handleCreateRpc} class="flex flex-col gap-6">
+              <Show
+                when={createStep() === 2}
+                fallback={
+                  <>
+                    <div class="flex flex-col gap-2">
+                      <label
+                        for="rpc-address"
+                        class="text-xs font-bold uppercase tracking-widest text-b-ink/70"
+                      >
+                        Address
+                      </label>
+                      <input
+                        ref={newRpcAddressInput}
+                        id="rpc-address"
+                        type="url"
+                        required
+                        value={newRpcAddress()}
+                        onInput={(e) => {
+                          setNewRpcAddress(e.currentTarget.value);
+                          validateRpcAddressInput(e.currentTarget);
+                          if (createRpcError() === addressHint)
+                            setCreateRpcError(null);
+                          setCreateRpcTestStatus("untested");
+                          setCreateRpcTestResult(null);
+                          setCreateRpcTestError(null);
+                          setCreateRpcSaveConfirm(false);
+                          setCreateProviderAutoInferred(false);
+                          setCreateCapabilitiesAutoInferred(false);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            void handleCreateContinue();
+                          }
+                        }}
+                        class="h-11 w-full border border-b-border bg-b-paper px-4 text-sm font-semibold text-b-ink placeholder:text-b-ink/25 outline-none focus-visible:border-b-accent/50 focus-visible:ring-2 focus-visible:ring-b-accent/20 hover:border-b-border-hover transition-all duration-200"
+                        placeholder="https://rpc.example.com"
+                        title={addressHint}
+                        autocomplete="off"
+                      />
+                      <p class="text-xs font-semibold uppercase tracking-wider text-b-ink/40">
+                        {addressHint}
+                      </p>
+                      <Show when={createRpcTestStatus() === "testing"}>
+                        <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-b-ink/50">
+                          <LoadingSpinner class="size-3.5" />
+                          <span>Probing endpoint…</span>
+                        </div>
+                      </Show>
+                      <Show when={createRpcTestStatus() === "passed" && createRpcTestResult()}>
+                        <div class="flex flex-col gap-1 text-xs font-semibold uppercase tracking-wider text-green-400">
+                          <div class="flex items-center gap-2">
+                            <CheckmarkIcon class="size-3.5" />
+                            <span>Looks correct</span>
+                          </div>
+                          <Show when={createRpcTestResult()?.chainId !== undefined}>
+                            <span class="text-[0.65rem] text-b-ink/50">
+                              Chain ID: {String(createRpcTestResult()?.chainId)}
+                            </span>
+                          </Show>
+                          <Show when={getCompatibilitySummary(createRpcTestResult())}>
+                            <span class="text-[0.65rem] text-b-ink/50">
+                              Compatibility: {getCompatibilitySummary(createRpcTestResult())}
+                            </span>
+                          </Show>
+                        </div>
+                      </Show>
+                      <Show when={createRpcTestStatus() === "failed"}>
+                        <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-amber-300">
+                          <WarningIcon class="size-3.5" />
+                          <span>{createRpcTestError() ?? "RPC validation failed"}</span>
+                        </div>
+                      </Show>
                     </div>
-                  </Show>
-                  <Show when={createRpcTestStatus() === "passed"}>
-                    <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-green-400">
-                      <CheckmarkIcon class="size-3.5" />
-                      <span>Looks correct</span>
-                    </div>
-                  </Show>
-                  <Show when={createRpcTestStatus() === "failed"}>
-                    <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-amber-300">
-                      <WarningIcon class="size-3.5" />
-                      <span>{createRpcTestError() ?? "RPC validation failed"}</span>
-                    </div>
-                  </Show>
-                </div>
 
-                <div class="flex flex-col gap-2">
-                  <div class="flex items-center gap-2">
-                    <label
-                      for="rpc-provider"
-                      class="text-xs font-bold uppercase tracking-widest text-b-ink/70"
-                    >
-                      Provider
+                    <Show when={createRpcError()}>
+                      <p class="border border-red-500/40 bg-red-500/10 px-3 py-3 text-xs font-bold uppercase leading-snug text-red-400">
+                        {createRpcError()}
+                      </p>
+                    </Show>
+
+                    <div class="flex flex-col gap-3 sm:flex-row sm:justify-end">
+                      <button
+                        type="button"
+                        onClick={closeCreateRpcModal}
+                        disabled={createRpcLoading()}
+                        class="btn btn-md btn-interactive btn-disabled btn-secondary"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void handleCreateContinue()}
+                        disabled={
+                          createRpcTestStatus() === "testing" ||
+                          !isValidRpcAddress(newRpcAddress().trim())
+                        }
+                        class="btn btn-md btn-interactive btn-primary"
+                      >
+                        <Show when={createRpcTestStatus() === "testing"}>
+                          <LoadingSpinner class="size-3.5 text-b-paper" />
+                        </Show>
+                        {createRpcTestStatus() === "testing"
+                          ? "Validating…"
+                          : "Validate & Continue"}
+                      </button>
+                    </div>
+                  </>
+                }
+              >
+                <>
+                  <div class="flex flex-col gap-2">
+                    <label class="text-xs font-bold uppercase tracking-widest text-b-ink/70">
+                      Address
                     </label>
-                    <Show when={createProviderAutoInferred()}>
-                      <span class="text-[10px] font-semibold uppercase tracking-wider text-green-400/70">
-                        Auto-detected
-                      </span>
+                    <div class="flex h-11 items-center border border-b-border bg-b-field px-4">
+                      <code class="break-all font-mono text-sm font-semibold text-b-ink/70">
+                        {newRpcAddress()}
+                      </code>
+                    </div>
+                    <Show when={createRpcTestResult()}>
+                      <div class="flex flex-col gap-1 text-xs font-semibold uppercase tracking-wider text-green-400">
+                        <div class="flex items-center gap-2">
+                          <CheckmarkIcon class="size-3.5" />
+                          <span>Looks correct</span>
+                        </div>
+                        <Show when={createRpcTestResult()?.chainId !== undefined}>
+                          <span class="text-[0.65rem] text-b-ink/50">
+                            Chain ID: {String(createRpcTestResult()?.chainId)}
+                          </span>
+                        </Show>
+                        <Show when={getCompatibilitySummary(createRpcTestResult())}>
+                          <span class="text-[0.65rem] text-b-ink/50">
+                            Compatibility: {getCompatibilitySummary(createRpcTestResult())}
+                          </span>
+                        </Show>
+                      </div>
                     </Show>
                   </div>
-                  <Show when={providersState() === "pending"}>
-                    <div class="flex h-11 items-center gap-2 border border-b-border bg-b-field px-3">
-                      <LoadingSpinner class="size-4" />
-                      <span class="text-xs font-bold uppercase tracking-widest text-b-ink/50">
-                        Loading providers…
-                      </span>
-                    </div>
-                  </Show>
-                  <Show when={providersError()}>
-                    <p class="border border-red-500/40 bg-red-500/10 px-3 py-3 text-xs font-bold uppercase leading-snug text-red-400">
-                      {providersError()!.message}
-                    </p>
-                  </Show>
-                  <Show
-                    when={providersState() === "ready" && providers().length > 0}
-                  >
-                    <div class="relative">
-                      <select
-                        id="rpc-provider"
-                        value={newRpcProviderId()}
-                        onChange={(e) => {
-                          setNewRpcProviderId(e.currentTarget.value);
-                          setCreateProviderAutoInferred(false);
-                        }}
-                        class={`h-11 w-full appearance-none border border-b-border bg-b-field px-4 pr-10 text-sm font-bold tracking-widest outline-none focus-visible:border-b-accent/50 focus-visible:ring-2 focus-visible:ring-b-accent/20 hover:border-b-border-hover transition-all duration-200 cursor-pointer ${
-                          newRpcProviderId()
-                            ? "text-b-ink"
-                            : "text-b-ink/40"
-                        }`}
-                      >
-                        <option value="" disabled hidden class="bg-b-field">
-                          Select a provider…
-                        </option>
-                        <For each={providers()}>
-                          {(provider) => (
-                            <option value={provider.id} class="bg-b-field">
-                              {provider.name}
-                            </option>
-                          )}
-                        </For>
-                      </select>
-                      <div class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2">
-                        <ChevronDownIcon class="size-5 text-b-ink/50" />
-                      </div>
-                    </div>
-                  </Show>
-                  <Show
-                    when={
-                      providersState() === "ready" && providers().length === 0
-                    }
-                  >
-                    <div class="flex flex-col gap-3 border border-dashed border-b-border/50 bg-b-paper/20 px-4 py-4">
-                      <p class="text-xs font-bold uppercase tracking-widest text-b-ink/50">
-                        No providers available.
-                      </p>
-                      <a
-                        href={`/applications/${applicationId()}/providers`}
-                        onClick={closeCreateRpcModal}
-                        class="text-xs font-bold uppercase tracking-widest text-b-accent hover:text-b-accent-hover hover:underline transition-colors"
-                      >
-                        Create a provider first →
-                      </a>
-                    </div>
-                  </Show>
-                </div>
 
-                <Show when={newRpcType() === "Tracing"}>
                   <div class="flex flex-col gap-2">
                     <div class="flex items-center gap-2">
                       <label
-                        for="rpc-tracing-mode"
+                        for="rpc-provider"
                         class="text-xs font-bold uppercase tracking-widest text-b-ink/70"
                       >
-                        Tracing Mode
+                        Provider
                       </label>
-                      <Show when={createTracingModeAutoInferred()}>
+                      <Show when={createProviderAutoInferred()}>
                         <span class="text-[10px] font-semibold uppercase tracking-wider text-green-400/70">
                           Auto-detected
                         </span>
                       </Show>
                     </div>
-                    <div class="relative">
-                      <select
-                        id="rpc-tracing-mode"
-                        value={newRpcTracingMode()}
-                        onChange={(e) => {
-                          setNewRpcTracingMode(
-                            e.currentTarget.value as "" | "Debug" | "Trace",
-                          );
-                          setCreateTracingModeAutoInferred(false);
-                        }}
-                        class={`h-11 w-full appearance-none border border-b-border bg-b-field px-4 pr-10 text-sm font-bold tracking-widest outline-none focus-visible:border-b-accent/50 focus-visible:ring-2 focus-visible:ring-b-accent/20 hover:border-b-border-hover transition-all duration-200 cursor-pointer ${
-                          newRpcTracingMode()
-                            ? "text-b-ink"
-                            : "text-b-ink/40"
-                        }`}
-                      >
-                        <option value="" disabled hidden class="bg-b-field">
-                          Select tracing mode…
-                        </option>
-                        <option value="Debug" class="bg-b-field">
-                          Debug
-                        </option>
-                        <option value="Trace" class="bg-b-field">
-                          Trace
-                        </option>
-                      </select>
-                      <div class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2">
-                        <ChevronDownIcon class="size-5 text-b-ink/50" />
+                    <Show when={providersState() === "pending"}>
+                      <div class="flex h-11 items-center gap-2 border border-b-border bg-b-field px-3">
+                        <LoadingSpinner class="size-4" />
+                        <span class="text-xs font-bold uppercase tracking-widest text-b-ink/50">
+                          Loading providers…
+                        </span>
                       </div>
-                    </div>
-                  </div>
-                </Show>
-
-                <Show when={newRpcType() === "Archive"}>
-                  <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <div class="flex flex-col gap-2">
-                      <label
-                        for="rpc-indexer-step-size"
-                        class="text-xs font-bold uppercase tracking-widest text-b-ink/70"
-                      >
-                        Indexer Step
-                      </label>
-                      <input
-                        id="rpc-indexer-step-size"
-                        type="number"
-                        min="1"
-                        required={newRpcType() === "Archive"}
-                        value={newRpcIndexerStepSize()}
-                        onInput={(e) =>
-                          setNewRpcIndexerStepSize(e.currentTarget.value)
-                        }
-                        class="h-11 w-full border border-b-border bg-b-paper px-4 text-sm font-semibold text-b-ink placeholder:text-b-ink/25 outline-none focus-visible:border-b-accent/50 focus-visible:ring-2 focus-visible:ring-b-accent/20 hover:border-b-border-hover transition-all duration-200"
-                        placeholder="e.g. 1"
-                        inputmode="numeric"
-                      />
-                    </div>
-                    <div class="flex flex-col gap-2">
-                      <label
-                        for="rpc-indexer-block-offset"
-                        class="text-xs font-bold uppercase tracking-widest text-b-ink/70"
-                      >
-                        Block Offset
-                      </label>
-                      <input
-                        id="rpc-indexer-block-offset"
-                        type="number"
-                        min="0"
-                        required={newRpcType() === "Archive"}
-                        value={newRpcIndexerBlockOffset()}
-                        onInput={(e) =>
-                          setNewRpcIndexerBlockOffset(e.currentTarget.value)
-                        }
-                        class="h-11 w-full border border-b-border bg-b-paper px-4 text-sm font-semibold text-b-ink placeholder:text-b-ink/25 outline-none focus-visible:border-b-accent/50 focus-visible:ring-2 focus-visible:ring-b-accent/20 hover:border-b-border-hover transition-all duration-200"
-                        placeholder="e.g. 0"
-                        inputmode="numeric"
-                      />
-                    </div>
-                  </div>
-                </Show>
-
-                <Show when={createRpcError()}>
-                  <p class="border border-red-500/40 bg-red-500/10 px-3 py-3 text-xs font-bold uppercase leading-snug text-red-400">
-                    {createRpcError()}
-                  </p>
-                </Show>
-
-                <div class="flex flex-col gap-3 sm:flex-row sm:justify-end">
-                  <button
-                    type="button"
-                    onClick={closeCreateRpcModal}
-                    disabled={createRpcLoading()}
-                    class="btn btn-md btn-interactive btn-disabled btn-secondary"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={
-                      createRpcLoading() ||
-                      !newRpcProviderId() ||
-                      (newRpcType() === "Tracing" && !newRpcTracingMode()) ||
-                      (newRpcType() === "Archive" &&
-                        (!newRpcIndexerStepSize() ||
-                          !newRpcIndexerBlockOffset())) ||
-                      createRpcTestStatus() === "untested" ||
-                      createRpcTestStatus() === "testing"
-                    }
-                    class={`btn btn-md btn-interactive btn-disabled ${
-                      createRpcTestStatus() === "failed" &&
-                      !createRpcSaveConfirm()
-                        ? "btn-warning"
-                        : createRpcTestStatus() === "failed" &&
-                            createRpcSaveConfirm()
-                          ? "btn-danger"
-                          : "btn-primary"
-                    }`}
-                  >
-                    <Show when={createRpcLoading()}>
-                      <LoadingSpinner class="size-3.5 text-b-paper" />
                     </Show>
-                    {createRpcLoading()
-                      ? "Creating…"
-                      : createRpcTestStatus() === "failed" &&
-                          !createRpcSaveConfirm()
-                        ? "Test Failed - Click to Save Anyway"
+                    <Show when={providersError()}>
+                      <p class="border border-red-500/40 bg-red-500/10 px-3 py-3 text-xs font-bold uppercase leading-snug text-red-400">
+                        {providersError()!.message}
+                      </p>
+                    </Show>
+                    <Show
+                      when={providersState() === "ready" && providers().length > 0}
+                    >
+                      <div class="relative">
+                        <select
+                          id="rpc-provider"
+                          value={newRpcProviderId()}
+                          onChange={(e) => {
+                            setNewRpcProviderId(e.currentTarget.value);
+                            setCreateProviderAutoInferred(false);
+                          }}
+                          class={`h-11 w-full appearance-none border border-b-border bg-b-field px-4 pr-10 text-sm font-bold tracking-widest outline-none focus-visible:border-b-accent/50 focus-visible:ring-2 focus-visible:ring-b-accent/20 hover:border-b-border-hover transition-all duration-200 cursor-pointer ${
+                            newRpcProviderId()
+                              ? "text-b-ink"
+                              : "text-b-ink/40"
+                          }`}
+                        >
+                          <option value="" disabled hidden class="bg-b-field">
+                            Select a provider…
+                          </option>
+                          <For each={providers()}>
+                            {(provider) => (
+                              <option value={provider.id} class="bg-b-field">
+                                {provider.name}
+                              </option>
+                            )}
+                          </For>
+                        </select>
+                        <div class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2">
+                          <ChevronDownIcon class="size-5 text-b-ink/50" />
+                        </div>
+                      </div>
+                    </Show>
+                    <Show
+                      when={
+                        providersState() === "ready" && providers().length === 0
+                      }
+                    >
+                      <div class="flex flex-col gap-3 border border-dashed border-b-border/50 bg-b-paper/20 px-4 py-4">
+                        <p class="text-xs font-bold uppercase tracking-widest text-b-ink/50">
+                          No providers available.
+                        </p>
+                        <a
+                          href={providersHref()}
+                          onClick={closeCreateRpcModal}
+                          class="text-xs font-bold uppercase tracking-widest text-b-accent hover:text-b-accent-hover hover:underline transition-colors"
+                        >
+                          Create a provider first →
+                        </a>
+                      </div>
+                    </Show>
+                  </div>
+
+                  <div class="flex flex-col gap-2">
+                    <div class="flex items-center gap-2">
+                      <label class="text-xs font-bold uppercase tracking-widest text-b-ink/70">
+                        Capabilities
+                      </label>
+                      <Show when={createCapabilitiesAutoInferred()}>
+                        <span class="text-[10px] font-semibold uppercase tracking-wider text-green-400/70">
+                          Auto-detected
+                        </span>
+                      </Show>
+                    </div>
+                    <div class="flex flex-col gap-2">
+                      <For each={allCapabilities}>
+                        {(capability) => {
+                          const checked = () => newRpcCapabilities().has(capability);
+                          return (
+                            <label
+                              class={`flex cursor-pointer items-center gap-3 border px-3 py-3 transition-all duration-150 ${
+                                checked()
+                                  ? capabilityStyle(capability)
+                                  : "border-b-border bg-b-paper/20 text-b-ink/60 hover:border-b-border-hover"
+                              }`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={checked()}
+                                onChange={() => {
+                                  setNewRpcCapabilities((current) =>
+                                    toggleCapability(current, capability),
+                                  );
+                                  setCreateCapabilitiesAutoInferred(false);
+                                }}
+                                class="size-4 accent-b-accent"
+                              />
+                              <span class="text-xs font-bold uppercase tracking-wider">
+                                {formatCapability(capability)}
+                              </span>
+                            </label>
+                          );
+                        }}
+                      </For>
+                    </div>
+                  </div>
+
+                  <Show when={createRpcError()}>
+                    <p class="border border-red-500/40 bg-red-500/10 px-3 py-3 text-xs font-bold uppercase leading-snug text-red-400">
+                      {createRpcError()}
+                    </p>
+                  </Show>
+
+                  <div class="flex flex-col gap-3 sm:flex-row sm:justify-end">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCreateStep(1);
+                        setCreateRpcTestStatus("untested");
+                      }}
+                      disabled={createRpcLoading()}
+                      class="btn btn-md btn-interactive btn-disabled btn-secondary"
+                    >
+                      Back
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={
+                        createRpcLoading() ||
+                        !newRpcProviderId() ||
+                        createRpcTestStatus() === "untested" ||
+                        createRpcTestStatus() === "testing"
+                      }
+                      class={`btn btn-md btn-interactive btn-disabled ${
+                        createRpcTestStatus() === "failed" &&
+                        !createRpcSaveConfirm()
+                          ? "btn-warning"
+                          : createRpcTestStatus() === "failed" &&
+                              createRpcSaveConfirm()
+                            ? "btn-danger"
+                            : "btn-primary"
+                      }`}
+                    >
+                      <Show when={createRpcLoading()}>
+                        <LoadingSpinner class="size-3.5 text-b-paper" />
+                      </Show>
+                      {createRpcLoading()
+                        ? "Creating…"
                         : createRpcTestStatus() === "failed" &&
-                            createRpcSaveConfirm()
-                          ? "Confirm Save (Test Failed)"
-                          : "Create RPC"}
-                  </button>
-                </div>
-              </form>
-            </Show>
+                            !createRpcSaveConfirm()
+                          ? "Test Failed - Click to Save Anyway"
+                          : createRpcTestStatus() === "failed" &&
+                              createRpcSaveConfirm()
+                            ? "Confirm Save (Test Failed)"
+                            : "Create RPC"}
+                    </button>
+                  </div>
+                </>
+              </Show>
+            </form>
           </div>
         </div>
       </Show>
@@ -1993,53 +1920,36 @@ export default function ApplicationRpcsPage() {
 
             <form onSubmit={handleEditRpc} class="flex flex-col gap-6">
               <div class="flex flex-col gap-2">
-                <label
-                  for="edit-rpc-address"
-                  class="text-xs font-bold uppercase tracking-widest text-b-ink/70"
-                >
+                <label class="text-xs font-bold uppercase tracking-widest text-b-ink/70">
                   Address
                 </label>
-                <input
-                  ref={editRpcAddressInput}
-                  id="edit-rpc-address"
-                  type="url"
-                  required
-                  value={editRpcAddress()}
-                  onInput={(e) => {
-                    setEditRpcAddress(e.currentTarget.value);
-                    validateRpcAddressInput(e.currentTarget);
-                    if (editRpcError() === addressHint) setEditRpcError(null);
-                    setEditRpcTestStatus("untested");
-                    setEditRpcTestChainId("");
-                    setEditRpcTestError(null);
-                    setEditRpcSaveConfirm(false);
-                    setEditProviderAutoInferred(false);
-                    setEditTracingModeAutoInferred(false);
-                  }}
-                  onBlur={(e) => {
-                    validateRpcAddressInput(e.currentTarget);
-                    if (isValidRpcAddress(editRpcAddress().trim())) {
-                      void runEditRpcTest(true);
-                    }
-                  }}
-                  class="h-11 w-full border border-b-border bg-b-paper px-4 text-sm font-semibold text-b-ink placeholder:text-b-ink/25 outline-none focus-visible:border-b-accent/50 focus-visible:ring-2 focus-visible:ring-b-accent/20 hover:border-b-border-hover transition-all duration-200"
-                  placeholder="https://rpc.example.com"
-                  title={addressHint}
-                  autocomplete="off"
-                />
-                <p class="text-xs font-semibold uppercase tracking-wider text-b-ink/40">
-                  {addressHint}
-                </p>
+                <div class="flex h-11 items-center border border-b-border bg-b-field px-4">
+                  <code class="break-all font-mono text-sm font-semibold text-b-ink/70">
+                    {rpcToEdit()?.address}
+                  </code>
+                </div>
                 <Show when={editRpcTestStatus() === "testing"}>
                   <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-b-ink/50">
                     <LoadingSpinner class="size-3.5" />
-                    <span>Testing endpoint…</span>
+                    <span>Probing endpoint…</span>
                   </div>
                 </Show>
-                <Show when={editRpcTestStatus() === "passed"}>
-                  <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-green-400">
-                    <CheckmarkIcon class="size-3.5" />
-                    <span>Looks correct</span>
+                <Show when={editRpcTestStatus() === "passed" && editRpcTestResult()}>
+                  <div class="flex flex-col gap-1 text-xs font-semibold uppercase tracking-wider text-green-400">
+                    <div class="flex items-center gap-2">
+                      <CheckmarkIcon class="size-3.5" />
+                      <span>Looks correct</span>
+                    </div>
+                    <Show when={editRpcTestResult()?.chainId !== undefined}>
+                      <span class="text-[0.65rem] text-b-ink/50">
+                        Chain ID: {String(editRpcTestResult()?.chainId)}
+                      </span>
+                    </Show>
+                    <Show when={getCompatibilitySummary(editRpcTestResult())}>
+                      <span class="text-[0.65rem] text-b-ink/50">
+                        Compatibility: {getCompatibilitySummary(editRpcTestResult())}
+                      </span>
+                    </Show>
                   </div>
                 </Show>
                 <Show when={editRpcTestStatus() === "failed"}>
@@ -2048,25 +1958,6 @@ export default function ApplicationRpcsPage() {
                     <span>{editRpcTestError() ?? "RPC validation failed"}</span>
                   </div>
                 </Show>
-              </div>
-
-              <div class="flex flex-col gap-2">
-                <label class="text-xs font-bold uppercase tracking-widest text-b-ink/70">
-                  Type
-                </label>
-                <div class="flex h-11 items-center border border-b-border bg-b-field px-4">
-                  <span
-                    class={`text-sm font-bold tracking-wider ${
-                      rpcToEdit()?.type === "Realtime"
-                        ? "text-green-400"
-                        : rpcToEdit()?.type === "Archive"
-                          ? "text-blue-400"
-                          : "text-purple-400"
-                    }`}
-                  >
-                    {rpcToEdit()?.type}
-                  </span>
-                </div>
               </div>
 
               <div class="flex flex-col gap-2">
@@ -2119,7 +2010,7 @@ export default function ApplicationRpcsPage() {
                       No providers available.
                     </p>
                     <a
-                      href={`/applications/${applicationId()}/providers`}
+                      href={providersHref()}
                       onClick={closeEditRpcModal}
                       class="text-xs font-bold uppercase tracking-widest text-b-accent hover:text-b-accent-hover hover:underline transition-colors"
                     >
@@ -2129,91 +2020,59 @@ export default function ApplicationRpcsPage() {
                 </Show>
               </div>
 
-              <Show when={rpcToEdit()?.type === "Tracing"}>
+              <div class="flex flex-col gap-2">
+                <label class="text-xs font-bold uppercase tracking-widest text-b-ink/70">
+                  Capabilities
+                </label>
                 <div class="flex flex-col gap-2">
-                  <div class="flex items-center gap-2">
-                    <label
-                      for="edit-rpc-tracing-mode"
-                      class="text-xs font-bold uppercase tracking-widest text-b-ink/70"
-                    >
-                      Tracing Mode
-                    </label>
-                    <Show when={editTracingModeAutoInferred()}>
-                      <span class="text-[10px] font-semibold uppercase tracking-wider text-green-400/70">
-                        Auto-detected
-                      </span>
-                    </Show>
-                  </div>
-                  <div class="relative">
-                    <select
-                      id="edit-rpc-tracing-mode"
-                      value={editRpcTracingMode()}
-                      onChange={(e) => {
-                        setEditRpcTracingMode(
-                          e.currentTarget.value as "Debug" | "Trace",
-                        );
-                        setEditTracingModeAutoInferred(false);
-                      }}
-                      class="h-11 w-full appearance-none border border-b-border bg-b-field px-4 pr-10 text-sm font-bold uppercase tracking-widest text-b-ink outline-none focus-visible:border-b-accent/50 focus-visible:ring-2 focus-visible:ring-b-accent/20 hover:border-b-border-hover transition-all duration-200 cursor-pointer"
-                    >
-                      <option value="Debug" class="bg-b-field">
-                        Debug
-                      </option>
-                      <option value="Trace" class="bg-b-field">
-                        Trace
-                      </option>
-                    </select>
-                    <div class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2">
-                      <ChevronDownIcon class="size-5 text-b-ink/50" />
-                    </div>
-                  </div>
+                  <For each={allCapabilities}>
+                    {(capability) => {
+                      const checked = () => editRpcCapabilities().has(capability);
+                      const detected = () => editDetectedCapabilities().has(capability);
+                      const showWarning = () =>
+                        checked() &&
+                        !detected() &&
+                        editRpcTestStatus() === "passed";
+                      return (
+                        <label
+                          class={`flex cursor-pointer items-center gap-3 border px-3 py-3 transition-all duration-150 ${
+                            checked()
+                              ? capabilityStyle(capability)
+                              : "border-b-border bg-b-paper/20 text-b-ink/60 hover:border-b-border-hover"
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked()}
+                            onChange={() =>
+                              setEditRpcCapabilities((current) =>
+                                toggleCapability(current, capability),
+                              )
+                            }
+                            class="size-4 accent-b-accent"
+                          />
+                          <span class="text-xs font-bold uppercase tracking-wider">
+                            {formatCapability(capability)}
+                          </span>
+                          <Show when={detected()}>
+                            <span class="ml-auto text-[10px] font-semibold uppercase tracking-wider text-green-400/70">
+                              Detected
+                            </span>
+                          </Show>
+                          <Show when={showWarning()}>
+                            <span
+                              class="ml-auto"
+                              title="Not detected by probe"
+                            >
+                              <WarningIcon class="size-4 text-amber-300" />
+                            </span>
+                          </Show>
+                        </label>
+                      );
+                    }}
+                  </For>
                 </div>
-              </Show>
-
-              <Show when={rpcToEdit()?.type === "Archive"}>
-                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <div class="flex flex-col gap-2">
-                    <label
-                      for="edit-rpc-indexer-step-size"
-                      class="text-xs font-bold uppercase tracking-widest text-b-ink/70"
-                    >
-                      Indexer Step
-                    </label>
-                    <input
-                      id="edit-rpc-indexer-step-size"
-                      type="number"
-                      min="1"
-                      required={rpcToEdit()?.type === "Archive"}
-                      value={editRpcIndexerStepSize()}
-                      onInput={(e) =>
-                        setEditRpcIndexerStepSize(e.currentTarget.value)
-                      }
-                      class="h-11 w-full border border-b-border bg-b-paper px-4 text-sm font-semibold text-b-ink placeholder:text-b-ink/25 outline-none focus-visible:border-b-accent/50 focus-visible:ring-2 focus-visible:ring-b-accent/20 hover:border-b-border-hover transition-all duration-200"
-                      inputmode="numeric"
-                    />
-                  </div>
-                  <div class="flex flex-col gap-2">
-                    <label
-                      for="edit-rpc-indexer-block-offset"
-                      class="text-xs font-bold uppercase tracking-widest text-b-ink/70"
-                    >
-                      Block Offset
-                    </label>
-                    <input
-                      id="edit-rpc-indexer-block-offset"
-                      type="number"
-                      min="0"
-                      required={rpcToEdit()?.type === "Archive"}
-                      value={editRpcIndexerBlockOffset()}
-                      onInput={(e) =>
-                        setEditRpcIndexerBlockOffset(e.currentTarget.value)
-                      }
-                      class="h-11 w-full border border-b-border bg-b-paper px-4 text-sm font-semibold text-b-ink placeholder:text-b-ink/25 outline-none focus-visible:border-b-accent/50 focus-visible:ring-2 focus-visible:ring-b-accent/20 hover:border-b-border-hover transition-all duration-200"
-                      inputmode="numeric"
-                    />
-                  </div>
-                </div>
-              </Show>
+              </div>
 
               <Show when={editRpcError()}>
                 <p class="border border-red-500/40 bg-red-500/10 px-3 py-3 text-xs font-bold uppercase leading-snug text-red-400">
@@ -2285,9 +2144,7 @@ export default function ApplicationRpcsPage() {
               Delete RPC
             </h3>
             <p class="mb-4 text-sm font-semibold text-b-ink/70">
-              Permanently delete this{" "}
-              <span class="font-bold text-red-400">{rpcToDelete()?.type}</span>{" "}
-              RPC endpoint?
+              Permanently delete this RPC endpoint?
             </p>
             <p class="mb-8 text-xs font-mono text-b-ink/40 break-all">
               {rpcToDelete()?.address}

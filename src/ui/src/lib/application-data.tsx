@@ -1,4 +1,4 @@
-import { useParams } from "@solidjs/router";
+import { useParams, useSearchParams } from "@solidjs/router";
 import {
   Show,
   createContext,
@@ -13,11 +13,6 @@ import {
 } from "solid-js";
 import LoadingSpinner from "../components/LoadingSpinner";
 import { useAuth } from "./auth";
-import {
-  defaultRpcStructure,
-  normalizeRpcStructure,
-  type RpcStructureDefinition,
-} from "./rpc-structure";
 
 type LoadState = "idle" | "pending" | "refreshing" | "ready" | "errored";
 
@@ -31,21 +26,32 @@ export type ApplicationEnvironmentSummary = {
 export type ConsumerApiKeySummary = {
   id: string;
   environmentId: string;
+  name: string;
   key: string;
   lastUsedAt?: string;
 };
 
+export type ApplicationRpcRule = {
+  id: string;
+  environmentId: string;
+  allOf: string[];
+  anyOf: string[];
+};
+
 export type ApplicationRpc = {
   id: string;
-  type: "Realtime" | "Archive" | "Tracing" | "Public";
   environmentId: string;
   chain: string;
   address: string;
   providerId: string;
   applicationId: string;
-  tracingMode?: string;
-  indexerStepSize?: number;
-  indexerBlockOffset?: number;
+  capabilities: string[];
+  order: number;
+};
+
+export type PublicRpc = {
+  chain: string;
+  address: string;
 };
 
 type ApplicationDetail = {
@@ -53,8 +59,8 @@ type ApplicationDetail = {
   name: string;
   environments: ApplicationEnvironmentSummary[];
   apiKeys: ConsumerApiKeySummary[];
-  structure: RpcStructureDefinition;
   color: string;
+  rules: ApplicationRpcRule[];
 };
 
 type ListController<T> = {
@@ -69,9 +75,10 @@ type ApplicationDataContextValue = {
   selectedEnvironmentId: Accessor<string | undefined>;
   setSelectedEnvironmentId: Setter<string | undefined>;
   apiKeys: ListController<ConsumerApiKeySummary>;
+  rules: ListController<ApplicationRpcRule>;
   rpcs: ListController<ApplicationRpc>;
+  publicRpcs: ListController<PublicRpc>;
   rpcsByEnvironment: Accessor<Record<string, ApplicationRpc[]>>;
-  structure: Accessor<RpcStructureDefinition>;
   refreshApplication: () => Promise<void>;
   refreshRpcs: () => Promise<void>;
   refresh: () => Promise<void>;
@@ -143,7 +150,13 @@ async function readErrorMessage(
 export function ApplicationDataProvider(props: ParentProps) {
   const auth = useAuth();
   const params = useParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const applicationId = () => params.applicationId;
+
+  const requestedEnvironmentId = () => {
+    const value = searchParams.environment;
+    return Array.isArray(value) ? value[0] : value;
+  };
 
   const [environments, setEnvironments] = createSignal<
     ApplicationEnvironmentSummary[]
@@ -158,9 +171,9 @@ export function ApplicationDataProvider(props: ParentProps) {
   const [apiKeysState, setApiKeysState] = createSignal<LoadState>("idle");
   const [apiKeysError, setApiKeysError] = createSignal<Error | null>(null);
 
-  const [structure, setStructure] = createSignal<RpcStructureDefinition>(
-    defaultRpcStructure,
-  );
+  const [rules, setRules] = createSignal<ApplicationRpcRule[]>([]);
+  const [rulesState, setRulesState] = createSignal<LoadState>("idle");
+  const [rulesError, setRulesError] = createSignal<Error | null>(null);
 
   const [loadedDetailKey, setLoadedDetailKey] = createSignal<string | null>(
     null,
@@ -175,9 +188,27 @@ export function ApplicationDataProvider(props: ParentProps) {
   let activeRpcsLoad: Promise<void> | null = null;
   let activeRpcsLoadKey: string | null = null;
 
-  const [selectedEnvironmentId, setSelectedEnvironmentId] = createSignal<
-    string | undefined
-  >(undefined);
+  const [publicRpcs, setPublicRpcs] = createSignal<PublicRpc[]>([]);
+  const [publicRpcsState, setPublicRpcsState] = createSignal<LoadState>("idle");
+  const [publicRpcsError, setPublicRpcsError] = createSignal<Error | null>(
+    null,
+  );
+
+  const selectedEnvironmentId = createMemo(() => {
+    const availableEnvironments = environments();
+    const requested = requestedEnvironmentId();
+    return (
+      availableEnvironments.find((item) => item.id === requested)?.id ??
+      availableEnvironments[0]?.id
+    );
+  });
+
+  const setSelectedEnvironmentId = ((value) => {
+    const next =
+      typeof value === "function" ? value(selectedEnvironmentId()) : value;
+    setSearchParams({ environment: next });
+    return next;
+  }) as Setter<string | undefined>;
 
   const clearDetail = () => {
     setSelectedEnvironmentId(undefined);
@@ -187,7 +218,9 @@ export function ApplicationDataProvider(props: ParentProps) {
     setApiKeys([]);
     setApiKeysState("idle");
     setApiKeysError(null);
-    setStructure(defaultRpcStructure);
+    setRules([]);
+    setRulesState("idle");
+    setRulesError(null);
     setLoadedDetailKey(null);
   };
 
@@ -196,6 +229,9 @@ export function ApplicationDataProvider(props: ParentProps) {
     setRpcsState("idle");
     setRpcsError(null);
     setLoadedRpcsKey(null);
+    setPublicRpcs([]);
+    setPublicRpcsState("idle");
+    setPublicRpcsError(null);
   };
 
   const clear = () => {
@@ -225,6 +261,8 @@ export function ApplicationDataProvider(props: ParentProps) {
       apiKeys().length > 0 && isRefresh ? "refreshing" : "pending",
     );
     setApiKeysError(null);
+    setRulesState(rules().length > 0 && isRefresh ? "refreshing" : "pending");
+    setRulesError(null);
     activeDetailLoadKey = requestKey;
     activeDetailLoad = (async () => {
       try {
@@ -233,7 +271,8 @@ export function ApplicationDataProvider(props: ParentProps) {
         setEnvironmentsState("ready");
         setApiKeys(detail.apiKeys);
         setApiKeysState("ready");
-        setStructure(normalizeRpcStructure(detail.structure));
+        setRules(detail.rules);
+        setRulesState("ready");
         setLoadedDetailKey(requestKey);
       } catch (error) {
         const err =
@@ -244,6 +283,8 @@ export function ApplicationDataProvider(props: ParentProps) {
         setEnvironmentsState("errored");
         setApiKeysError(err);
         setApiKeysState("errored");
+        setRulesError(err);
+        setRulesState("errored");
       }
     })();
 
@@ -270,12 +311,19 @@ export function ApplicationDataProvider(props: ParentProps) {
         environmentsError() ?? new Error("Failed to load environments"),
       );
       setLoadedRpcsKey(null);
+      setPublicRpcs([]);
+      setPublicRpcsState("errored");
+      setPublicRpcsError(
+        environmentsError() ?? new Error("Failed to load environments"),
+      );
       return;
     }
 
     if (environmentsState() !== "ready") {
       setRpcsState(rpcs().length > 0 ? "refreshing" : "pending");
       setRpcsError(null);
+      setPublicRpcsState(publicRpcs().length > 0 ? "refreshing" : "pending");
+      setPublicRpcsError(null);
       return;
     }
 
@@ -290,10 +338,16 @@ export function ApplicationDataProvider(props: ParentProps) {
     const isRefresh = loadedRpcsKey() === requestKey;
     setRpcsState(rpcs().length > 0 && isRefresh ? "refreshing" : "pending");
     setRpcsError(null);
+    setPublicRpcsState(
+      publicRpcs().length > 0 && isRefresh ? "refreshing" : "pending",
+    );
+    setPublicRpcsError(null);
 
     if (availableEnvironments.length === 0) {
       setRpcs([]);
       setRpcsState("ready");
+      setPublicRpcs([]);
+      setPublicRpcsState("ready");
       setLoadedRpcsKey(requestKey);
       return;
     }
@@ -301,24 +355,44 @@ export function ApplicationDataProvider(props: ParentProps) {
     activeRpcsLoadKey = requestKey;
     activeRpcsLoad = (async () => {
       try {
-        const rpcGroups = await Promise.all(
+        const results = await Promise.all(
           availableEnvironments.map((environment) =>
-            fetchApplicationList<ApplicationRpc>(
+            fetch(
               `/api/Applications/${id}/Rpcs/${encodeURIComponent(environment.id)}`,
-              token,
-              "Failed to load RPCs",
-            ),
+              { headers: { Authorization: `Bearer ${token}` } },
+            ).then(async (response) => {
+              if (!response.ok) {
+                throw new Error("Failed to load RPCs");
+              }
+              const data = (await response.json()) as {
+                rpcs: ApplicationRpc[];
+                publicRpcs: PublicRpc[];
+              };
+              return {
+                environmentId: environment.id,
+                rpcs: data.rpcs.map((rpc) => ({
+                  ...rpc,
+                  environmentId: environment.id,
+                  applicationId: id,
+                })),
+                publicRpcs: data.publicRpcs,
+              };
+            }),
           ),
         );
 
-        setRpcs(rpcGroups.flat());
+        setRpcs(results.flatMap((group) => group.rpcs));
         setRpcsState("ready");
+        setPublicRpcs(results.flatMap((group) => group.publicRpcs));
+        setPublicRpcsState("ready");
         setLoadedRpcsKey(requestKey);
       } catch (error) {
-        setRpcsError(
-          error instanceof Error ? error : new Error("Failed to load RPCs"),
-        );
+        const err =
+          error instanceof Error ? error : new Error("Failed to load RPCs");
+        setRpcsError(err);
         setRpcsState("errored");
+        setPublicRpcsError(err);
+        setPublicRpcsState("errored");
       }
     })();
 
@@ -449,21 +523,12 @@ export function ApplicationDataProvider(props: ParentProps) {
       ),
     );
 
-    if (settings.enablePublicRpcs) {
-      await refreshRpcs();
-    } else {
-      setRpcs((items) =>
-        items.filter(
-          (rpc) => rpc.environmentId !== environmentId || rpc.type !== "Public",
-        ),
-      );
-    }
+    await refreshRpcs();
   };
 
   createEffect(() => {
     const token = auth.token;
     const id = applicationId();
-    const envs = environments();
     const selected = selectedEnvironmentId();
     const detailKey = loadedDetailKey();
 
@@ -471,13 +536,8 @@ export function ApplicationDataProvider(props: ParentProps) {
       return;
     }
 
-    if (envs.length > 0 && !envs.some((item) => item.id === selected)) {
-      setSelectedEnvironmentId(envs[0].id);
-      return;
-    }
-
-    if (envs.length === 0 && selected) {
-      setSelectedEnvironmentId(undefined);
+    if (requestedEnvironmentId() !== selected) {
+      setSearchParams({ environment: selected }, { replace: true });
     }
   });
 
@@ -514,15 +574,22 @@ export function ApplicationDataProvider(props: ParentProps) {
       setRpcsState("errored");
       setRpcsError(envError ?? new Error("Failed to load environments"));
       setLoadedRpcsKey(null);
+      setPublicRpcs([]);
+      setPublicRpcsState("errored");
+      setPublicRpcsError(envError ?? new Error("Failed to load environments"));
       return;
     }
 
     if (envState !== "ready") {
       setRpcsError(null);
+      setPublicRpcsError(null);
 
       // Keep already-loaded RPC data ready while environment details refresh.
       if (envState === "pending" || currentRpcsKey === null) {
         setRpcsState(rpcs().length > 0 ? "refreshing" : "pending");
+        setPublicRpcsState(
+          publicRpcs().length > 0 ? "refreshing" : "pending",
+        );
       }
 
       return;
@@ -539,6 +606,8 @@ export function ApplicationDataProvider(props: ParentProps) {
     // environment set is unchanged so the RPC tab does not get stuck loading.
     setRpcsError(null);
     setRpcsState("ready");
+    setPublicRpcsError(null);
+    setPublicRpcsState("ready");
   });
 
   const rpcsByEnvironment = createMemo(() => {
@@ -559,7 +628,9 @@ export function ApplicationDataProvider(props: ParentProps) {
       return false;
     }
     return (
-      environmentsState() === "pending" && apiKeysState() === "pending"
+      environmentsState() === "pending" &&
+      apiKeysState() === "pending" &&
+      rulesState() === "pending"
     );
   });
 
@@ -577,13 +648,22 @@ export function ApplicationDataProvider(props: ParentProps) {
       state: apiKeysState,
       error: apiKeysError,
     },
+    rules: {
+      data: rules,
+      state: rulesState,
+      error: rulesError,
+    },
     rpcs: {
       data: rpcs,
       state: rpcsState,
       error: rpcsError,
     },
+    publicRpcs: {
+      data: publicRpcs,
+      state: publicRpcsState,
+      error: publicRpcsError,
+    },
     rpcsByEnvironment,
-    structure,
     refreshApplication,
     refreshRpcs,
     refresh,

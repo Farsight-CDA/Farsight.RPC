@@ -205,7 +205,7 @@ export default function ErrorGroupMatchedPage() {
                     class="btn btn-sm btn-interactive btn-disabled btn-danger shrink-0"
                     title="Remove error pattern"
                   >
-                    <TrashIcon class="size-3" />
+                    <TrashIcon class="size-4" />
                   </button>
                 </div>
               )}

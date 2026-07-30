@@ -1,25 +1,50 @@
 import { A, useNavigate } from "@solidjs/router";
-import { For, Show, createMemo, type ParentComponent } from "solid-js";
+import {
+  For,
+  Show,
+  createEffect,
+  createMemo,
+  type ParentComponent,
+} from "solid-js";
 import { useReferenceData } from "../lib/reference-data";
-import { useParams, useLocation } from "@solidjs/router";
+import { useParams, useLocation, useSearchParams } from "@solidjs/router";
 import LoadingSpinner from "../components/LoadingSpinner";
 import ArrowLeftIcon from "../components/icons/ArrowLeftIcon";
 import RpcIcon from "../components/icons/RpcIcon";
 import KeyIcon from "../components/icons/KeyIcon";
 import SettingsIcon from "../components/icons/SettingsIcon";
 import ProviderIcon from "../components/icons/ProviderIcon";
-import StructureIcon from "../components/icons/StructureIcon";
 import EnvironmentIcon from "../components/icons/EnvironmentIcon";
+import RuleIcon from "../components/icons/RuleIcon";
+import WarningIcon from "../components/icons/WarningIcon";
 import ChevronDownIcon from "../components/icons/ChevronDownIcon";
 import { useEnvironment } from "../lib/environment-context";
+import { useApplicationData } from "../lib/application-data";
+import { anyChainFailsValidation } from "../lib/rule-validation";
 
 const ApplicationLayoutContent: ParentComponent = (props) => {
   const referenceData = useReferenceData();
   const navigate = useNavigate();
   const params = useParams();
   const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
   const applicationId = () => params.applicationId;
   const environment = useEnvironment();
+  const applicationData = useApplicationData();
+
+  const hasFailingChains = createMemo(() => {
+    const selectedEnvironment = environment.selectedEnvironmentId();
+    const chains = environment.environments().find(
+      (env) => env.id === selectedEnvironment,
+    )?.chains;
+    if (!chains || chains.length === 0) return false;
+    return anyChainFailsValidation(
+      selectedEnvironment,
+      chains,
+      applicationData.rpcs.data(),
+      applicationData.rules.data(),
+    );
+  });
 
   const applications = referenceData.applications.data;
   const applicationsState = referenceData.applications.state;
@@ -32,14 +57,34 @@ const ApplicationLayoutContent: ParentComponent = (props) => {
   const getActiveTab = () => {
     const path = location.pathname;
     if (path.includes("/api-keys")) return "api-keys";
-    if (path.includes("/structures")) return "structures";
     if (path.includes("/environments")) return "environments";
     if (path.includes("/general")) return "general";
     if (path.includes("/providers")) return "providers";
+    if (path.includes("/rules")) return "rules";
     return "rpcs";
   };
 
   const isRpcsTab = () => getActiveTab() === "rpcs";
+  const isRulesTab = () => getActiveTab() === "rules";
+
+  const applicationHref = (tab: string) => {
+    const query = new URLSearchParams();
+    const environmentId = environment.selectedEnvironmentId();
+    if (environmentId) query.set("environment", environmentId);
+
+    const chain = searchParams.chain;
+    const chainName = Array.isArray(chain) ? chain[0] : chain;
+    if (tab === "rpcs" && chainName) query.set("chain", chainName);
+
+    const search = query.toString();
+    return `/applications/${applicationId()}/${tab}${search ? `?${search}` : ""}`;
+  };
+
+  createEffect(() => {
+    if (!isRpcsTab() && searchParams.chain !== undefined) {
+      setSearchParams({ chain: undefined }, { replace: true });
+    }
+  });
 
   return (
     <main class="flex flex-1 flex-col min-h-0">
@@ -75,6 +120,9 @@ const ApplicationLayoutContent: ParentComponent = (props) => {
                     style={{ "background-color": application()?.color ?? "#6B7280" }}
                   />
                   {application()?.name}
+                  <Show when={hasFailingChains()}>
+                    <WarningIcon class="size-5 text-amber-300" />
+                  </Show>
                 </h1>
               </div>
 
@@ -82,7 +130,7 @@ const ApplicationLayoutContent: ParentComponent = (props) => {
               <div class="flex items-center justify-between border-b border-b-border/50">
                 <div class="flex">
                   <A
-                    href={`/applications/${applicationId()}/general`}
+                    href={applicationHref("general")}
                     class={`flex items-center gap-1.5 px-4 py-2 text-[0.65rem] font-bold uppercase tracking-widest transition-all duration-200 ${
                       getActiveTab() === "general"
                         ? "border-b-2 border-b-accent bg-b-accent/5 text-b-accent"
@@ -93,7 +141,7 @@ const ApplicationLayoutContent: ParentComponent = (props) => {
                     General
                   </A>
                   <A
-                    href={`/applications/${applicationId()}/environments`}
+                    href={applicationHref("environments")}
                     class={`flex items-center gap-1.5 px-4 py-2 text-[0.65rem] font-bold uppercase tracking-widest transition-all duration-200 ${
                       getActiveTab() === "environments"
                         ? "border-b-2 border-b-accent bg-b-accent/5 text-b-accent"
@@ -104,7 +152,7 @@ const ApplicationLayoutContent: ParentComponent = (props) => {
                     Environments
                   </A>
                   <A
-                    href={`/applications/${applicationId()}/providers`}
+                    href={applicationHref("providers")}
                     class={`flex items-center gap-1.5 px-4 py-2 text-[0.65rem] font-bold uppercase tracking-widest transition-all duration-200 ${
                       getActiveTab() === "providers"
                         ? "border-b-2 border-b-accent bg-b-accent/5 text-b-accent"
@@ -115,7 +163,7 @@ const ApplicationLayoutContent: ParentComponent = (props) => {
                     Providers
                   </A>
                   <A
-                    href={`/applications/${applicationId()}/rpcs`}
+                    href={applicationHref("rpcs")}
                     class={`flex items-center gap-1.5 px-4 py-2 text-[0.65rem] font-bold uppercase tracking-widest transition-all duration-200 ${
                       getActiveTab() === "rpcs"
                         ? "border-b-2 border-b-accent bg-b-accent/5 text-b-accent"
@@ -126,7 +174,18 @@ const ApplicationLayoutContent: ParentComponent = (props) => {
                     RPCs
                   </A>
                   <A
-                    href={`/applications/${applicationId()}/api-keys`}
+                    href={applicationHref("rules")}
+                    class={`flex items-center gap-1.5 px-4 py-2 text-[0.65rem] font-bold uppercase tracking-widest transition-all duration-200 ${
+                      getActiveTab() === "rules"
+                        ? "border-b-2 border-b-accent bg-b-accent/5 text-b-accent"
+                        : "text-b-ink/50 hover:text-b-ink hover:bg-b-ink/5"
+                    }`}
+                  >
+                    <RuleIcon class="size-3.5" />
+                    Rules
+                  </A>
+                  <A
+                    href={applicationHref("api-keys")}
                     class={`flex items-center gap-1.5 px-4 py-2 text-[0.65rem] font-bold uppercase tracking-widest transition-all duration-200 ${
                       getActiveTab() === "api-keys"
                         ? "border-b-2 border-b-accent bg-b-accent/5 text-b-accent"
@@ -136,21 +195,10 @@ const ApplicationLayoutContent: ParentComponent = (props) => {
                     <KeyIcon class="size-3.5" />
                     API Keys
                   </A>
-                  <A
-                    href={`/applications/${applicationId()}/structures`}
-                    class={`flex items-center gap-1.5 px-4 py-2 text-[0.65rem] font-bold uppercase tracking-widest transition-all duration-200 ${
-                      getActiveTab() === "structures"
-                        ? "border-b-2 border-b-accent bg-b-accent/5 text-b-accent"
-                        : "text-b-ink/50 hover:text-b-ink hover:bg-b-ink/5"
-                    }`}
-                  >
-                    <StructureIcon class="size-3.5" />
-                    Structures
-                  </A>
                 </div>
 
-                {/* Environment selector - only shown on RPCs tab */}
-                <Show when={isRpcsTab()}>
+                {/* Environment selector - shown on RPCs and Rules tabs */}
+                <Show when={isRpcsTab() || isRulesTab()}>
                   <div class="relative">
                     <Show when={environment.environmentsState() === "pending"}>
                       <div class="flex h-9 items-center gap-2 border border-b-border bg-b-field px-3 w-48">

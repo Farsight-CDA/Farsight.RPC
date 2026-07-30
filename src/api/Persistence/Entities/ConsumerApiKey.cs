@@ -7,6 +7,7 @@ public sealed class ConsumerApiKey
 
     public required Guid ApplicationId { get; init; }
 
+    public required string Name { get; set; }
     public required string Key { get; init; }
     public DateTimeOffset? LastUsedAt { get; set; }
 

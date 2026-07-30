@@ -274,8 +274,9 @@ export default function ApplicationGeneralPage() {
                   onClick={startEditingName}
                   disabled={renameLoading() || deleteLoading()}
                   class="btn btn-md btn-interactive btn-disabled btn-secondary shrink-0"
+                  title="Rename application"
                 >
-                  Rename
+                  <PencilIcon class="size-4" />
                 </button>
               </div>
             </Show>
@@ -434,11 +435,14 @@ export default function ApplicationGeneralPage() {
                 onClick={() => setDeleteLoading(true)}
                 disabled={deleteLoading() || isEditingName() || colorLoading()}
                 class="btn btn-md btn-interactive btn-disabled btn-danger"
+                title="Delete application"
               >
-                <Show when={deleteLoading()}>
-                  <LoadingSpinner class="size-3.5" />
+                <Show
+                  when={deleteLoading()}
+                  fallback={<TrashIcon class="size-4" />}
+                >
+                  <LoadingSpinner class="size-4" />
                 </Show>
-                {deleteLoading() ? "Deleting…" : "Delete"}
               </button>
             </div>
           </div>

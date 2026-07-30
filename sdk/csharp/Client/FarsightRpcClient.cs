@@ -42,30 +42,13 @@ public sealed class FarsightRpcClient : IFarsightRpcClient
                 var rpcs = result.Rpcs.ToDictionary(
                     group => ChainRegistry.Chains.FirstOrDefault(x => x.Name == group.Key)
                         ?? throw new InvalidOperationException($"RPC response referenced unknown chain '{group.Key}'."),
-                    group => group.Value.Select<RpcEndpointDto, RpcEndpoint>(rpc => rpc switch
+                    group => group.Value.Select(rpc => new RpcEndpoint
                     {
-                        RpcEndpointDto.Realtime realtime => new RpcEndpoint.Realtime
-                        {
-                            Id = realtime.Id,
-                            Address = realtime.Address,
-                            Provider = resolveProvider(rpc.ProviderId),
-                        },
-                        RpcEndpointDto.Archive archive => new RpcEndpoint.Archive
-                        {
-                            Id = archive.Id,
-                            Address = archive.Address,
-                            Provider = resolveProvider(rpc.ProviderId),
-                            IndexerStepSize = archive.IndexerStepSize,
-                            IndexerBlockOffset = archive.IndexerBlockOffset,
-                        },
-                        RpcEndpointDto.Tracing tracing => new RpcEndpoint.Tracing
-                        {
-                            Id = tracing.Id,
-                            Address = tracing.Address,
-                            Provider = resolveProvider(rpc.ProviderId),
-                            TracingMode = tracing.TracingMode,
-                        },
-                        _ => throw new NotSupportedException($"Unsupported RPC type '{rpc.GetType().Name}'.")
+                        Id = rpc.Id,
+                        Address = rpc.Address,
+                        Provider = resolveProvider(rpc.ProviderId),
+                        Capabilities = rpc.Capabilities,
+                        Order = rpc.Order,
                     }).ToImmutableArray()
                 );
                 var publicRpcs = result.PublicRpcs.ToDictionary(

@@ -3,7 +3,7 @@
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
   </PropertyGroup>
   <ItemGroup>
-    <PackageVersion Include="EtherSharp" Version="1.0.4" />
+    <PackageVersion Include="EtherSharp" Version="1.0.5-private.135.1" />
     <PackageVersion Include="Farsight.Common" Version="1.2.0-private.42.1" />
     <PackageVersion Include="FastEndpoints" Version="8.2.0" />
     <PackageVersion Include="FastEndpoints.Security" Version="8.2.0" />

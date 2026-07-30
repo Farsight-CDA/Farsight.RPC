@@ -18,8 +18,16 @@ public sealed class GETById(AppDbContext dbContext) : Endpoint<GETById.Request, 
     public sealed record ApiKeySummary(
         Guid Id,
         Guid EnvironmentId,
+        string Name,
         string Key,
         DateTimeOffset? LastUsedAt
+    );
+
+    public sealed record RuleSummary(
+        Guid Id,
+        Guid EnvironmentId,
+        RpcCapability[] AllOf,
+        RpcCapability[] AnyOf
     );
 
     public sealed record Request(
@@ -31,8 +39,8 @@ public sealed class GETById(AppDbContext dbContext) : Endpoint<GETById.Request, 
         string Name,
         EnvironmentSummary[] Environments,
         ApiKeySummary[] ApiKeys,
-        RpcStructureDefinition Structure,
-        string Color
+        string Color,
+        RuleSummary[] Rules
     );
 
     public override void Configure()
@@ -46,7 +54,7 @@ public sealed class GETById(AppDbContext dbContext) : Endpoint<GETById.Request, 
         var application = await dbContext.ConsumerApplications
             .AsNoTracking()
             .Where(a => a.Id == req.ApplicationId)
-            .Select(a => new { a.Id, a.Name, a.Structure, a.Color })
+            .Select(a => new { a.Id, a.Name, a.Color })
             .SingleOrDefaultAsync(ct);
 
         if(application is null)
@@ -59,7 +67,7 @@ public sealed class GETById(AppDbContext dbContext) : Endpoint<GETById.Request, 
             .Where(k => k.ApplicationId == req.ApplicationId)
             .OrderBy(k => k.Environment!.Name)
             .ThenBy(k => k.Id)
-            .Select(k => new ApiKeySummary(k.Id, k.EnvironmentId, k.Key, k.LastUsedAt))
+            .Select(k => new ApiKeySummary(k.Id, k.EnvironmentId, k.Name, k.Key, k.LastUsedAt))
             .ToArrayAsync(ct);
 
         var environments = await dbContext.ApplicationEnvironments
@@ -69,13 +77,21 @@ public sealed class GETById(AppDbContext dbContext) : Endpoint<GETById.Request, 
             .Select(environment => new EnvironmentSummary(environment.Id, environment.Name, environment.Chains, environment.EnablePublicRpcs))
             .ToArrayAsync(ct);
 
+        var rules = await dbContext.RpcRules
+            .AsNoTracking()
+            .Where(rule => rule.ApplicationId == req.ApplicationId)
+            .OrderBy(rule => rule.Environment!.Name)
+            .ThenBy(rule => rule.Id)
+            .Select(rule => new RuleSummary(rule.Id, rule.EnvironmentId, rule.AllOf, rule.AnyOf))
+            .ToArrayAsync(ct);
+
         await Send.OkAsync(new Response(
             application.Id,
             application.Name,
             environments,
             apiKeys,
-            application.Structure,
-            application.Color
+            application.Color,
+            rules
         ), ct);
     }
 }

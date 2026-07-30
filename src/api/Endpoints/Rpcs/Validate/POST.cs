@@ -1,8 +1,4 @@
-using EtherSharp.Client;
-using EtherSharp.Common.Exceptions;
-using EtherSharp.Query;
 using Farsight.Chains;
-using Farsight.Common.Extensions;
 using Farsight.Rpc.Api.Auth;
 using Farsight.Rpc.Api.Services;
 using Farsight.Rpc.Api.Validation;
@@ -12,13 +8,11 @@ using FluentValidation;
 
 namespace Farsight.Rpc.Api.Endpoints.Rpcs.Validate;
 
-public sealed class POST : Endpoint<POST.Request, POST.Response>
+public sealed class POST(RpcCapabilityProbe capabilityProbe) : Endpoint<POST.Request, RpcProbeResult>
 {
-    private static readonly TimeSpan _validationTimeout = TimeSpan.FromSeconds(3);
+    private static readonly TimeSpan _validationTimeout = TimeSpan.FromSeconds(5);
 
-    public sealed record Request(Uri Address, string Chain, RpcType? RpcType);
-
-    public new sealed record Response(ulong ChainId, TracingMode? TracingMode);
+    public sealed record Request(Uri Address, string Chain);
 
     public sealed class Validator : Validator<Request>
     {
@@ -29,12 +23,6 @@ public sealed class POST : Endpoint<POST.Request, POST.Response>
 
             RuleFor(x => x.Chain)
                 .ApplyChainValidation();
-
-            RuleFor(x => x.RpcType)
-                .NotNull()
-                .WithMessage("RPC type is required.")
-                .IsInEnum()
-                .WithMessage("RPC type is invalid.");
         }
     }
 
@@ -46,69 +34,35 @@ public sealed class POST : Endpoint<POST.Request, POST.Response>
 
     public override async Task HandleAsync(Request req, CancellationToken ct)
     {
+        ulong expectedChainId = ChainRegistry.Chains
+            .Single(x => x.Name.Equals(req.Chain, StringComparison.OrdinalIgnoreCase))
+            .ChainId;
+
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
         cts.CancelAfter(_validationTimeout);
 
+        RpcProbeResult result;
         try
         {
-            ulong expectedChainId = ChainRegistry.Chains.Single(x => x.Name.Equals(req.Chain, StringComparison.OrdinalIgnoreCase)).ChainId;
-
-            await using var client = req.Address.Scheme is "ws" or "wss"
-                 ? EtherClientBuilder.CreateForWebsocket(req.Address).BuildReadClient()
-                 : EtherClientBuilder.CreateForHttpRpc(req.Address).BuildReadClient();
-
-            ulong actualChainId = await client.InitializeAsync(IQuery.GetChainId(), cts.Token);
-            if(actualChainId != expectedChainId)
-            {
-                ThrowError($"RPC for {req.Chain} returned chain id {actualChainId}, expected {expectedChainId}.", 400);
-            }
-
-            TracingMode? detectedTracingMode = req.RpcType == RpcType.Tracing
-                ? await ProbeTracingModeAsync(client, cts.Token)
-                : null;
-
-            await Send.OkAsync(new Response(actualChainId, detectedTracingMode), ct);
+            result = await capabilityProbe.ProbeAsync(req.Address, cts.Token);
         }
         catch(OperationCanceledException) when(!ct.IsCancellationRequested)
         {
             ThrowError("RPC validation timed out.", 504);
+            return;
         }
-        catch(Exception ex)
+        catch(Exception ex) when(!ct.IsCancellationRequested)
         {
             ThrowError(ex.GetBaseException().Message, 502);
-        }
-    }
-
-    private static async Task<TracingMode> ProbeTracingModeAsync(IEtherClient client, CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            await client.Trace.TraceTransactionCallsAsync("0x", cancellationToken);
-        }
-        catch(RPCException ex) when(ex.Message.Contains("invalid argument", StringComparison.OrdinalIgnoreCase) || ex.Message.Contains("Invalid params", StringComparison.OrdinalIgnoreCase))
-        {
-            return TracingMode.Trace;
-        }
-        catch(RPCException ex)
-        when(ex.Message.Contains("trace_replayTransaction", StringComparison.OrdinalIgnoreCase) || ex.Message.Contains("Method not found", StringComparison.OrdinalIgnoreCase) || ex.Message.Contains("rpc method is not available", StringComparison.OrdinalIgnoreCase))
-        {
-            // Method-not-found errors include the missing method name, so fall through to the next probe.
+            return;
         }
 
-        try
+        if(result.ChainId != expectedChainId)
         {
-            await client.Debug.TraceTransactionCallsAsync("0x", cancellationToken);
-        }
-        catch(RPCException ex) when(ex.Message.Contains("invalid argument", StringComparison.OrdinalIgnoreCase) || ex.Message.Contains("Invalid params", StringComparison.OrdinalIgnoreCase))
-        {
-            return TracingMode.Debug;
-        }
-        catch(RPCException ex)
-        when(ex.Message.Contains("debug_traceTransaction", StringComparison.OrdinalIgnoreCase) || ex.Message.Contains("Method not found", StringComparison.OrdinalIgnoreCase) || ex.Message.Contains("rpc method is not available", StringComparison.OrdinalIgnoreCase))
-        {
-            // Method-not-found errors include the missing method name, so fall through to the final failure.
+            ThrowError($"RPC returned chain id {result.ChainId}, expected {expectedChainId} for {req.Chain}.", 400);
+            return;
         }
 
-        throw new InvalidOperationException("No tracing mode supported");
+        await Send.OkAsync(result, ct);
     }
 }

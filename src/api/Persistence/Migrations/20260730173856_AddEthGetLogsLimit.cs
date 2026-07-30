@@ -15,20 +15,6 @@ namespace Farsight.Rpc.Api.Persistence.Migrations
                 table: "Rpcs",
                 type: "numeric(20,0)",
                 nullable: true);
-
-            migrationBuilder.Sql("""
-                UPDATE "Rpcs"
-                SET "EthGetLogsLimit" = 1;
-                """);
-
-            migrationBuilder.AlterColumn<decimal>(
-                name: "EthGetLogsLimit",
-                table: "Rpcs",
-                type: "numeric(20,0)",
-                nullable: false,
-                oldClrType: typeof(decimal),
-                oldType: "numeric(20,0)",
-                oldNullable: true);
         }
 
         /// <inheritdoc />

@@ -6,7 +6,8 @@ export type RpcCapability =
   | "TracingApi"
   | "StateOverrides"
   | "BlockOverrides"
-  | "Subscriptions";
+  | "Subscriptions"
+  | "GetLogs";
 
 export const allCapabilities: RpcCapability[] = [
   "Archive",
@@ -15,6 +16,7 @@ export const allCapabilities: RpcCapability[] = [
   "StateOverrides",
   "BlockOverrides",
   "Subscriptions",
+  "GetLogs",
 ];
 
 export function isKnownCapability(value: string): value is RpcCapability {

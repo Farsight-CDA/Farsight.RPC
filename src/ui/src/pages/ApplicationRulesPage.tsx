@@ -19,6 +19,7 @@ const allCapabilities: RpcCapability[] = [
   "StateOverrides",
   "BlockOverrides",
   "Subscriptions",
+  "GetLogs",
 ];
 
 type RpcCapability =
@@ -27,7 +28,8 @@ type RpcCapability =
   | "TracingApi"
   | "StateOverrides"
   | "BlockOverrides"
-  | "Subscriptions";
+  | "Subscriptions"
+  | "GetLogs";
 
 function formatCapability(capability: RpcCapability): string {
   switch (capability) {
@@ -39,6 +41,8 @@ function formatCapability(capability: RpcCapability): string {
       return "State Overrides";
     case "BlockOverrides":
       return "Block Overrides";
+    case "GetLogs":
+      return "eth_getLogs";
     default:
       return capability;
   }
@@ -58,6 +62,8 @@ function capabilityStyle(capability: RpcCapability): string {
       return "border-cyan-500/30 bg-cyan-500/10 text-cyan-400";
     case "Subscriptions":
       return "border-emerald-500/30 bg-emerald-500/10 text-emerald-400";
+    case "GetLogs":
+      return "border-orange-500/30 bg-orange-500/10 text-orange-400";
     default:
       return "border-b-border bg-b-paper/20 text-b-ink/50";
   }

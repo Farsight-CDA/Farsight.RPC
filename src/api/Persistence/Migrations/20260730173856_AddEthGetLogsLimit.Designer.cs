@@ -142,7 +142,7 @@ namespace Farsight.Rpc.Api.Persistence.Migrations
                     b.Property<Guid>("EnvironmentId")
                         .HasColumnType("uuid");
 
-                    b.Property<decimal>("EthGetLogsLimit")
+                    b.Property<decimal?>("EthGetLogsLimit")
                         .HasColumnType("numeric(20,0)");
 
                     b.Property<int>("Order")

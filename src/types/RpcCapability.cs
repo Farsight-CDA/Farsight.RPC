@@ -8,4 +8,5 @@ public enum RpcCapability
     StateOverrides,
     BlockOverrides,
     Subscriptions,
+    GetLogs,
 }

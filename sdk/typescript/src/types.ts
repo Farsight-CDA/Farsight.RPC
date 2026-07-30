@@ -19,7 +19,7 @@ export interface RpcEndpointBase {
   id: string;
   address: string;
   providerId: string;
-  ethGetLogsLimit: number;
+  ethGetLogsLimit: number | null;
 }
 
 export interface RealtimeRpcEndpoint extends RpcEndpointBase {

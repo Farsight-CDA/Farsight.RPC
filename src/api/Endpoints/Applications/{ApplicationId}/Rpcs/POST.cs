@@ -19,7 +19,7 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request>
         Uri Address,
         Guid ProviderId,
         RpcCapability[] Capabilities,
-        ulong EthGetLogsLimit,
+        ulong? EthGetLogsLimit,
         int Order
     );
 
@@ -51,9 +51,11 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request>
                 .IsInEnum()
                 .WithMessage("Capability is invalid.");
 
-            RuleFor(x => x.EthGetLogsLimit)
-                .GreaterThan(0UL)
-                .WithMessage("eth_getLogs limit must be greater than zero.");
+            RuleFor(x => x)
+                .Must(x => x.Capabilities?.Contains(RpcCapability.GetLogs) == true
+                    ? x.EthGetLogsLimit > 0
+                    : x.EthGetLogsLimit is null)
+                .WithMessage("GetLogs capability requires a positive eth_getLogs limit; without GetLogs, the limit must be null.");
 
             RuleFor(x => x.Order)
                 .GreaterThanOrEqualTo(0)

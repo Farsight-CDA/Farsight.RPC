@@ -50,6 +50,14 @@ public sealed class PUT(AppDbContext dbContext) : Endpoint<PUT.Request>
                 () => RuleFor(x => x.EthGetLogsLimit)
                     .GreaterThan(0UL)
                     .WithMessage("eth_getLogs limit must be greater than zero."));
+
+            RuleFor(x => x)
+                .Must(x => x.Capabilities is null
+                    ? x.EthGetLogsLimit is null
+                    : x.Capabilities.Contains(RpcCapability.GetLogs)
+                        ? x.EthGetLogsLimit > 0
+                        : x.EthGetLogsLimit is null)
+                .WithMessage("GetLogs capability requires a positive eth_getLogs limit; without GetLogs, the limit must be null.");
         }
     }
 
@@ -77,6 +85,10 @@ public sealed class PUT(AppDbContext dbContext) : Endpoint<PUT.Request>
         if(req.Capabilities is { } capabilities)
         {
             rpc.Capabilities = capabilities;
+            if(!capabilities.Contains(RpcCapability.GetLogs))
+            {
+                rpc.EthGetLogsLimit = null;
+            }
         }
 
         if(req.EthGetLogsLimit is ulong ethGetLogsLimit)

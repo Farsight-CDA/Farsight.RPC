@@ -61,7 +61,7 @@ public sealed partial class RpcCapabilityProbe : Transient
             cancellationToken
         );
 
-        var capabilities = new List<RpcCapability>(6);
+        var capabilities = new List<RpcCapability>(7);
         if(archive)
         {
             capabilities.Add(RpcCapability.Archive);
@@ -85,6 +85,10 @@ public sealed partial class RpcCapabilityProbe : Transient
         if(address.Scheme == "wss")
         {
             capabilities.Add(RpcCapability.Subscriptions);
+        }
+        if(ethGetLogsLimit is not null)
+        {
+            capabilities.Add(RpcCapability.GetLogs);
         }
 
         return new RpcProbeResult(

@@ -13,6 +13,13 @@ import ChevronDownIcon from "../components/icons/ChevronDownIcon";
 import CheckmarkIcon from "../components/icons/CheckmarkIcon";
 import CopyIcon from "../components/icons/CopyIcon";
 import WarningIcon from "../components/icons/WarningIcon";
+import {
+  allRpcCapabilities,
+  formatRpcCapability,
+  rpcCapabilityStyle,
+  type RpcCapability,
+} from "../components/RpcCapabilitiesField";
+import RpcStateFields from "../components/RpcStateFields";
 import { createModalBackdropHandlers } from "../lib/createModalBackdropHandlers";
 import { useAuth } from "../lib/auth";
 import {
@@ -26,57 +33,6 @@ import {
 import { chainRuleValidation } from "../lib/rule-validation";
 import { useEnvironment } from "../lib/environment-context";
 import { useEscapeKey } from "../lib/useEscapeKey";
-
-const allCapabilities: RpcCapability[] = [
-  "Archive",
-  "DebugApi",
-  "TracingApi",
-  "StateOverrides",
-  "BlockOverrides",
-  "Subscriptions",
-];
-
-type RpcCapability =
-  | "Archive"
-  | "DebugApi"
-  | "TracingApi"
-  | "StateOverrides"
-  | "BlockOverrides"
-  | "Subscriptions";
-
-function formatCapability(capability: RpcCapability): string {
-  switch (capability) {
-    case "DebugApi":
-      return "Debug API";
-    case "TracingApi":
-      return "Tracing API";
-    case "StateOverrides":
-      return "State Overrides";
-    case "BlockOverrides":
-      return "Block Overrides";
-    default:
-      return capability;
-  }
-}
-
-function capabilityStyle(capability: RpcCapability): string {
-  switch (capability) {
-    case "Archive":
-      return "border-blue-500/30 bg-blue-500/10 text-blue-400";
-    case "DebugApi":
-      return "border-purple-500/30 bg-purple-500/10 text-purple-400";
-    case "TracingApi":
-      return "border-pink-500/30 bg-pink-500/10 text-pink-400";
-    case "StateOverrides":
-      return "border-amber-500/30 bg-amber-500/10 text-amber-400";
-    case "BlockOverrides":
-      return "border-cyan-500/30 bg-cyan-500/10 text-cyan-400";
-    case "Subscriptions":
-      return "border-emerald-500/30 bg-emerald-500/10 text-emerald-400";
-    default:
-      return "border-b-border bg-b-paper/20 text-b-ink/50";
-  }
-}
 
 function CopyEndpointButton(props: { address: string }) {
   const [copied, setCopied] = createSignal(false);
@@ -287,10 +243,6 @@ export default function ApplicationRpcsPage() {
     createSignal(false);
   const [createCapabilitiesAutoInferred, setCreateCapabilitiesAutoInferred] =
     createSignal(false);
-  const [
-    createEthGetLogsLimitAutoInferred,
-    setCreateEthGetLogsLimitAutoInferred,
-  ] = createSignal(false);
 
   const [editRpcModalOpen, setEditRpcModalOpen] = createSignal(false);
   const [rpcToEdit, setRpcToEdit] = createSignal<ApplicationRpc | null>(null);
@@ -299,10 +251,6 @@ export default function ApplicationRpcsPage() {
     Set<RpcCapability>
   >(new Set());
   const [editRpcEthGetLogsLimit, setEditRpcEthGetLogsLimit] = createSignal("");
-  const [editDetectedEthGetLogsLimit, setEditDetectedEthGetLogsLimit] =
-    createSignal<number | null>(null);
-  const [editDetectedCapabilities, setEditDetectedCapabilities] =
-    createSignal<Set<RpcCapability>>(new Set());
   const [editRpcError, setEditRpcError] = createSignal<string | null>(null);
   const [editRpcLoading, setEditRpcLoading] = createSignal(false);
   const [editRpcTestStatus, setEditRpcTestStatus] = createSignal<
@@ -541,7 +489,6 @@ export default function ApplicationRpcsPage() {
     setCreateRpcSaveConfirm(false);
     setCreateProviderAutoInferred(false);
     setCreateCapabilitiesAutoInferred(false);
-    setCreateEthGetLogsLimitAutoInferred(false);
     setSelectedChainForRpc(chain);
     setNewRpcAddress("");
     setNewRpcProviderId("");
@@ -559,7 +506,6 @@ export default function ApplicationRpcsPage() {
     setCreateRpcSaveConfirm(false);
     setCreateProviderAutoInferred(false);
     setCreateCapabilitiesAutoInferred(false);
-    setCreateEthGetLogsLimitAutoInferred(false);
     setCreateRpcModalOpen(false);
     setSelectedChainForRpc("");
   };
@@ -571,14 +517,14 @@ export default function ApplicationRpcsPage() {
     setEditRpcTestError(null);
     setEditRpcSaveConfirm(false);
     setEditProviderAutoInferred(false);
-    setEditDetectedCapabilities(new Set<RpcCapability>());
-    setEditDetectedEthGetLogsLimit(null);
     setRpcToEdit(rpc);
     setEditRpcProviderId(rpc.providerId);
     setEditRpcCapabilities(
       new Set(rpc.capabilities.filter(isKnownCapability)),
     );
-    setEditRpcEthGetLogsLimit(String(rpc.ethGetLogsLimit));
+    setEditRpcEthGetLogsLimit(
+      rpc.ethGetLogsLimit === null ? "" : String(rpc.ethGetLogsLimit),
+    );
     setEditRpcModalOpen(true);
 
     const token = auth.token;
@@ -589,12 +535,6 @@ export default function ApplicationRpcsPage() {
         if (result.ok) {
           setEditRpcTestStatus("passed");
           setEditRpcTestResult(result.result);
-          setEditDetectedCapabilities(
-            autoApplyCapabilities(result.result.capabilities),
-          );
-          setEditDetectedEthGetLogsLimit(
-            parseProbeEthGetLogsLimit(result.result.ethGetLogsLimit),
-          );
         } else {
           setEditRpcTestStatus("failed");
           setEditRpcTestError(result.message);
@@ -615,8 +555,6 @@ export default function ApplicationRpcsPage() {
     setEditRpcTestError(null);
     setEditRpcSaveConfirm(false);
     setEditProviderAutoInferred(false);
-    setEditDetectedCapabilities(new Set<RpcCapability>());
-    setEditDetectedEthGetLogsLimit(null);
     setEditRpcModalOpen(false);
     setRpcToEdit(null);
   };
@@ -648,20 +586,7 @@ export default function ApplicationRpcsPage() {
   });
 
   function isKnownCapability(value: string): value is RpcCapability {
-    return (allCapabilities as readonly string[]).includes(value);
-  }
-
-  function toggleCapability(
-    current: Set<RpcCapability>,
-    capability: RpcCapability,
-  ): Set<RpcCapability> {
-    const next = new Set(current);
-    if (next.has(capability)) {
-      next.delete(capability);
-    } else {
-      next.add(capability);
-    }
-    return next;
+    return (allRpcCapabilities as readonly string[]).includes(value);
   }
 
   function autoApplyCapabilities(
@@ -703,7 +628,6 @@ export default function ApplicationRpcsPage() {
     setCreateRpcTestError(null);
     setCreateRpcSaveConfirm(false);
     setCreateCapabilitiesAutoInferred(false);
-    setCreateEthGetLogsLimitAutoInferred(false);
     try {
       const result = await validateRpcEndpoint(token, address, chain);
       if (result.ok) {
@@ -719,7 +643,6 @@ export default function ApplicationRpcsPage() {
         );
         if (detectedLimit !== null) {
           setNewRpcEthGetLogsLimit(String(detectedLimit));
-          setCreateEthGetLogsLimitAutoInferred(true);
         }
         return true;
       } else {
@@ -749,8 +672,18 @@ export default function ApplicationRpcsPage() {
     const env = environment.selectedEnvironmentId();
     const providerId = newRpcProviderId();
     const chain = selectedChainForRpc();
-    const ethGetLogsLimit = parsePositiveInteger(newRpcEthGetLogsLimit());
-    if (!token || !app || !env || !providerId || !chain || !ethGetLogsLimit)
+    const supportsGetLogs = newRpcCapabilities().has("GetLogs");
+    const ethGetLogsLimit = supportsGetLogs
+      ? parsePositiveInteger(newRpcEthGetLogsLimit())
+      : null;
+    if (
+      !token ||
+      !app ||
+      !env ||
+      !providerId ||
+      !chain ||
+      (supportsGetLogs && !ethGetLogsLimit)
+    )
       return;
 
     const address = newRpcAddress().trim();
@@ -824,8 +757,11 @@ export default function ApplicationRpcsPage() {
     const token = auth.token;
     const app = applicationId();
     const rpc = rpcToEdit();
-    const ethGetLogsLimit = parsePositiveInteger(editRpcEthGetLogsLimit());
-    if (!token || !app || !rpc || !ethGetLogsLimit) return;
+    const supportsGetLogs = editRpcCapabilities().has("GetLogs");
+    const ethGetLogsLimit = supportsGetLogs
+      ? parsePositiveInteger(editRpcEthGetLogsLimit())
+      : null;
+    if (!token || !app || !rpc || (supportsGetLogs && !ethGetLogsLimit)) return;
 
     if (
       editRpcTestStatus() === "untested" ||
@@ -1452,9 +1388,13 @@ export default function ApplicationRpcsPage() {
                                           </code>
                                           <CopyEndpointButton address={rpc.address} />
                                         </div>
-                                        <p class="mt-2 text-[0.65rem] font-bold uppercase tracking-wider text-b-ink/40">
-                                          eth_getLogs: {rpc.ethGetLogsLimit.toLocaleString()} blocks
-                                        </p>
+                                        <Show when={rpc.ethGetLogsLimit}>
+                                          {(limit) => (
+                                            <p class="mt-2 text-[0.65rem] font-bold uppercase tracking-wider text-b-ink/40">
+                                              eth_getLogs: {limit().toLocaleString()} blocks
+                                            </p>
+                                          )}
+                                        </Show>
                                         <Show when={rpc.capabilities.length > 0}>
                                           <div class="mt-3 flex flex-wrap items-center gap-1.5">
                                             <For each={rpc.capabilities}>
@@ -1464,9 +1404,9 @@ export default function ApplicationRpcsPage() {
                                                 >
                                                   {(cap) => (
                                                     <span
-                                                      class={`inline-flex items-center border px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-wider ${capabilityStyle(cap())}`}
+                                                      class={`inline-flex items-center border px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-wider ${rpcCapabilityStyle(cap())}`}
                                                     >
-                                                      {formatCapability(cap())}
+                                                      {formatRpcCapability(cap())}
                                                     </span>
                                                   )}
                                                 </Show>
@@ -1645,7 +1585,6 @@ export default function ApplicationRpcsPage() {
                           setCreateRpcSaveConfirm(false);
                           setCreateProviderAutoInferred(false);
                           setCreateCapabilitiesAutoInferred(false);
-                          setCreateEthGetLogsLimitAutoInferred(false);
                           setNewRpcEthGetLogsLimit("");
                         }}
                         onKeyDown={(e) => {
@@ -1759,171 +1698,40 @@ export default function ApplicationRpcsPage() {
                     </Show>
                   </div>
 
-                  <div class="flex flex-col gap-2">
-                    <div class="flex items-center gap-2">
-                      <label
-                        for="rpc-eth-get-logs-limit"
-                        class="text-xs font-bold uppercase tracking-widest text-b-ink/70"
-                      >
-                        eth_getLogs Block Limit
-                      </label>
-                      <Show when={createEthGetLogsLimitAutoInferred()}>
-                        <span class="text-[10px] font-semibold uppercase tracking-wider text-green-400/70">
-                          Auto-detected
-                        </span>
-                      </Show>
-                    </div>
-                    <input
-                      id="rpc-eth-get-logs-limit"
-                      type="number"
-                      min="1"
-                      max={Number.MAX_SAFE_INTEGER}
-                      step="1"
-                      required
-                      value={newRpcEthGetLogsLimit()}
-                      onInput={(e) => {
-                        setNewRpcEthGetLogsLimit(e.currentTarget.value);
-                        setCreateEthGetLogsLimitAutoInferred(false);
-                      }}
-                      class="h-11 w-full border border-b-border bg-b-paper px-4 text-sm font-semibold text-b-ink placeholder:text-b-ink/25 outline-none focus-visible:border-b-accent/50 focus-visible:ring-2 focus-visible:ring-b-accent/20 hover:border-b-border-hover transition-all duration-200"
-                      placeholder="e.g. 10000"
-                      inputmode="numeric"
-                    />
-                    <p class="text-xs font-semibold uppercase tracking-wider text-b-ink/40">
-                      Maximum block range per eth_getLogs request.
-                    </p>
-                    <Show when={createRpcTestResult()?.ethGetLogsError}>
-                      {(error) => (
-                        <p class="border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs font-semibold text-amber-300">
-                          Full-range probe: {error()}
-                        </p>
-                      )}
-                    </Show>
-                  </div>
-
-                  <div class="flex flex-col gap-2">
-                    <div class="flex items-center gap-2">
-                      <label
-                        for="rpc-provider"
-                        class="text-xs font-bold uppercase tracking-widest text-b-ink/70"
-                      >
-                        Provider
-                      </label>
-                      <Show when={createProviderAutoInferred()}>
-                        <span class="text-[10px] font-semibold uppercase tracking-wider text-green-400/70">
-                          Auto-detected
-                        </span>
-                      </Show>
-                    </div>
-                    <Show when={providersState() === "pending"}>
-                      <div class="flex h-11 items-center gap-2 border border-b-border bg-b-field px-3">
-                        <LoadingSpinner class="size-4" />
-                        <span class="text-xs font-bold uppercase tracking-widest text-b-ink/50">
-                          Loading providers…
-                        </span>
-                      </div>
-                    </Show>
-                    <Show when={providersError()}>
-                      <p class="border border-red-500/40 bg-red-500/10 px-3 py-3 text-xs font-bold uppercase leading-snug text-red-400">
-                        {providersError()!.message}
-                      </p>
-                    </Show>
-                    <Show
-                      when={providersState() === "ready" && providers().length > 0}
-                    >
-                      <div class="relative">
-                        <select
-                          id="rpc-provider"
-                          value={newRpcProviderId()}
-                          onChange={(e) => {
-                            setNewRpcProviderId(e.currentTarget.value);
-                            setCreateProviderAutoInferred(false);
-                          }}
-                          class={`h-11 w-full appearance-none border border-b-border bg-b-field px-4 pr-10 text-sm font-bold tracking-widest outline-none focus-visible:border-b-accent/50 focus-visible:ring-2 focus-visible:ring-b-accent/20 hover:border-b-border-hover transition-all duration-200 cursor-pointer ${
-                            newRpcProviderId()
-                              ? "text-b-ink"
-                              : "text-b-ink/40"
-                          }`}
-                        >
-                          <option value="" disabled hidden class="bg-b-field">
-                            Select a provider…
-                          </option>
-                          <For each={providers()}>
-                            {(provider) => (
-                              <option value={provider.id} class="bg-b-field">
-                                {provider.name}
-                              </option>
-                            )}
-                          </For>
-                        </select>
-                        <div class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2">
-                          <ChevronDownIcon class="size-5 text-b-ink/50" />
-                        </div>
-                      </div>
-                    </Show>
-                    <Show
-                      when={
-                        providersState() === "ready" && providers().length === 0
-                      }
-                    >
-                      <div class="flex flex-col gap-3 border border-dashed border-b-border/50 bg-b-paper/20 px-4 py-4">
-                        <p class="text-xs font-bold uppercase tracking-widest text-b-ink/50">
-                          No providers available.
-                        </p>
-                        <a
-                          href={providersHref()}
-                          onClick={closeCreateRpcModal}
-                          class="text-xs font-bold uppercase tracking-widest text-b-accent hover:text-b-accent-hover hover:underline transition-colors"
-                        >
-                          Create a provider first →
-                        </a>
-                      </div>
-                    </Show>
-                  </div>
-
-                  <div class="flex flex-col gap-2">
-                    <div class="flex items-center gap-2">
-                      <label class="text-xs font-bold uppercase tracking-widest text-b-ink/70">
-                        Capabilities
-                      </label>
-                      <Show when={createCapabilitiesAutoInferred()}>
-                        <span class="text-[10px] font-semibold uppercase tracking-wider text-green-400/70">
-                          Auto-detected
-                        </span>
-                      </Show>
-                    </div>
-                    <div class="flex flex-col gap-2">
-                      <For each={allCapabilities}>
-                        {(capability) => {
-                          const checked = () => newRpcCapabilities().has(capability);
-                          return (
-                            <label
-                              class={`flex cursor-pointer items-center gap-3 border px-3 py-3 transition-all duration-150 ${
-                                checked()
-                                  ? capabilityStyle(capability)
-                                  : "border-b-border bg-b-paper/20 text-b-ink/60 hover:border-b-border-hover"
-                              }`}
-                            >
-                              <input
-                                type="checkbox"
-                                checked={checked()}
-                                onChange={() => {
-                                  setNewRpcCapabilities((current) =>
-                                    toggleCapability(current, capability),
-                                  );
-                                  setCreateCapabilitiesAutoInferred(false);
-                                }}
-                                class="size-4 accent-b-accent"
-                              />
-                              <span class="text-xs font-bold uppercase tracking-wider">
-                                {formatCapability(capability)}
-                              </span>
-                            </label>
-                          );
-                        }}
-                      </For>
-                    </div>
-                  </div>
+                  <RpcStateFields
+                    idPrefix="rpc"
+                    ethGetLogsLimit={newRpcEthGetLogsLimit()}
+                    reportedEthGetLogsLimit={parseProbeEthGetLogsLimit(
+                      createRpcTestResult()?.ethGetLogsLimit ?? null,
+                    )}
+                    ethGetLogsError={
+                      createRpcTestResult()?.ethGetLogsError ?? null
+                    }
+                    onEthGetLogsLimitChange={setNewRpcEthGetLogsLimit}
+                    providerId={newRpcProviderId()}
+                    providers={providers()}
+                    providersPending={providersState() === "pending"}
+                    providersReady={providersState() === "ready"}
+                    providersError={providersError()?.message ?? null}
+                    providersHref={providersHref()}
+                    providerAutoDetected={createProviderAutoInferred()}
+                    onProviderChange={(providerId) => {
+                      setNewRpcProviderId(providerId);
+                      setCreateProviderAutoInferred(false);
+                    }}
+                    onCreateProvider={closeCreateRpcModal}
+                    selectedCapabilities={newRpcCapabilities()}
+                    reportedCapabilities={
+                      createRpcTestResult()?.capabilities ?? null
+                    }
+                    capabilitiesAutoDetected={
+                      createCapabilitiesAutoInferred()
+                    }
+                    onCapabilitiesChange={(capabilities) => {
+                      setNewRpcCapabilities(capabilities);
+                      setCreateCapabilitiesAutoInferred(false);
+                    }}
+                  />
 
                   <Show when={createRpcError()}>
                     <p class="border border-red-500/40 bg-red-500/10 px-3 py-3 text-xs font-bold uppercase leading-snug text-red-400">
@@ -1948,7 +1756,8 @@ export default function ApplicationRpcsPage() {
                       disabled={
                         createRpcLoading() ||
                         !newRpcProviderId() ||
-                        parsePositiveInteger(newRpcEthGetLogsLimit()) === null ||
+                        (newRpcCapabilities().has("GetLogs") &&
+                          parsePositiveInteger(newRpcEthGetLogsLimit()) === null) ||
                         createRpcTestStatus() === "untested" ||
                         createRpcTestStatus() === "testing"
                       }
@@ -2048,165 +1857,32 @@ export default function ApplicationRpcsPage() {
                 </Show>
               </div>
 
-              <div class="flex flex-col gap-2">
-                <div class="flex items-center justify-between gap-2">
-                  <label
-                    for="edit-rpc-eth-get-logs-limit"
-                    class="text-xs font-bold uppercase tracking-widest text-b-ink/70"
-                  >
-                    eth_getLogs Block Limit
-                  </label>
-                  <Show when={editDetectedEthGetLogsLimit()}>
-                    {(limit) => (
-                      <button
-                        type="button"
-                        onClick={() => setEditRpcEthGetLogsLimit(String(limit()))}
-                        class="text-[10px] font-semibold uppercase tracking-wider text-green-400/70 transition-colors hover:text-green-400"
-                      >
-                        Use detected {limit().toLocaleString()}
-                      </button>
-                    )}
-                  </Show>
-                </div>
-                <input
-                  id="edit-rpc-eth-get-logs-limit"
-                  type="number"
-                  min="1"
-                  max={Number.MAX_SAFE_INTEGER}
-                  step="1"
-                  required
-                  value={editRpcEthGetLogsLimit()}
-                  onInput={(e) =>
-                    setEditRpcEthGetLogsLimit(e.currentTarget.value)
-                  }
-                  class="h-11 w-full border border-b-border bg-b-paper px-4 text-sm font-semibold text-b-ink placeholder:text-b-ink/25 outline-none focus-visible:border-b-accent/50 focus-visible:ring-2 focus-visible:ring-b-accent/20 hover:border-b-border-hover transition-all duration-200"
-                  inputmode="numeric"
-                />
-                <p class="text-xs font-semibold uppercase tracking-wider text-b-ink/40">
-                  Maximum block range per eth_getLogs request.
-                </p>
-                <Show when={editRpcTestResult()?.ethGetLogsError}>
-                  {(error) => (
-                    <p class="border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs font-semibold text-amber-300">
-                      Full-range probe: {error()}
-                    </p>
-                  )}
-                </Show>
-              </div>
-
-              <div class="flex flex-col gap-2">
-                <div class="flex items-center gap-2">
-                  <label
-                    for="edit-rpc-provider"
-                    class="text-xs font-bold uppercase tracking-widest text-b-ink/70"
-                  >
-                    Provider
-                  </label>
-                  <Show when={editProviderAutoInferred()}>
-                    <span class="text-[10px] font-semibold uppercase tracking-wider text-green-400/70">
-                      Auto-detected
-                    </span>
-                  </Show>
-                </div>
-                <Show
-                  when={providersState() === "ready" && providers().length > 0}
-                >
-                  <div class="relative">
-                    <select
-                      id="edit-rpc-provider"
-                      value={editRpcProviderId()}
-                      onChange={(e) => {
-                        setEditRpcProviderId(e.currentTarget.value);
-                        setEditProviderAutoInferred(false);
-                      }}
-                      class="h-11 w-full appearance-none border border-b-border bg-b-field px-4 pr-10 text-sm font-bold tracking-widest text-b-ink outline-none focus-visible:border-b-accent/50 focus-visible:ring-2 focus-visible:ring-b-accent/20 hover:border-b-border-hover transition-all duration-200 cursor-pointer"
-                    >
-                      <For each={providers()}>
-                        {(provider) => (
-                          <option value={provider.id} class="bg-b-field">
-                            {provider.name}
-                          </option>
-                        )}
-                      </For>
-                    </select>
-                    <div class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2">
-                      <ChevronDownIcon class="size-5 text-b-ink/50" />
-                    </div>
-                  </div>
-                </Show>
-                <Show
-                  when={
-                    providersState() === "ready" && providers().length === 0
-                  }
-                >
-                  <div class="flex flex-col gap-3 border border-dashed border-b-border/50 bg-b-paper/20 px-4 py-4">
-                    <p class="text-xs font-bold uppercase tracking-widest text-b-ink/50">
-                      No providers available.
-                    </p>
-                    <a
-                      href={providersHref()}
-                      onClick={closeEditRpcModal}
-                      class="text-xs font-bold uppercase tracking-widest text-b-accent hover:text-b-accent-hover hover:underline transition-colors"
-                    >
-                      Create a provider first →
-                    </a>
-                  </div>
-                </Show>
-              </div>
-
-              <div class="flex flex-col gap-2">
-                <label class="text-xs font-bold uppercase tracking-widest text-b-ink/70">
-                  Capabilities
-                </label>
-                <div class="flex flex-col gap-2">
-                  <For each={allCapabilities}>
-                    {(capability) => {
-                      const checked = () => editRpcCapabilities().has(capability);
-                      const detected = () => editDetectedCapabilities().has(capability);
-                      const showWarning = () =>
-                        checked() &&
-                        !detected() &&
-                        editRpcTestStatus() === "passed";
-                      return (
-                        <label
-                          class={`flex cursor-pointer items-center gap-3 border px-3 py-3 transition-all duration-150 ${
-                            checked()
-                              ? capabilityStyle(capability)
-                              : "border-b-border bg-b-paper/20 text-b-ink/60 hover:border-b-border-hover"
-                          }`}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={checked()}
-                            onChange={() =>
-                              setEditRpcCapabilities((current) =>
-                                toggleCapability(current, capability),
-                              )
-                            }
-                            class="size-4 accent-b-accent"
-                          />
-                          <span class="text-xs font-bold uppercase tracking-wider">
-                            {formatCapability(capability)}
-                          </span>
-                          <Show when={detected()}>
-                            <span class="ml-auto text-[10px] font-semibold uppercase tracking-wider text-green-400/70">
-                              Detected
-                            </span>
-                          </Show>
-                          <Show when={showWarning()}>
-                            <span
-                              class="ml-auto"
-                              title="Not detected by probe"
-                            >
-                              <WarningIcon class="size-4 text-amber-300" />
-                            </span>
-                          </Show>
-                        </label>
-                      );
-                    }}
-                  </For>
-                </div>
-              </div>
+              <RpcStateFields
+                idPrefix="edit-rpc"
+                ethGetLogsLimit={editRpcEthGetLogsLimit()}
+                reportedEthGetLogsLimit={parseProbeEthGetLogsLimit(
+                  editRpcTestResult()?.ethGetLogsLimit ?? null,
+                )}
+                ethGetLogsError={
+                  editRpcTestResult()?.ethGetLogsError ?? null
+                }
+                onEthGetLogsLimitChange={setEditRpcEthGetLogsLimit}
+                providerId={editRpcProviderId()}
+                providers={providers()}
+                providersPending={providersState() === "pending"}
+                providersReady={providersState() === "ready"}
+                providersError={providersError()?.message ?? null}
+                providersHref={providersHref()}
+                providerAutoDetected={editProviderAutoInferred()}
+                onProviderChange={(providerId) => {
+                  setEditRpcProviderId(providerId);
+                  setEditProviderAutoInferred(false);
+                }}
+                onCreateProvider={closeEditRpcModal}
+                selectedCapabilities={editRpcCapabilities()}
+                reportedCapabilities={editRpcTestResult()?.capabilities ?? null}
+                onCapabilitiesChange={setEditRpcCapabilities}
+              />
 
               <Show when={editRpcError()}>
                 <p class="border border-red-500/40 bg-red-500/10 px-3 py-3 text-xs font-bold uppercase leading-snug text-red-400">
@@ -2227,7 +1903,8 @@ export default function ApplicationRpcsPage() {
                   type="submit"
                   disabled={
                     editRpcLoading() ||
-                    parsePositiveInteger(editRpcEthGetLogsLimit()) === null ||
+                    (editRpcCapabilities().has("GetLogs") &&
+                      parsePositiveInteger(editRpcEthGetLogsLimit()) === null) ||
                     editRpcTestStatus() === "untested" ||
                     editRpcTestStatus() === "testing"
                   }

@@ -48,6 +48,7 @@ public sealed class FarsightRpcClient : IFarsightRpcClient
                         Address = rpc.Address,
                         Provider = resolveProvider(rpc.ProviderId),
                         Capabilities = rpc.Capabilities,
+                        EthGetLogsLimit = rpc.EthGetLogsLimit,
                         Order = rpc.Order,
                     }).ToImmutableArray()
                 );

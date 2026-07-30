@@ -46,6 +46,7 @@ export type ApplicationRpc = {
   providerId: string;
   applicationId: string;
   capabilities: string[];
+  ethGetLogsLimit: number;
   order: number;
 };
 

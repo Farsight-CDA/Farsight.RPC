@@ -131,16 +131,18 @@ const rpcValidationTimeoutMs = 15_000;
 const rpcValidationTimedOutMessage = "RPC validation timed out.";
 
 type ProbeResult = {
-  chainId?: number | string;
-  latestBlockNumber?: number | string;
-  latestBlockTime?: string;
-  compatibility?: {
-    supportsPush0?: boolean;
-    supportsMCopy?: boolean;
-    supportsTStore?: boolean;
-    supportsBaseFee?: boolean;
+  chainId: number;
+  latestBlockNumber: number;
+  latestBlockTime: string;
+  compatibility: {
+    supportsPush0: boolean;
+    supportsMCopy: boolean;
+    supportsTStore: boolean;
+    supportsBaseFee: boolean;
   };
-  capabilities?: string[];
+  capabilities: RpcCapability[];
+  ethGetLogsLimit: number | null;
+  ethGetLogsError: string | null;
 };
 
 async function validateRpcEndpoint(
@@ -201,6 +203,11 @@ function validateRpcAddressInput(input: HTMLInputElement): boolean {
   const valid = input.value.length === 0 || isValidRpcAddress(input.value);
   input.setCustomValidity(valid ? "" : addressHint);
   return valid;
+}
+
+function parsePositiveInteger(value: string): number | null {
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
 }
 
 function inferProviderFromUrl(
@@ -264,6 +271,7 @@ export default function ApplicationRpcsPage() {
   const [newRpcCapabilities, setNewRpcCapabilities] = createSignal<
     Set<RpcCapability>
   >(new Set());
+  const [newRpcEthGetLogsLimit, setNewRpcEthGetLogsLimit] = createSignal("");
   const [createRpcError, setCreateRpcError] = createSignal<string | null>(null);
   const [createRpcLoading, setCreateRpcLoading] = createSignal(false);
   const [createRpcTestStatus, setCreateRpcTestStatus] = createSignal<
@@ -279,6 +287,10 @@ export default function ApplicationRpcsPage() {
     createSignal(false);
   const [createCapabilitiesAutoInferred, setCreateCapabilitiesAutoInferred] =
     createSignal(false);
+  const [
+    createEthGetLogsLimitAutoInferred,
+    setCreateEthGetLogsLimitAutoInferred,
+  ] = createSignal(false);
 
   const [editRpcModalOpen, setEditRpcModalOpen] = createSignal(false);
   const [rpcToEdit, setRpcToEdit] = createSignal<ApplicationRpc | null>(null);
@@ -286,6 +298,9 @@ export default function ApplicationRpcsPage() {
   const [editRpcCapabilities, setEditRpcCapabilities] = createSignal<
     Set<RpcCapability>
   >(new Set());
+  const [editRpcEthGetLogsLimit, setEditRpcEthGetLogsLimit] = createSignal("");
+  const [editDetectedEthGetLogsLimit, setEditDetectedEthGetLogsLimit] =
+    createSignal<number | null>(null);
   const [editDetectedCapabilities, setEditDetectedCapabilities] =
     createSignal<Set<RpcCapability>>(new Set());
   const [editRpcError, setEditRpcError] = createSignal<string | null>(null);
@@ -526,10 +541,12 @@ export default function ApplicationRpcsPage() {
     setCreateRpcSaveConfirm(false);
     setCreateProviderAutoInferred(false);
     setCreateCapabilitiesAutoInferred(false);
+    setCreateEthGetLogsLimitAutoInferred(false);
     setSelectedChainForRpc(chain);
     setNewRpcAddress("");
     setNewRpcProviderId("");
     setNewRpcCapabilities(new Set<RpcCapability>());
+    setNewRpcEthGetLogsLimit("");
     setCreateRpcModalOpen(true);
   };
 
@@ -542,6 +559,7 @@ export default function ApplicationRpcsPage() {
     setCreateRpcSaveConfirm(false);
     setCreateProviderAutoInferred(false);
     setCreateCapabilitiesAutoInferred(false);
+    setCreateEthGetLogsLimitAutoInferred(false);
     setCreateRpcModalOpen(false);
     setSelectedChainForRpc("");
   };
@@ -554,11 +572,13 @@ export default function ApplicationRpcsPage() {
     setEditRpcSaveConfirm(false);
     setEditProviderAutoInferred(false);
     setEditDetectedCapabilities(new Set<RpcCapability>());
+    setEditDetectedEthGetLogsLimit(null);
     setRpcToEdit(rpc);
     setEditRpcProviderId(rpc.providerId);
     setEditRpcCapabilities(
       new Set(rpc.capabilities.filter(isKnownCapability)),
     );
+    setEditRpcEthGetLogsLimit(String(rpc.ethGetLogsLimit));
     setEditRpcModalOpen(true);
 
     const token = auth.token;
@@ -571,6 +591,9 @@ export default function ApplicationRpcsPage() {
           setEditRpcTestResult(result.result);
           setEditDetectedCapabilities(
             autoApplyCapabilities(result.result.capabilities),
+          );
+          setEditDetectedEthGetLogsLimit(
+            parseProbeEthGetLogsLimit(result.result.ethGetLogsLimit),
           );
         } else {
           setEditRpcTestStatus("failed");
@@ -593,6 +616,7 @@ export default function ApplicationRpcsPage() {
     setEditRpcSaveConfirm(false);
     setEditProviderAutoInferred(false);
     setEditDetectedCapabilities(new Set<RpcCapability>());
+    setEditDetectedEthGetLogsLimit(null);
     setEditRpcModalOpen(false);
     setRpcToEdit(null);
   };
@@ -641,16 +665,18 @@ export default function ApplicationRpcsPage() {
   }
 
   function autoApplyCapabilities(
-    capabilities: string[] | undefined,
+    capabilities: RpcCapability[],
   ): Set<RpcCapability> {
     const next = new Set<RpcCapability>();
-    if (!capabilities) return next;
     for (const capability of capabilities) {
-      if (isKnownCapability(capability)) {
-        next.add(capability);
-      }
+      next.add(capability);
     }
     return next;
+  }
+
+  function parseProbeEthGetLogsLimit(value: number | null): number | null {
+    if (value === null) return null;
+    return parsePositiveInteger(String(value));
   }
 
   const runCreateRpcTest = async (): Promise<boolean> => {
@@ -677,6 +703,7 @@ export default function ApplicationRpcsPage() {
     setCreateRpcTestError(null);
     setCreateRpcSaveConfirm(false);
     setCreateCapabilitiesAutoInferred(false);
+    setCreateEthGetLogsLimitAutoInferred(false);
     try {
       const result = await validateRpcEndpoint(token, address, chain);
       if (result.ok) {
@@ -686,6 +713,13 @@ export default function ApplicationRpcsPage() {
         if (detected.size > 0) {
           setNewRpcCapabilities(detected);
           setCreateCapabilitiesAutoInferred(true);
+        }
+        const detectedLimit = parseProbeEthGetLogsLimit(
+          result.result.ethGetLogsLimit,
+        );
+        if (detectedLimit !== null) {
+          setNewRpcEthGetLogsLimit(String(detectedLimit));
+          setCreateEthGetLogsLimitAutoInferred(true);
         }
         return true;
       } else {
@@ -715,7 +749,9 @@ export default function ApplicationRpcsPage() {
     const env = environment.selectedEnvironmentId();
     const providerId = newRpcProviderId();
     const chain = selectedChainForRpc();
-    if (!token || !app || !env || !providerId || !chain) return;
+    const ethGetLogsLimit = parsePositiveInteger(newRpcEthGetLogsLimit());
+    if (!token || !app || !env || !providerId || !chain || !ethGetLogsLimit)
+      return;
 
     const address = newRpcAddress().trim();
     if (!isValidRpcAddress(address)) {
@@ -758,6 +794,7 @@ export default function ApplicationRpcsPage() {
           address,
           providerId,
           capabilities: Array.from(newRpcCapabilities()),
+          ethGetLogsLimit,
           order,
         }),
       });
@@ -771,6 +808,7 @@ export default function ApplicationRpcsPage() {
       setCreateRpcModalOpen(false);
       setNewRpcAddress("");
       setNewRpcCapabilities(new Set<RpcCapability>());
+      setNewRpcEthGetLogsLimit("");
       setActiveChain(chain);
     } catch (err) {
       setCreateRpcError(
@@ -786,7 +824,8 @@ export default function ApplicationRpcsPage() {
     const token = auth.token;
     const app = applicationId();
     const rpc = rpcToEdit();
-    if (!token || !app || !rpc) return;
+    const ethGetLogsLimit = parsePositiveInteger(editRpcEthGetLogsLimit());
+    if (!token || !app || !rpc || !ethGetLogsLimit) return;
 
     if (
       editRpcTestStatus() === "untested" ||
@@ -813,6 +852,7 @@ export default function ApplicationRpcsPage() {
           body: JSON.stringify({
             providerId: editRpcProviderId(),
             capabilities: Array.from(editRpcCapabilities()),
+            ethGetLogsLimit,
           }),
         },
       );
@@ -933,7 +973,7 @@ export default function ApplicationRpcsPage() {
   };
 
   const getCompatibilitySummary = (result: ProbeResult | null): string | null => {
-    if (!result?.compatibility) return null;
+    if (!result) return null;
     const items: string[] = [];
     if (result.compatibility.supportsPush0) items.push("PUSH0");
     if (result.compatibility.supportsMCopy) items.push("MCOPY");
@@ -1412,6 +1452,9 @@ export default function ApplicationRpcsPage() {
                                           </code>
                                           <CopyEndpointButton address={rpc.address} />
                                         </div>
+                                        <p class="mt-2 text-[0.65rem] font-bold uppercase tracking-wider text-b-ink/40">
+                                          eth_getLogs: {rpc.ethGetLogsLimit.toLocaleString()} blocks
+                                        </p>
                                         <Show when={rpc.capabilities.length > 0}>
                                           <div class="mt-3 flex flex-wrap items-center gap-1.5">
                                             <For each={rpc.capabilities}>
@@ -1557,7 +1600,7 @@ export default function ApplicationRpcsPage() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="create-rpc-title"
-            class="w-full max-w-lg border border-b-border bg-b-field p-8 shadow-[0_25px_50px_rgba(0,0,0,0.5)]"
+            class="max-h-[calc(100vh-4rem)] w-full max-w-lg overflow-y-auto border border-b-border bg-b-field p-8 shadow-[0_25px_50px_rgba(0,0,0,0.5)]"
             onClick={(e) => e.stopPropagation()}
           >
             <p class="mb-2 text-xs font-bold uppercase tracking-[0.35em] text-b-accent">
@@ -1602,6 +1645,8 @@ export default function ApplicationRpcsPage() {
                           setCreateRpcSaveConfirm(false);
                           setCreateProviderAutoInferred(false);
                           setCreateCapabilitiesAutoInferred(false);
+                          setCreateEthGetLogsLimitAutoInferred(false);
+                          setNewRpcEthGetLogsLimit("");
                         }}
                         onKeyDown={(e) => {
                           if (e.key === "Enter") {
@@ -1711,6 +1756,48 @@ export default function ApplicationRpcsPage() {
                           </span>
                         </Show>
                       </div>
+                    </Show>
+                  </div>
+
+                  <div class="flex flex-col gap-2">
+                    <div class="flex items-center gap-2">
+                      <label
+                        for="rpc-eth-get-logs-limit"
+                        class="text-xs font-bold uppercase tracking-widest text-b-ink/70"
+                      >
+                        eth_getLogs Block Limit
+                      </label>
+                      <Show when={createEthGetLogsLimitAutoInferred()}>
+                        <span class="text-[10px] font-semibold uppercase tracking-wider text-green-400/70">
+                          Auto-detected
+                        </span>
+                      </Show>
+                    </div>
+                    <input
+                      id="rpc-eth-get-logs-limit"
+                      type="number"
+                      min="1"
+                      max={Number.MAX_SAFE_INTEGER}
+                      step="1"
+                      required
+                      value={newRpcEthGetLogsLimit()}
+                      onInput={(e) => {
+                        setNewRpcEthGetLogsLimit(e.currentTarget.value);
+                        setCreateEthGetLogsLimitAutoInferred(false);
+                      }}
+                      class="h-11 w-full border border-b-border bg-b-paper px-4 text-sm font-semibold text-b-ink placeholder:text-b-ink/25 outline-none focus-visible:border-b-accent/50 focus-visible:ring-2 focus-visible:ring-b-accent/20 hover:border-b-border-hover transition-all duration-200"
+                      placeholder="e.g. 10000"
+                      inputmode="numeric"
+                    />
+                    <p class="text-xs font-semibold uppercase tracking-wider text-b-ink/40">
+                      Maximum block range per eth_getLogs request.
+                    </p>
+                    <Show when={createRpcTestResult()?.ethGetLogsError}>
+                      {(error) => (
+                        <p class="border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs font-semibold text-amber-300">
+                          Full-range probe: {error()}
+                        </p>
+                      )}
                     </Show>
                   </div>
 
@@ -1861,6 +1948,7 @@ export default function ApplicationRpcsPage() {
                       disabled={
                         createRpcLoading() ||
                         !newRpcProviderId() ||
+                        parsePositiveInteger(newRpcEthGetLogsLimit()) === null ||
                         createRpcTestStatus() === "untested" ||
                         createRpcTestStatus() === "testing"
                       }
@@ -1905,7 +1993,7 @@ export default function ApplicationRpcsPage() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="edit-rpc-title"
-            class="w-full max-w-lg border border-b-border bg-b-field p-8 shadow-[0_25px_50px_rgba(0,0,0,0.5)]"
+            class="max-h-[calc(100vh-4rem)] w-full max-w-lg overflow-y-auto border border-b-border bg-b-field p-8 shadow-[0_25px_50px_rgba(0,0,0,0.5)]"
             onClick={(e) => e.stopPropagation()}
           >
             <p class="mb-2 text-xs font-bold uppercase tracking-[0.35em] text-b-accent">
@@ -1957,6 +2045,52 @@ export default function ApplicationRpcsPage() {
                     <WarningIcon class="size-3.5" />
                     <span>{editRpcTestError() ?? "RPC validation failed"}</span>
                   </div>
+                </Show>
+              </div>
+
+              <div class="flex flex-col gap-2">
+                <div class="flex items-center justify-between gap-2">
+                  <label
+                    for="edit-rpc-eth-get-logs-limit"
+                    class="text-xs font-bold uppercase tracking-widest text-b-ink/70"
+                  >
+                    eth_getLogs Block Limit
+                  </label>
+                  <Show when={editDetectedEthGetLogsLimit()}>
+                    {(limit) => (
+                      <button
+                        type="button"
+                        onClick={() => setEditRpcEthGetLogsLimit(String(limit()))}
+                        class="text-[10px] font-semibold uppercase tracking-wider text-green-400/70 transition-colors hover:text-green-400"
+                      >
+                        Use detected {limit().toLocaleString()}
+                      </button>
+                    )}
+                  </Show>
+                </div>
+                <input
+                  id="edit-rpc-eth-get-logs-limit"
+                  type="number"
+                  min="1"
+                  max={Number.MAX_SAFE_INTEGER}
+                  step="1"
+                  required
+                  value={editRpcEthGetLogsLimit()}
+                  onInput={(e) =>
+                    setEditRpcEthGetLogsLimit(e.currentTarget.value)
+                  }
+                  class="h-11 w-full border border-b-border bg-b-paper px-4 text-sm font-semibold text-b-ink placeholder:text-b-ink/25 outline-none focus-visible:border-b-accent/50 focus-visible:ring-2 focus-visible:ring-b-accent/20 hover:border-b-border-hover transition-all duration-200"
+                  inputmode="numeric"
+                />
+                <p class="text-xs font-semibold uppercase tracking-wider text-b-ink/40">
+                  Maximum block range per eth_getLogs request.
+                </p>
+                <Show when={editRpcTestResult()?.ethGetLogsError}>
+                  {(error) => (
+                    <p class="border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs font-semibold text-amber-300">
+                      Full-range probe: {error()}
+                    </p>
+                  )}
                 </Show>
               </div>
 
@@ -2093,6 +2227,7 @@ export default function ApplicationRpcsPage() {
                   type="submit"
                   disabled={
                     editRpcLoading() ||
+                    parsePositiveInteger(editRpcEthGetLogsLimit()) === null ||
                     editRpcTestStatus() === "untested" ||
                     editRpcTestStatus() === "testing"
                   }

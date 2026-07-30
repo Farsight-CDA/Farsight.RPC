@@ -18,8 +18,9 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request>
         string Chain,
         Uri Address,
         Guid ProviderId,
-        RpcCapability[]? Capabilities,
-        int? Order
+        RpcCapability[] Capabilities,
+        ulong EthGetLogsLimit,
+        int Order
     );
 
     public sealed class Validator : Validator<Request>
@@ -46,13 +47,15 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request>
                 .Must(static capabilities => capabilities is null || capabilities.Distinct().Count() == capabilities.Length)
                 .WithMessage("Capabilities must not contain duplicates.");
 
-            RuleForEach(x => x.Capabilities!)
+            RuleForEach(x => x.Capabilities)
                 .IsInEnum()
                 .WithMessage("Capability is invalid.");
 
+            RuleFor(x => x.EthGetLogsLimit)
+                .GreaterThan(0UL)
+                .WithMessage("eth_getLogs limit must be greater than zero.");
+
             RuleFor(x => x.Order)
-                .NotNull()
-                .WithMessage("Order is required.")
                 .GreaterThanOrEqualTo(0)
                 .WithMessage("Order must be greater than or equal to zero.");
         }
@@ -66,7 +69,6 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request>
 
     public override async Task HandleAsync(Request req, CancellationToken ct)
     {
-        int order = req.Order!.Value;
         var validation = await dbContext.ConsumerApplications
             .AsNoTracking()
             .Where(application => application.Id == req.ApplicationId)
@@ -84,7 +86,7 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request>
                     rpc.ApplicationId == req.ApplicationId &&
                     rpc.EnvironmentId == req.EnvironmentId &&
                     rpc.Chain == req.Chain &&
-                    (rpc.Address == req.Address || rpc.Order == order)),
+                    (rpc.Address == req.Address || rpc.Order == req.Order)),
             })
             .SingleOrDefaultAsync(ct);
 
@@ -121,8 +123,9 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request>
             Chain = req.Chain,
             Address = req.Address,
             ProviderId = req.ProviderId,
-            Capabilities = req.Capabilities!,
-            Order = order,
+            Capabilities = req.Capabilities,
+            EthGetLogsLimit = req.EthGetLogsLimit,
+            Order = req.Order,
         });
 
         try

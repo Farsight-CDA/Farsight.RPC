@@ -42,6 +42,7 @@ type RawRpcEndpointBase = {
   Id: string;
   Address: string;
   ProviderId: string;
+  EthGetLogsLimit: number;
 };
 
 type RawRealtimeRpcEndpoint = RawRpcEndpointBase & {
@@ -126,6 +127,10 @@ function mapRpcEndpoint(payload: unknown): RpcEndpoint {
     id: readString(endpoint.Id, "Expected endpoint.Id to be a string."),
     address: readString(endpoint.Address, "Expected endpoint.Address to be a string."),
     providerId: readString(endpoint.ProviderId, "Expected endpoint.ProviderId to be a string."),
+    ethGetLogsLimit: readNumber(
+      endpoint.EthGetLogsLimit,
+      "Expected endpoint.EthGetLogsLimit to be a number.",
+    ),
   };
 
   switch(type) {

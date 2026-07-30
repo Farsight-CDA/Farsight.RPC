@@ -36,6 +36,7 @@ internal sealed class RpcEFConfiguration : IEntityTypeConfiguration<RpcEndpoint>
             .HasColumnType("integer[]")
             .HasDefaultValue(Array.Empty<RpcCapability>())
             .Metadata.SetValueComparer(_capabilitiesComparer);
+        entity.Property(x => x.EthGetLogsLimit);
         entity.Property(x => x.Order);
 
         entity.ToTable("Rpcs");

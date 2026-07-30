@@ -6,14 +6,22 @@ using EtherSharp.RPC.Modules.Eth;
 using EtherSharp.Types;
 using Farsight.Common;
 using Farsight.Rpc.Types;
-using Microsoft.Extensions.DependencyInjection;
 using System.Buffers;
 using System.Buffers.Binary;
+using System.Globalization;
+using System.Text.RegularExpressions;
 
 namespace Farsight.Rpc.Api.Services;
 
 public sealed partial class RpcCapabilityProbe : Transient
 {
+    private static readonly ulong[] _ethGetLogsProbeRanges =
+    [
+        10_000,
+        5_000,
+        2_000,
+        1_000,
+    ];
     private static readonly Address _overrideProbeAddress = Address.Parse("0x000000000000000000000000000000000000fa57");
     private static readonly SearchValues<string> _recognizedMethodErrors = SearchValues.Create(
         [
@@ -44,9 +52,14 @@ public sealed partial class RpcCapabilityProbe : Transient
 
         var ethRpcModule = client.AsInternal().Provider.GetRequiredService<IEthRpcModule>();
 
-        bool archive = await ProbeArchiveAsync(client, cancellationToken);
+        bool archive = await ProbeArchiveAsync(ethRpcModule, cancellationToken);
         (bool debugApi, bool tracingApi) = await ProbeTracingApisAsync(client, cancellationToken);
         (bool stateOverrides, bool blockOverrides) = await ProbeOverridesAsync(ethRpcModule, cancellationToken);
+        (ulong? ethGetLogsLimit, string? ethGetLogsError) = await ProbeEthGetLogsLimitAsync(
+            ethRpcModule,
+            latestBlockNumber,
+            cancellationToken
+        );
 
         var capabilities = new List<RpcCapability>(6);
         if(archive)
@@ -83,30 +96,102 @@ public sealed partial class RpcCapabilityProbe : Transient
                 compatibility.SupportsMCopy,
                 compatibility.SupportsTStore,
                 compatibility.SupportsBaseFee),
-            [.. capabilities]);
+            [.. capabilities],
+            ethGetLogsLimit,
+            ethGetLogsError
+        );
     }
 
-    private static async Task<bool> ProbeArchiveAsync(IEtherClient client, CancellationToken cancellationToken)
+    private static async Task<bool> ProbeArchiveAsync(IEthRpcModule eth, CancellationToken cancellationToken)
     {
         try
         {
-            var (blockNumber, _, _, hasCode, code) = await client.QueryAsync(
-                IQuery.Combine(
-                    IQuery.GetBlockNumber(),
-                    IQuery.GetBlockTimestamp(),
-                    IQuery.GetBalance(_overrideProbeAddress),
-                    IQuery.HasCode(_overrideProbeAddress),
-                    IQuery.GetCode(_overrideProbeAddress)),
-                targetHeight: TargetHeight.Height(1),
-                cancellationToken: cancellationToken);
-
-            return blockNumber == 1 && hasCode == !code.ByteCode.IsEmpty;
+            await eth.GetBalanceAsync(_overrideProbeAddress, TargetHeight.Height(1), cancellationToken);
+            await eth.GetTransactionCountAsync(_overrideProbeAddress, TargetHeight.Height(1), cancellationToken);
+            return true;
         }
         catch(RPCException)
         {
             return false;
         }
+        catch(RPCTransportException)
+        {
+            return false;
+        }
     }
+
+    private static async Task<(ulong? Limit, string? Error)> ProbeEthGetLogsLimitAsync(
+        IEthRpcModule eth,
+        ulong latestBlockNumber,
+        CancellationToken cancellationToken)
+    {
+        Task GetLogsAsync(TargetHeight fromBlock)
+            => eth.GetLogsAsync(
+                fromBlock,
+                TargetHeight.Height(latestBlockNumber),
+                [_overrideProbeAddress],
+                [],
+                blockHash: null,
+                cancellationToken
+            );
+
+        string error;
+        try
+        {
+            await GetLogsAsync(TargetHeight.Earliest);
+            return (20_000, null);
+        }
+        catch(Exception ex) when(ex is RPCException or RPCTransportException)
+        {
+            var match = EthGetLogsLimitErrorRegex().Match(ex.Message);
+            ulong limit = 0;
+            bool parsed = match.Success &&
+                UInt64.TryParse(
+                    match.Groups["limit"].Value,
+                    NumberStyles.AllowThousands,
+                    CultureInfo.InvariantCulture,
+                    out limit
+                ) && limit > 0;
+
+            if(parsed)
+            {
+                return (limit, null);
+            }
+
+            error = ex.Message;
+        }
+
+        ulong availableRange = latestBlockNumber + 1;
+        ulong previousRange = availableRange;
+
+        foreach(ulong configuredRange in _ethGetLogsProbeRanges)
+        {
+            ulong range = Math.Min(configuredRange, availableRange);
+            if(range == previousRange)
+            {
+                continue;
+            }
+
+            previousRange = range;
+            ulong fromBlock = latestBlockNumber - (range - 1);
+            try
+            {
+                await GetLogsAsync(fromBlock == 0 ? TargetHeight.Earliest : TargetHeight.Height(fromBlock));
+                return (range, error);
+            }
+            catch(Exception ex) when(ex is RPCException or RPCTransportException)
+            {
+            }
+        }
+
+        return (null, error);
+    }
+
+    [GeneratedRegex(
+        @"(?:limited to [\d,]+\s*-\s*|maximum block range:\s*|maximum allowed is\s*|maximum is set to\s*|limited to (?:a )?|up to (?:a )?|at most\s*|block range limit is\s*|max block range\s*|block range greater than\s*)(?<limit>[\d,]+)",
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)
+    ]
+    private static partial Regex EthGetLogsLimitErrorRegex();
 
     private static async Task<(bool DebugApi, bool TracingApi)> ProbeTracingApisAsync(
         IEtherClient client,
@@ -122,6 +207,10 @@ public sealed partial class RpcCapabilityProbe : Transient
         {
             debugApi = ex.Code == -32602 || ex.Message.ContainsAny(_recognizedMethodErrors);
         }
+        catch(RPCTransportException)
+        {
+            debugApi = false;
+        }
 
         bool tracingApi;
         try
@@ -132,6 +221,10 @@ public sealed partial class RpcCapabilityProbe : Transient
         catch(RPCException ex)
         {
             tracingApi = ex.Code == -32602 || ex.Message.ContainsAny(_recognizedMethodErrors);
+        }
+        catch(RPCTransportException)
+        {
+            tracingApi = false;
         }
 
         return (debugApi, tracingApi);

@@ -14,6 +14,7 @@ public sealed class RpcEndpoint
 
     public required Guid ProviderId { get; set; }
     public required RpcCapability[] Capabilities { get; set; }
+    public required ulong EthGetLogsLimit { get; set; }
     public required int Order { get; set; }
 
     //Navigation Property

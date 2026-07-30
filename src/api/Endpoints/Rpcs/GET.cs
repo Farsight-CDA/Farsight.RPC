@@ -111,6 +111,7 @@ public sealed class GET(AppDbContext dbContext, PublicRpcRegistry publicRpcRegis
             Address = rpc.Address,
             ProviderId = rpc.ProviderId,
             Capabilities = rpc.Capabilities,
+            EthGetLogsLimit = rpc.EthGetLogsLimit,
             Order = rpc.Order,
         };
 }

@@ -14,7 +14,8 @@ public sealed class PUT(AppDbContext dbContext) : Endpoint<PUT.Request>
         [property: RouteParam] Guid ApplicationId,
         [property: RouteParam] Guid RpcId,
         Guid? ProviderId,
-        RpcCapability[]? Capabilities
+        RpcCapability[]? Capabilities,
+        ulong? EthGetLogsLimit
     );
 
     public sealed class Validator : Validator<Request>
@@ -22,8 +23,8 @@ public sealed class PUT(AppDbContext dbContext) : Endpoint<PUT.Request>
         public Validator()
         {
             RuleFor(x => x)
-                .Must(x => x.ProviderId is not null || x.Capabilities is not null)
-                .WithMessage("At least one field (ProviderId or Capabilities) must be provided.");
+                .Must(x => x.ProviderId is not null || x.Capabilities is not null || x.EthGetLogsLimit is not null)
+                .WithMessage("At least one field (ProviderId, Capabilities, or EthGetLogsLimit) must be provided.");
 
             When(
                 x => x.ProviderId is not null,
@@ -43,6 +44,12 @@ public sealed class PUT(AppDbContext dbContext) : Endpoint<PUT.Request>
                         .IsInEnum()
                         .WithMessage("Capability is invalid.");
                 });
+
+            When(
+                x => x.EthGetLogsLimit is not null,
+                () => RuleFor(x => x.EthGetLogsLimit)
+                    .GreaterThan(0UL)
+                    .WithMessage("eth_getLogs limit must be greater than zero."));
         }
     }
 
@@ -70,6 +77,11 @@ public sealed class PUT(AppDbContext dbContext) : Endpoint<PUT.Request>
         if(req.Capabilities is { } capabilities)
         {
             rpc.Capabilities = capabilities;
+        }
+
+        if(req.EthGetLogsLimit is ulong ethGetLogsLimit)
+        {
+            rpc.EthGetLogsLimit = ethGetLogsLimit;
         }
 
         try

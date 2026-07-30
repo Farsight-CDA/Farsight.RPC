@@ -11,5 +11,6 @@ public sealed record RpcEndpoint
     public required Uri Address { get; init; }
     public required RpcProviderDto Provider { get; init; }
     public required RpcCapability[] Capabilities { get; init; }
+    public required ulong EthGetLogsLimit { get; init; }
     public required int Order { get; init; }
 }

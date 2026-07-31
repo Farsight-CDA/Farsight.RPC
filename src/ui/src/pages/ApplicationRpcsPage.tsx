@@ -211,6 +211,7 @@ export default function ApplicationRpcsPage() {
   );
 
   const [filterText, setFilterText] = createSignal("");
+  const [filterFailingOnly, setFilterFailingOnly] = createSignal(false);
   const [isAddingChains, setIsAddingChains] = createSignal(false);
   const [chainsToAdd, setChainsToAdd] = createSignal<Set<string>>(new Set());
   const [chainMutationError, setChainMutationError] = createSignal<
@@ -310,10 +311,29 @@ export default function ApplicationRpcsPage() {
     );
   };
 
+  const failingChains = createMemo(() => {
+    const envId = environment.selectedEnvironmentId();
+    if (!envId) return new Set<string>();
+    const allRules = rules();
+    const allRpcs = rpcs();
+    const result = new Set<string>();
+    for (const chain of availableChains()) {
+      if (!chainRuleValidation(chain, envId, allRpcs, allRules)) {
+        result.add(chain);
+      }
+    }
+    return result;
+  });
+
   const filteredChains = createMemo(() => {
     const allChains = availableChains();
     const filter = filterText().trim().toLowerCase();
+    const failingOnly = filterFailingOnly();
+    const failing = failingChains();
     let list = allChains;
+    if (failingOnly) {
+      list = list.filter((chain) => failing.has(chain));
+    }
     if (filter) {
       list = list.filter((chain) => chain.toLowerCase().includes(filter));
     }
@@ -336,20 +356,6 @@ export default function ApplicationRpcsPage() {
     return requested && list.includes(requested) ? requested : (list[0] ?? null);
   });
 
-  const failingChains = createMemo(() => {
-    const envId = environment.selectedEnvironmentId();
-    if (!envId) return new Set<string>();
-    const allRules = rules();
-    const allRpcs = rpcs();
-    const result = new Set<string>();
-    for (const chain of availableChains()) {
-      if (!chainRuleValidation(chain, envId, allRpcs, allRules)) {
-        result.add(chain);
-      }
-    }
-    return result;
-  });
-
   const setActiveChain = (chain: string) => {
     setSearchParams({ chain });
   };
@@ -358,6 +364,12 @@ export default function ApplicationRpcsPage() {
     const selected = activeChain();
     if (requestedChain() !== selected) {
       setSearchParams({ chain: selected ?? undefined }, { replace: true });
+    }
+  });
+
+  createEffect(() => {
+    if (filterFailingOnly() && failingChains().size === 0) {
+      setFilterFailingOnly(false);
     }
   });
 
@@ -406,6 +418,7 @@ export default function ApplicationRpcsPage() {
   const toggleAddChainsMode = () => {
     setChainMutationError(null);
     setChainsToAdd(new Set<string>());
+    setFilterFailingOnly(false);
     setIsAddingChains(!isAddingChains());
   };
 
@@ -1037,6 +1050,22 @@ export default function ApplicationRpcsPage() {
                         </Show>
                       </span>
                     </div>
+                    <Show when={!isAddingChains() && failingChains().size > 0}>
+                      <button
+                        type="button"
+                        onClick={() => setFilterFailingOnly(!filterFailingOnly())}
+                        aria-pressed={filterFailingOnly()}
+                        class={`inline-flex w-full items-center justify-center gap-2 border px-3 py-2 text-left text-xs font-bold uppercase tracking-wider transition-all duration-200 ${
+                          filterFailingOnly()
+                            ? "border-amber-500/40 bg-amber-500/10 text-amber-300 hover:border-amber-500/60 hover:bg-amber-500/20 hover:text-amber-200"
+                            : "border-b-border bg-b-paper/15 text-b-ink/60 hover:border-b-border-hover hover:bg-b-paper/30 hover:text-b-ink"
+                        }`}
+                      >
+                        <WarningIcon class="size-3.5" />
+                        <span>Ruleset issues</span>
+                        <span class="tabular-nums">({failingChains().size})</span>
+                      </button>
+                    </Show>
                     <div class="relative">
                       <input
                         type="text"
@@ -1248,10 +1277,31 @@ export default function ApplicationRpcsPage() {
                             when={filteredChains().length > 0}
                             fallback={
                               <>
-                                <SearchIcon class="size-10 text-b-ink/20" />
-                                <p class="text-center text-sm font-semibold uppercase tracking-wider text-b-ink/50">
-                                  No chains match your filter.
-                                </p>
+                                <Show
+                                  when={filterFailingOnly()}
+                                  fallback={
+                                    <>
+                                      <SearchIcon class="size-10 text-b-ink/20" />
+                                      <p class="text-center text-sm font-semibold uppercase tracking-wider text-b-ink/50">
+                                        No chains match your filter.
+                                      </p>
+                                    </>
+                                  }
+                                >
+                                  <>
+                                    <WarningIcon class="size-10 text-amber-300/30" />
+                                    <p class="text-center text-sm font-semibold uppercase tracking-wider text-b-ink/50">
+                                      No failing chains match your filter.
+                                    </p>
+                                    <button
+                                      type="button"
+                                      onClick={() => setFilterFailingOnly(false)}
+                                      class="btn btn-sm btn-interactive btn-secondary"
+                                    >
+                                      Clear ruleset filter
+                                    </button>
+                                  </>
+                                </Show>
                               </>
                             }
                           >

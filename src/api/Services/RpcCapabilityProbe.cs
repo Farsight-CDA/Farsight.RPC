@@ -32,6 +32,7 @@ public sealed partial class RpcCapabilityProbe : Transient
             "transaction not found",
             "unknown transaction",
             "no transaction found",
+            "genesis is not traceable",
         ],
         StringComparison.OrdinalIgnoreCase
     );
@@ -54,7 +55,8 @@ public sealed partial class RpcCapabilityProbe : Transient
         var ethRpcModule = client.AsInternal().Provider.GetRequiredService<IEthRpcModule>();
 
         bool archive = await ProbeArchiveAsync(ethRpcModule, cancellationToken);
-        (bool debugApi, bool tracingApi) = await ProbeTracingApisAsync(client, cancellationToken);
+        (bool debugApi, string? debugApiError, bool tracingApi, string? tracingApiError) =
+            await ProbeTracingApisAsync(client, cancellationToken);
         (bool stateOverrides, bool blockOverrides) = await ProbeOverridesAsync(ethRpcModule, cancellationToken);
         (ulong? ethGetLogsLimit, string? ethGetLogsError) = await ProbeEthGetLogsLimitAsync(
             ethRpcModule,
@@ -103,7 +105,9 @@ public sealed partial class RpcCapabilityProbe : Transient
                 compatibility.SupportsBaseFee),
             [.. capabilities],
             ethGetLogsLimit,
-            ethGetLogsError
+            ethGetLogsError,
+            debugApiError,
+            tracingApiError
         );
     }
 
@@ -203,11 +207,13 @@ public sealed partial class RpcCapabilityProbe : Transient
     ]
     private static partial Regex EthGetLogsLimitErrorRegex();
 
-    private static async Task<(bool DebugApi, bool TracingApi)> ProbeTracingApisAsync(
+    private static async Task<(bool DebugApi, string? DebugApiError, bool TracingApi, string? TracingApiError)>
+        ProbeTracingApisAsync(
         IEtherClient client,
         CancellationToken cancellationToken)
     {
         bool debugApi;
+        string? debugApiError = null;
         try
         {
             await client.Debug.TraceTransactionCallsAsync(Bytes32.Zero, cancellationToken);
@@ -216,13 +222,19 @@ public sealed partial class RpcCapabilityProbe : Transient
         catch(RPCException ex)
         {
             debugApi = ex.Code == -32602 || ex.Message.ContainsAny(_recognizedMethodErrors);
+            if(!debugApi)
+            {
+                debugApiError = ex.Message;
+            }
         }
-        catch(RPCTransportException)
+        catch(RPCTransportException ex)
         {
             debugApi = false;
+            debugApiError = ex.Message;
         }
 
         bool tracingApi;
+        string? tracingApiError = null;
         try
         {
             await client.Trace.TraceTransactionCallsAsync(Bytes32.Zero, cancellationToken);
@@ -231,13 +243,18 @@ public sealed partial class RpcCapabilityProbe : Transient
         catch(RPCException ex)
         {
             tracingApi = ex.Code == -32602 || ex.Message.ContainsAny(_recognizedMethodErrors);
+            if(!tracingApi)
+            {
+                tracingApiError = ex.Message;
+            }
         }
-        catch(RPCTransportException)
+        catch(RPCTransportException ex)
         {
             tracingApi = false;
+            tracingApiError = ex.Message;
         }
 
-        return (debugApi, tracingApi);
+        return (debugApi, debugApiError, tracingApi, tracingApiError);
     }
 
     private static async Task<(bool StateOverrides, bool BlockOverrides)> ProbeOverridesAsync(

@@ -23,6 +23,8 @@ type RpcStateFieldsProps = {
   onCreateProvider: () => void;
   selectedCapabilities: ReadonlySet<RpcCapability>;
   reportedCapabilities: readonly RpcCapability[] | null;
+  debugApiError?: string | null;
+  tracingApiError?: string | null;
   capabilitiesAutoDetected?: boolean;
   onCapabilitiesChange: (capabilities: Set<RpcCapability>) => void;
 };
@@ -41,66 +43,6 @@ export default function RpcStateFields(props: RpcStateFieldsProps) {
 
   return (
     <>
-      <Show when={props.selectedCapabilities.has("GetLogs")}>
-        <div class="flex flex-col gap-2">
-          <div class="flex items-center justify-between gap-2">
-            <label
-              for={`${props.idPrefix}-eth-get-logs-limit`}
-              class="text-xs font-bold uppercase tracking-widest text-b-ink/70"
-            >
-              eth_getLogs Block Limit
-            </label>
-            <Show when={props.reportedEthGetLogsLimit}>
-              {(limit) => (
-                <Show
-                  when={ethGetLogsLimitMatchesProbe()}
-                  fallback={
-                    <button
-                      type="button"
-                      onClick={() =>
-                        props.onEthGetLogsLimitChange(String(limit()))
-                      }
-                      class="text-[10px] font-semibold uppercase tracking-wider text-green-400/70 transition-colors hover:text-green-400"
-                    >
-                      Use detected {limit().toLocaleString()}
-                    </button>
-                  }
-                >
-                  <span class="text-[10px] font-semibold uppercase tracking-wider text-green-400/70">
-                    Auto-detected
-                  </span>
-                </Show>
-              )}
-            </Show>
-          </div>
-          <input
-            id={`${props.idPrefix}-eth-get-logs-limit`}
-            type="number"
-            min="1"
-            max={Number.MAX_SAFE_INTEGER}
-            step="1"
-            required
-            value={props.ethGetLogsLimit}
-            onInput={(event) =>
-              props.onEthGetLogsLimitChange(event.currentTarget.value)
-            }
-            class="h-11 w-full border border-b-border bg-b-paper px-4 text-sm font-semibold text-b-ink placeholder:text-b-ink/25 outline-none focus-visible:border-b-accent/50 focus-visible:ring-2 focus-visible:ring-b-accent/20 hover:border-b-border-hover transition-all duration-200"
-            placeholder="e.g. 10000"
-            inputmode="numeric"
-          />
-          <p class="text-xs font-semibold uppercase tracking-wider text-b-ink/40">
-            Maximum block range per eth_getLogs request.
-          </p>
-          <Show when={props.ethGetLogsError}>
-            {(error) => (
-              <p class="border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs font-semibold text-amber-300">
-                Full-range probe: {error()}
-              </p>
-            )}
-          </Show>
-        </div>
-      </Show>
-
       <div class="flex flex-col gap-2">
         <div class="flex items-center gap-2">
           <label
@@ -177,9 +119,65 @@ export default function RpcStateFields(props: RpcStateFieldsProps) {
       <RpcCapabilitiesField
         selectedCapabilities={props.selectedCapabilities}
         reportedCapabilities={props.reportedCapabilities}
+        debugApiError={props.debugApiError}
+        tracingApiError={props.tracingApiError}
+        ethGetLogsError={props.ethGetLogsError}
         autoDetected={props.capabilitiesAutoDetected}
         onChange={handleCapabilitiesChange}
       />
+
+      <Show when={props.selectedCapabilities.has("GetLogs")}>
+        <div class="flex flex-col gap-2">
+          <div class="flex items-center justify-between gap-2">
+            <label
+              for={`${props.idPrefix}-eth-get-logs-limit`}
+              class="text-xs font-bold uppercase tracking-widest text-b-ink/70"
+            >
+              eth_getLogs Block Limit
+            </label>
+            <Show when={props.reportedEthGetLogsLimit}>
+              {(limit) => (
+                <Show
+                  when={ethGetLogsLimitMatchesProbe()}
+                  fallback={
+                    <button
+                      type="button"
+                      onClick={() =>
+                        props.onEthGetLogsLimitChange(String(limit()))
+                      }
+                      class="text-[10px] font-semibold uppercase tracking-wider text-green-400/70 transition-colors hover:text-green-400"
+                    >
+                      Use detected {limit().toLocaleString()}
+                    </button>
+                  }
+                >
+                  <span class="text-[10px] font-semibold uppercase tracking-wider text-green-400/70">
+                    Auto-detected
+                  </span>
+                </Show>
+              )}
+            </Show>
+          </div>
+          <input
+            id={`${props.idPrefix}-eth-get-logs-limit`}
+            type="number"
+            min="1"
+            max={Number.MAX_SAFE_INTEGER}
+            step="1"
+            required
+            value={props.ethGetLogsLimit}
+            onInput={(event) =>
+              props.onEthGetLogsLimitChange(event.currentTarget.value)
+            }
+            class="h-11 w-full border border-b-border bg-b-paper px-4 text-sm font-semibold text-b-ink placeholder:text-b-ink/25 outline-none focus-visible:border-b-accent/50 focus-visible:ring-2 focus-visible:ring-b-accent/20 hover:border-b-border-hover transition-all duration-200"
+            placeholder="e.g. 10000"
+            inputmode="numeric"
+          />
+          <p class="text-xs font-semibold uppercase tracking-wider text-b-ink/40">
+            Maximum block range per eth_getLogs request.
+          </p>
+        </div>
+      </Show>
     </>
   );
 }

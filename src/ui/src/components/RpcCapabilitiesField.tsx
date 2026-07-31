@@ -53,6 +53,9 @@ export function rpcCapabilityStyle(capability: RpcCapability): string {
 type RpcCapabilitiesFieldProps = {
   selectedCapabilities: ReadonlySet<RpcCapability>;
   reportedCapabilities: readonly RpcCapability[] | null;
+  debugApiError?: string | null;
+  tracingApiError?: string | null;
+  ethGetLogsError?: string | null;
   onChange: (capabilities: Set<RpcCapability>) => void;
   autoDetected?: boolean;
 };
@@ -88,41 +91,65 @@ export default function RpcCapabilitiesField(
             const checked = () => props.selectedCapabilities.has(capability);
             const reported = () =>
               props.reportedCapabilities?.includes(capability) ?? false;
+            const errorText = () => {
+              if (props.reportedCapabilities === null || reported()) {
+                return null;
+              }
+              if (capability === "DebugApi") {
+                return props.debugApiError ?? null;
+              }
+              if (capability === "TracingApi") {
+                return props.tracingApiError ?? null;
+              }
+              if (capability === "GetLogs") {
+                return props.ethGetLogsError ?? null;
+              }
+              return null;
+            };
             return (
               <label
-                class={`flex cursor-pointer items-center gap-3 border px-3 py-3 transition-all duration-150 ${
+                class={`flex cursor-pointer flex-col gap-1 border px-3 py-3 transition-all duration-150 ${
                   checked()
                     ? rpcCapabilityStyle(capability)
                     : "border-b-border bg-b-paper/20 text-b-ink/60 hover:border-b-border-hover"
                 }`}
               >
-                <input
-                  type="checkbox"
-                  checked={checked()}
-                  onChange={() => toggleCapability(capability)}
-                  class="size-4 accent-b-accent"
-                />
-                <span class="text-xs font-bold uppercase tracking-wider">
-                  {formatRpcCapability(capability)}
-                </span>
-                <Show when={props.reportedCapabilities !== null}>
-                  <span
-                    class="ml-auto"
-                    title={
-                      reported()
-                        ? "Reported as supported by probe"
-                        : "Not reported as supported by probe"
-                    }
-                  >
-                    <Show
-                      when={reported()}
-                      fallback={
-                        <WarningIcon class="size-4 text-amber-300" />
+                <div class="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    checked={checked()}
+                    onChange={() => toggleCapability(capability)}
+                    class="size-4 accent-b-accent"
+                  />
+                  <span class="text-xs font-bold uppercase tracking-wider">
+                    {formatRpcCapability(capability)}
+                  </span>
+                  <Show when={props.reportedCapabilities !== null}>
+                    <span
+                      class="ml-auto"
+                      title={
+                        reported()
+                          ? "Reported as supported by probe"
+                          : "Not reported as supported by probe"
                       }
                     >
-                      <CheckmarkIcon class="size-4 text-green-400" />
-                    </Show>
-                  </span>
+                      <Show
+                        when={reported()}
+                        fallback={
+                          <WarningIcon class="size-4 text-amber-300" />
+                        }
+                      >
+                        <CheckmarkIcon class="size-4 text-green-400" />
+                      </Show>
+                    </span>
+                  </Show>
+                </div>
+                <Show when={errorText()}>
+                  {(error) => (
+                    <p class="text-[0.65rem] font-semibold leading-snug text-amber-300">
+                      {error()}
+                    </p>
+                  )}
                 </Show>
               </label>
             );

@@ -99,6 +99,8 @@ type ProbeResult = {
   capabilities: RpcCapability[];
   ethGetLogsLimit: number | null;
   ethGetLogsError: string | null;
+  debugApiError: string | null;
+  tracingApiError: string | null;
 };
 
 async function validateRpcEndpoint(
@@ -1761,6 +1763,12 @@ export default function ApplicationRpcsPage() {
                     reportedCapabilities={
                       createRpcTestResult()?.capabilities ?? null
                     }
+                    debugApiError={
+                      createRpcTestResult()?.debugApiError ?? null
+                    }
+                    tracingApiError={
+                      createRpcTestResult()?.tracingApiError ?? null
+                    }
                     capabilitiesAutoDetected={
                       createCapabilitiesAutoInferred()
                     }
@@ -1852,82 +1860,86 @@ export default function ApplicationRpcsPage() {
               Edit RPC
             </h3>
 
-            <form onSubmit={handleEditRpc} class="flex flex-col gap-6">
-              <div class="flex flex-col gap-2">
-                <label class="text-xs font-bold uppercase tracking-widest text-b-ink/70">
-                  Address
-                </label>
-                <div class="flex h-11 items-center border border-b-border bg-b-field px-4">
-                  <code class="break-all font-mono text-sm font-semibold text-b-ink/70">
-                    {rpcToEdit()?.address}
-                  </code>
-                </div>
-                <Show when={editRpcTestStatus() === "testing"}>
-                  <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-b-ink/50">
-                    <LoadingSpinner class="size-3.5" />
-                    <span>Probing endpoint…</span>
+            <form onSubmit={handleEditRpc} class="flex flex-col">
+              <div class="flex flex-col gap-6">
+                <div class="flex flex-col gap-2">
+                  <label class="text-xs font-bold uppercase tracking-widest text-b-ink/70">
+                    Address
+                  </label>
+                  <div class="flex h-11 items-center border border-b-border bg-b-field px-4">
+                    <code class="break-all font-mono text-sm font-semibold text-b-ink/70">
+                      {rpcToEdit()?.address}
+                    </code>
                   </div>
-                </Show>
-                <Show when={editRpcTestStatus() === "passed" && editRpcTestResult()}>
-                  <div class="flex flex-col gap-1 text-xs font-semibold uppercase tracking-wider text-green-400">
-                    <div class="flex items-center gap-2">
-                      <CheckmarkIcon class="size-3.5" />
-                      <span>Looks correct</span>
+                  <Show when={editRpcTestStatus() === "testing"}>
+                    <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-b-ink/50">
+                      <LoadingSpinner class="size-3.5" />
+                      <span>Probing endpoint…</span>
                     </div>
-                    <Show when={getCompatibilitySummary(editRpcTestResult())}>
-                      <span class="text-[0.65rem] text-b-ink/50">
-                        Compatibility: {getCompatibilitySummary(editRpcTestResult())}
-                      </span>
-                    </Show>
-                  </div>
-                </Show>
-                <Show when={editRpcTestStatus() === "failed"}>
-                  <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-amber-300">
-                    <WarningIcon class="size-3.5" />
-                    <span>{editRpcTestError() ?? "RPC validation failed"}</span>
-                  </div>
+                  </Show>
+                  <Show when={editRpcTestStatus() === "passed" && editRpcTestResult()}>
+                    <div class="flex flex-col gap-1 text-xs font-semibold uppercase tracking-wider text-green-400">
+                      <div class="flex items-center gap-2">
+                        <CheckmarkIcon class="size-3.5" />
+                        <span>Looks correct</span>
+                      </div>
+                      <Show when={getCompatibilitySummary(editRpcTestResult())}>
+                        <span class="text-[0.65rem] text-b-ink/50">
+                          Compatibility: {getCompatibilitySummary(editRpcTestResult())}
+                        </span>
+                      </Show>
+                    </div>
+                  </Show>
+                  <Show when={editRpcTestStatus() === "failed"}>
+                    <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-amber-300">
+                      <WarningIcon class="size-3.5" />
+                      <span>{editRpcTestError() ?? "RPC validation failed"}</span>
+                    </div>
+                  </Show>
+                </div>
+
+                <RpcStateFields
+                  idPrefix="edit-rpc"
+                  ethGetLogsLimit={editRpcEthGetLogsLimit()}
+                  reportedEthGetLogsLimit={parseProbeEthGetLogsLimit(
+                    editRpcTestResult()?.ethGetLogsLimit ?? null,
+                  )}
+                  ethGetLogsError={
+                    editRpcTestResult()?.ethGetLogsError ?? null
+                  }
+                  onEthGetLogsLimitChange={setEditRpcEthGetLogsLimit}
+                  providerId={editRpcProviderId()}
+                  providers={providers()}
+                  providersPending={providersState() === "pending"}
+                  providersReady={providersState() === "ready"}
+                  providersError={providersError()?.message ?? null}
+                  providersHref={providersHref()}
+                  providerAutoDetected={editProviderAutoInferred()}
+                  onProviderChange={(providerId) => {
+                    setEditRpcProviderId(providerId);
+                    setEditProviderAutoInferred(false);
+                  }}
+                  onCreateProvider={closeEditRpcModal}
+                  selectedCapabilities={editRpcCapabilities()}
+                  reportedCapabilities={editRpcTestResult()?.capabilities ?? null}
+                  debugApiError={editRpcTestResult()?.debugApiError ?? null}
+                  tracingApiError={editRpcTestResult()?.tracingApiError ?? null}
+                  onCapabilitiesChange={setEditRpcCapabilities}
+                />
+
+                <Show when={editRpcError()}>
+                  <p class="border border-red-500/40 bg-red-500/10 px-3 py-3 text-xs font-bold uppercase leading-snug text-red-400">
+                    {editRpcError()}
+                  </p>
                 </Show>
               </div>
 
-              <RpcStateFields
-                idPrefix="edit-rpc"
-                ethGetLogsLimit={editRpcEthGetLogsLimit()}
-                reportedEthGetLogsLimit={parseProbeEthGetLogsLimit(
-                  editRpcTestResult()?.ethGetLogsLimit ?? null,
-                )}
-                ethGetLogsError={
-                  editRpcTestResult()?.ethGetLogsError ?? null
-                }
-                onEthGetLogsLimitChange={setEditRpcEthGetLogsLimit}
-                providerId={editRpcProviderId()}
-                providers={providers()}
-                providersPending={providersState() === "pending"}
-                providersReady={providersState() === "ready"}
-                providersError={providersError()?.message ?? null}
-                providersHref={providersHref()}
-                providerAutoDetected={editProviderAutoInferred()}
-                onProviderChange={(providerId) => {
-                  setEditRpcProviderId(providerId);
-                  setEditProviderAutoInferred(false);
-                }}
-                onCreateProvider={closeEditRpcModal}
-                selectedCapabilities={editRpcCapabilities()}
-                reportedCapabilities={editRpcTestResult()?.capabilities ?? null}
-                onCapabilitiesChange={setEditRpcCapabilities}
-              />
-
-              <Show when={editRpcError()}>
-                <p class="border border-red-500/40 bg-red-500/10 px-3 py-3 text-xs font-bold uppercase leading-snug text-red-400">
-                  {editRpcError()}
-                </p>
-              </Show>
-
-              <div class="flex flex-col gap-3 sm:flex-row sm:justify-end">
+              <div class="mt-4 flex flex-col gap-3 sm:flex-row sm:justify-end">
                 <button
                   type="button"
                   onClick={closeEditRpcModal}
                   disabled={editRpcLoading()}
-                  class="btn btn-md btn-interactive btn-disabled btn-secondary"
+                  class="btn btn-sm btn-interactive btn-disabled btn-secondary"
                 >
                   Cancel
                 </button>
@@ -1940,7 +1952,7 @@ export default function ApplicationRpcsPage() {
                     editRpcTestStatus() === "untested" ||
                     editRpcTestStatus() === "testing"
                   }
-                  class={`btn btn-md btn-interactive btn-disabled ${
+                  class={`btn btn-sm btn-interactive btn-disabled ${
                     editRpcTestStatus() === "failed" && !editRpcSaveConfirm()
                       ? "btn-warning"
                       : editRpcTestStatus() === "failed" && editRpcSaveConfirm()

@@ -1540,21 +1540,18 @@ export default function ApplicationRpcsPage() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="create-rpc-title"
-            class="max-h-[calc(100vh-4rem)] w-full max-w-lg overflow-y-auto border border-b-border bg-b-field p-8 shadow-[0_25px_50px_rgba(0,0,0,0.5)]"
+            class="relative max-h-[calc(100vh-4rem)] w-full max-w-lg overflow-y-auto border border-b-border bg-b-field p-8 shadow-[0_25px_50px_rgba(0,0,0,0.5)]"
             onClick={(e) => e.stopPropagation()}
           >
-            <p class="mb-2 text-xs font-bold uppercase tracking-[0.35em] text-b-accent">
-              Create
-            </p>
+            <span class="absolute top-8 right-8 inline-flex items-center border border-b-border/60 bg-b-paper/40 px-2 py-1 text-[0.65rem] font-bold uppercase tracking-wider text-b-ink/70">
+              {selectedChainForRpc()}
+            </span>
             <h3
               id="create-rpc-title"
-              class="mb-2 font-['Anton',sans-serif] text-4xl uppercase leading-none tracking-wide text-b-ink"
+              class="mb-8 font-['Anton',sans-serif] text-3xl uppercase leading-none tracking-wide text-b-ink"
             >
               New RPC
             </h3>
-            <p class="mb-6 text-xs font-bold tracking-widest text-b-ink/50">
-              {selectedChainForRpc()} / {selectedEnvironment()?.name}
-            </p>
 
             <form onSubmit={handleCreateRpc} class="flex flex-col gap-6">
               <Show
@@ -1613,11 +1610,6 @@ export default function ApplicationRpcsPage() {
                             <CheckmarkIcon class="size-3.5" />
                             <span>Looks correct</span>
                           </div>
-                          <Show when={createRpcTestResult()?.chainId !== undefined}>
-                            <span class="text-[0.65rem] text-b-ink/50">
-                              Chain ID: {String(createRpcTestResult()?.chainId)}
-                            </span>
-                          </Show>
                           <Show when={getCompatibilitySummary(createRpcTestResult())}>
                             <span class="text-[0.65rem] text-b-ink/50">
                               Compatibility: {getCompatibilitySummary(createRpcTestResult())}
@@ -1684,11 +1676,6 @@ export default function ApplicationRpcsPage() {
                           <CheckmarkIcon class="size-3.5" />
                           <span>Looks correct</span>
                         </div>
-                        <Show when={createRpcTestResult()?.chainId !== undefined}>
-                          <span class="text-[0.65rem] text-b-ink/50">
-                            Chain ID: {String(createRpcTestResult()?.chainId)}
-                          </span>
-                        </Show>
                         <Show when={getCompatibilitySummary(createRpcTestResult())}>
                           <span class="text-[0.65rem] text-b-ink/50">
                             Compatibility: {getCompatibilitySummary(createRpcTestResult())}
@@ -1802,15 +1789,15 @@ export default function ApplicationRpcsPage() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="edit-rpc-title"
-            class="max-h-[calc(100vh-4rem)] w-full max-w-lg overflow-y-auto border border-b-border bg-b-field p-8 shadow-[0_25px_50px_rgba(0,0,0,0.5)]"
+            class="relative max-h-[calc(100vh-4rem)] w-full max-w-lg overflow-y-auto border border-b-border bg-b-field p-8 shadow-[0_25px_50px_rgba(0,0,0,0.5)]"
             onClick={(e) => e.stopPropagation()}
           >
-            <p class="mb-2 text-xs font-bold uppercase tracking-[0.35em] text-b-accent">
-              Edit
-            </p>
+            <span class="absolute top-8 right-8 inline-flex items-center border border-b-border/60 bg-b-paper/40 px-2 py-1 text-[0.65rem] font-bold uppercase tracking-wider text-b-ink/70">
+              {rpcToEdit()?.chain}
+            </span>
             <h3
               id="edit-rpc-title"
-              class="mb-8 font-['Anton',sans-serif] text-4xl uppercase leading-none tracking-wide text-b-ink"
+              class="mb-8 font-['Anton',sans-serif] text-3xl uppercase leading-none tracking-wide text-b-ink"
             >
               Edit RPC
             </h3>
@@ -1837,11 +1824,6 @@ export default function ApplicationRpcsPage() {
                       <CheckmarkIcon class="size-3.5" />
                       <span>Looks correct</span>
                     </div>
-                    <Show when={editRpcTestResult()?.chainId !== undefined}>
-                      <span class="text-[0.65rem] text-b-ink/50">
-                        Chain ID: {String(editRpcTestResult()?.chainId)}
-                      </span>
-                    </Show>
                     <Show when={getCompatibilitySummary(editRpcTestResult())}>
                       <span class="text-[0.65rem] text-b-ink/50">
                         Compatibility: {getCompatibilitySummary(editRpcTestResult())}

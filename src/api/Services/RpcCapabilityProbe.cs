@@ -30,6 +30,7 @@ public sealed partial class RpcCapabilityProbe : Transient
             "invalid params",
             "invalid hash",
             "transaction not found",
+            "transaction 0x0000000000000000000000000000000000000000000000000000000000000000 not found",
             "unknown transaction",
             "no transaction found",
             "genesis is not traceable",

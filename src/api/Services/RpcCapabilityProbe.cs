@@ -192,7 +192,7 @@ public sealed partial class RpcCapabilityProbe : Transient
     }
 
     [GeneratedRegex(
-        @"(?:limited to [\d,]+\s*-\s*|maximum block range:\s*|maximum allowed is\s*|maximum is set to\s*|maximum\s+|limited to (?:a )?|up to (?:a )?|at most\s*|block range limit is\s*|max block range\s*|block range greater than\s*)(?<limit>[\d,]+)",
+        @"(?:limited to [\d,]+\s*-\s*|maximum block range:\s*|maximum allowed is\s*|maximum is set to\s*|maximum(?: of)?\s+|limited to (?:a )?|up to (?:a )?|at most\s*|block range limit is\s*|max block range\s*|block range greater than\s*)(?<limit>[\d,]+)",
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)
     ]
     private static partial Regex EthGetLogsLimitErrorRegex();

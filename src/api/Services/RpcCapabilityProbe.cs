@@ -15,6 +15,7 @@ namespace Farsight.Rpc.Api.Services;
 
 public sealed partial class RpcCapabilityProbe : Transient
 {
+    private const ulong MAXIMUM_LOGS_PROBERANGE = 100_000;
     private static readonly ulong[] _ethGetLogsProbeRanges =
     [
         10_000,
@@ -139,11 +140,17 @@ public sealed partial class RpcCapabilityProbe : Transient
                 cancellationToken
             );
 
+        ulong availableRange = latestBlockNumber + 1;
+        ulong maximumRange = Math.Min(MAXIMUM_LOGS_PROBERANGE, availableRange);
+        ulong maximumFromBlock = latestBlockNumber - (maximumRange - 1);
+
         string error;
         try
         {
-            await GetLogsAsync(TargetHeight.Earliest);
-            return (20_000, null);
+            await GetLogsAsync(maximumFromBlock == 0
+                ? TargetHeight.Earliest
+                : TargetHeight.Height(maximumFromBlock));
+            return (maximumRange, null);
         }
         catch(Exception ex) when(ex is RPCException or RPCTransportException)
         {
@@ -159,14 +166,13 @@ public sealed partial class RpcCapabilityProbe : Transient
 
             if(parsed)
             {
-                return (limit, null);
+                return (Math.Min(limit, MAXIMUM_LOGS_PROBERANGE), null);
             }
 
             error = ex.Message;
         }
 
-        ulong availableRange = latestBlockNumber + 1;
-        ulong previousRange = availableRange;
+        ulong previousRange = maximumRange;
 
         foreach(ulong configuredRange in _ethGetLogsProbeRanges)
         {

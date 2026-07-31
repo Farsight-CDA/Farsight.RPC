@@ -16,6 +16,7 @@ namespace Farsight.Rpc.Api.Services;
 public sealed partial class RpcCapabilityProbe : Transient
 {
     private const ulong MAXIMUM_LOGS_PROBERANGE = 100_000;
+    private static readonly TimeSpan _tracingApiProbeTimeout = TimeSpan.FromSeconds(3);
     private static readonly ulong[] _ethGetLogsProbeRanges =
     [
         10_000,
@@ -218,8 +219,15 @@ public sealed partial class RpcCapabilityProbe : Transient
         string? debugApiError = null;
         try
         {
-            await client.Debug.TraceTransactionCallsAsync(Bytes32.Zero, cancellationToken);
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            cts.CancelAfter(_tracingApiProbeTimeout);
+            await client.Debug.TraceTransactionCallsAsync(Bytes32.Zero, cts.Token);
             debugApi = true;
+        }
+        catch(OperationCanceledException) when(!cancellationToken.IsCancellationRequested)
+        {
+            debugApi = false;
+            debugApiError = $"Debug API probe timed out after {_tracingApiProbeTimeout.TotalSeconds} seconds.";
         }
         catch(RPCException ex)
         {
@@ -239,8 +247,15 @@ public sealed partial class RpcCapabilityProbe : Transient
         string? tracingApiError = null;
         try
         {
-            await client.Trace.TraceTransactionCallsAsync(Bytes32.Zero, cancellationToken);
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            cts.CancelAfter(_tracingApiProbeTimeout);
+            await client.Trace.TraceTransactionCallsAsync(Bytes32.Zero, cts.Token);
             tracingApi = true;
+        }
+        catch(OperationCanceledException) when(!cancellationToken.IsCancellationRequested)
+        {
+            tracingApi = false;
+            tracingApiError = $"Tracing API probe timed out after {_tracingApiProbeTimeout.TotalSeconds} seconds.";
         }
         catch(RPCException ex)
         {

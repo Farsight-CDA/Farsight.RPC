@@ -35,6 +35,8 @@ public sealed partial class RpcCapabilityProbe : Transient
             "transaction 0x0000000000000000000000000000000000000000000000000000000000000000 not found",
             "unknown transaction",
             "no transaction found",
+            "cannot find block hash for transaction",
+            "receipt could not be found",
             "genesis is not traceable",
         ],
         StringComparison.OrdinalIgnoreCase
@@ -231,7 +233,7 @@ public sealed partial class RpcCapabilityProbe : Transient
         }
         catch(RPCException ex)
         {
-            debugApi = ex.Code == -32602 || ex.Message.ContainsAny(_recognizedMethodErrors);
+            debugApi = IsRecognizedMethodResponse(ex.Code, ex.Message);
             if(!debugApi)
             {
                 debugApiError = ex.Message;
@@ -259,7 +261,7 @@ public sealed partial class RpcCapabilityProbe : Transient
         }
         catch(RPCException ex)
         {
-            tracingApi = ex.Code == -32602 || ex.Message.ContainsAny(_recognizedMethodErrors);
+            tracingApi = IsRecognizedMethodResponse(ex.Code, ex.Message);
             if(!tracingApi)
             {
                 tracingApiError = ex.Message;
@@ -273,6 +275,9 @@ public sealed partial class RpcCapabilityProbe : Transient
 
         return (debugApi, debugApiError, tracingApi, tracingApiError);
     }
+
+    internal static bool IsRecognizedMethodResponse(int code, string message)
+        => code == -32602 || message.ContainsAny(_recognizedMethodErrors);
 
     private static async Task<(bool StateOverrides, bool BlockOverrides)> ProbeOverridesAsync(
         IEthRpcModule eth,

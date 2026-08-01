@@ -1449,19 +1449,20 @@ export default function ApplicationRpcsPage() {
                                         </Show>
                                         <Show when={rpc.capabilities.length > 0}>
                                           <div class="mt-3 flex flex-wrap items-center gap-1.5">
-                                            <For each={rpc.capabilities}>
+                                            <For
+                                              each={allRpcCapabilities.filter(
+                                                (capability) =>
+                                                  rpc.capabilities.includes(
+                                                    capability,
+                                                  ),
+                                              )}
+                                            >
                                               {(capability) => (
-                                                <Show
-                                                  when={isKnownCapability(capability) ? capability : undefined}
+                                                <span
+                                                  class={`inline-flex items-center border px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-wider ${rpcCapabilityStyle(capability)}`}
                                                 >
-                                                  {(cap) => (
-                                                    <span
-                                                      class={`inline-flex items-center border px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-wider ${rpcCapabilityStyle(cap())}`}
-                                                    >
-                                                      {formatRpcCapability(cap())}
-                                                    </span>
-                                                  )}
-                                                </Show>
+                                                  {formatRpcCapability(capability)}
+                                                </span>
                                               )}
                                             </For>
                                           </div>

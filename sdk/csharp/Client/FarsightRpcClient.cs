@@ -69,6 +69,37 @@ public sealed class FarsightRpcClient : IFarsightRpcClient
         }
     }
 
+    public async Task<SignResult> SignAsync(string apiKey, byte[] data, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(apiKey);
+        ArgumentNullException.ThrowIfNull(data);
+
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/api/Wallets/Sign")
+        {
+            Content = JsonContent.Create(
+                new WalletSignRequestDto(data),
+                FarsightRpcJsonContext.Default.WalletSignRequestDto
+            ),
+        };
+        request.Headers.Add(ApiKeyHeaders.API_KEY, apiKey);
+        using var response = await CreateClient().SendAsync(request, cancellationToken);
+
+        switch(response.StatusCode)
+        {
+            case HttpStatusCode.BadRequest:
+                return SignResult.InvalidData.Instance;
+            case HttpStatusCode.Forbidden:
+                return SignResult.InvalidApiKey.Instance;
+            case HttpStatusCode.OK:
+                var result = await response.Content.ReadFromJsonAsync(FarsightRpcJsonContext.Default.WalletSignResponseDto, cancellationToken)
+                    ?? throw new InvalidOperationException("Null response");
+                return new SignResult.Success(result.Signature);
+            default:
+                response.EnsureSuccessStatusCode();
+                throw new InvalidOperationException();
+        }
+    }
+
     private HttpClient CreateClient()
         => _httpClientFactory?.CreateClient(DependencyInjection.HTTP_CLIENT_NAME) ?? _httpClient!;
 

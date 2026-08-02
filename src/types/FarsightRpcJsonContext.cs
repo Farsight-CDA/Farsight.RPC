@@ -10,6 +10,8 @@ namespace Farsight.Rpc.Types;
 )]
 [JsonSerializable(typeof(ApiKeyRpcsDto))]
 [JsonSerializable(typeof(RpcProbeResult))]
+[JsonSerializable(typeof(WalletSignRequestDto))]
+[JsonSerializable(typeof(WalletSignResponseDto))]
 public partial class FarsightRpcJsonContext : JsonSerializerContext
 {
 }

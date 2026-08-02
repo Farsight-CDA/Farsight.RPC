@@ -12,7 +12,7 @@ using System.Security.Cryptography;
 
 namespace Farsight.Rpc.Api.Endpoints.Wallets.Sign;
 
-public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request, POST.Response>
+public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request, WalletSignResponseDto>
 {
     public sealed record Request(
         [property: FromHeader(ApiKeyHeaders.API_KEY)] string ApiKey,
@@ -33,10 +33,6 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request, POST.R
             }
         }
     }
-
-    public new sealed record Response(
-        byte[] Signature
-    );
 
     public override void Configure()
     {
@@ -72,7 +68,7 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request, POST.R
         apiKey.LastUsedAt = DateTimeOffset.UtcNow;
         await dbContext.SaveChangesAsync(ct);
 
-        await Send.OkAsync(new Response(signature), ct);
+        await Send.OkAsync(new WalletSignResponseDto(signature), ct);
     }
 
     private static byte[] SignData(WalletPrivateKey privateKey, string mnemonic, ReadOnlySpan<byte> data)

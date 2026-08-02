@@ -61,6 +61,16 @@ if (result is IFarsightRpcClient.GetRpcsResult.Success ok)
     // ok.Rpcs: chain metadata -> endpoints (Realtime / Archive / Tracing)
     // ok.Providers: referenced providers
 }
+
+var signResult = await client.SignAsync(
+    "your-wallet-api-key",
+    dataToSign
+);
+
+if (signResult is IFarsightRpcClient.SignResult.Success signed)
+{
+    byte[] signature = signed.Signature;
+}
 ```
 
 More detail and edge cases live in [`sdk/csharp/README.md`](sdk/csharp/README.md).

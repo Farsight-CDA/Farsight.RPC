@@ -1,6 +1,7 @@
 import { A } from "@solidjs/router";
 import SettingsIcon from "../components/icons/SettingsIcon";
 import ErrorGroupIcon from "../components/icons/ErrorGroupIcon";
+import WalletIcon from "../components/icons/WalletIcon";
 
 export default function HomePage() {
   return (
@@ -74,7 +75,7 @@ export default function HomePage() {
         </div>
 
         {/* Module cards */}
-        <div class="animate-fade-in-up delay-500 mt-14 sm:mt-16 grid w-full grid-cols-1 gap-5 sm:grid-cols-2 px-2 sm:px-8">
+        <div class="animate-fade-in-up delay-500 mt-14 sm:mt-16 grid w-full grid-cols-1 gap-5 lg:grid-cols-3 px-2 sm:px-8">
           {/* Card 1 — Applications */}
           <A
             href="/applications"
@@ -103,7 +104,35 @@ export default function HomePage() {
             </div>
           </A>
 
-          {/* Card 2 — Errors */}
+          {/* Card 2 — Wallets */}
+          <A
+            href="/wallets"
+            class="group relative flex flex-col items-center gap-6 border border-b-border bg-b-field/80 backdrop-blur-sm p-8 sm:p-10 transition-all duration-300 hover:border-b-accent/50 hover:bg-b-field hover:shadow-[0_8px_40px_rgba(255,87,34,0.12)] hover:-translate-y-1 outline-none focus-visible:ring-2 focus-visible:ring-b-accent/30 overflow-hidden"
+          >
+            {/* Corner brackets */}
+            <div class="absolute left-3 top-3 h-4 w-4 border-l border-t border-b-accent/0 group-hover:border-b-accent/40 transition-colors duration-300" />
+            <div class="absolute right-3 top-3 h-4 w-4 border-r border-t border-b-accent/0 group-hover:border-b-accent/40 transition-colors duration-300" />
+            <div class="absolute left-3 bottom-3 h-4 w-4 border-l border-b border-b-accent/0 group-hover:border-b-accent/40 transition-colors duration-300" />
+            <div class="absolute right-3 bottom-3 h-4 w-4 border-r border-b border-b-accent/0 group-hover:border-b-accent/40 transition-colors duration-300" />
+
+            {/* Top accent line */}
+            <div class="absolute left-0 top-0 h-[2px] w-0 bg-b-accent group-hover:w-full transition-all duration-500 ease-out" />
+
+            <div class="flex size-16 items-center justify-center border border-b-border group-hover:border-b-accent/50 bg-b-paper/40 group-hover:bg-b-accent/10 transition-all duration-300">
+              <WalletIcon class="size-8 text-b-ink/50 group-hover:text-b-accent transition-colors duration-300" />
+            </div>
+
+            <div class="text-center">
+              <h3 class="font-['Anton',sans-serif] text-3xl uppercase tracking-wide text-b-ink group-hover:text-b-accent transition-colors duration-300">
+                Wallets
+              </h3>
+              <p class="mt-2 text-xs font-semibold uppercase tracking-wider text-b-ink/40">
+                Manage wallets and addresses
+              </p>
+            </div>
+          </A>
+
+          {/* Card 3 — Errors */}
           <A
             href="/errors"
             class="group relative flex flex-col items-center gap-6 border border-b-border bg-b-field/80 backdrop-blur-sm p-8 sm:p-10 transition-all duration-300 hover:border-b-accent/50 hover:bg-b-field hover:shadow-[0_8px_40px_rgba(255,87,34,0.12)] hover:-translate-y-1 outline-none focus-visible:ring-2 focus-visible:ring-b-accent/30 overflow-hidden"

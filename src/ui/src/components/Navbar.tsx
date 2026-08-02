@@ -62,6 +62,16 @@ export default function Navbar() {
           Applications
         </A>
         <A
+          href="/wallets"
+          class={`px-4 py-2 text-xs font-bold uppercase tracking-widest transition-all duration-200 ${
+            isActive("/wallets")
+              ? "text-b-accent border-b-2 border-b-accent -mb-[1px]"
+              : "text-b-ink/50 hover:text-b-ink"
+          }`}
+        >
+          Wallets
+        </A>
+        <A
           href="/errors"
           class={`px-4 py-2 text-xs font-bold uppercase tracking-widest transition-all duration-200 ${
             isActive("/errors")

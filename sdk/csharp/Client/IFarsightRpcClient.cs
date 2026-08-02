@@ -14,8 +14,8 @@ public partial interface IFarsightRpcClient
         /// <summary>
         /// Represents a successful RPC lookup.
         /// </summary>
-        /// <param name="Rpcs">The RPC endpoints available to the configured API key, grouped by chain metadata.</param>
-        /// <param name="PublicRpcs">The public RPC endpoints available to the configured API key, grouped by chain metadata.</param>
+        /// <param name="Rpcs">The RPC endpoints available to the provided API key, grouped by chain metadata.</param>
+        /// <param name="PublicRpcs">The public RPC endpoints available to the provided API key, grouped by chain metadata.</param>
         /// <param name="PublicRpcsUpdatedAt">The timestamp of the last successful public RPC registry refresh.</param>
         /// <param name="Providers">The providers referenced by the returned RPC endpoints.</param>
         /// <param name="ErrorGroups">The globally configured RPC error groups.</param>
@@ -37,9 +37,10 @@ public partial interface IFarsightRpcClient
     }
 
     /// <summary>
-    /// Gets the RPC endpoints available to the configured API key.
+    /// Gets the RPC endpoints available to the provided API key.
     /// </summary>
+    /// <param name="apiKey">The API key used to authorize the request.</param>
     /// <param name="cancellationToken">The token used to cancel the operation.</param>
-    /// <returns>The RPC endpoints and provider metadata for the configured API key.</returns>
-    public Task<GetRpcsResult> GetRpcsAsync(CancellationToken cancellationToken = default);
+    /// <returns>The RPC endpoints and provider metadata for the provided API key.</returns>
+    public Task<GetRpcsResult> GetRpcsAsync(string apiKey, CancellationToken cancellationToken = default);
 }

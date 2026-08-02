@@ -44,7 +44,7 @@ printf %s 'your-password' | sha256sum
 
 ## SDKs
 
-The SDKs return RPC endpoints grouped by chain plus provider metadata (name, rate limit). Configure base URL and API key once, then call the client when you need fresh configuration.
+The SDKs return RPC endpoints grouped by chain plus provider metadata (name, rate limit).
 
 ### C# (`Farsight.Rpc.Sdk`)
 
@@ -52,11 +52,10 @@ The SDKs return RPC endpoints grouped by chain plus provider metadata (name, rat
 builder.AddFarsightRpc(options =>
 {
     options.ApiUrl = new Uri("https://your-farsight-rpc-host/");
-    options.ApiKey = "your-environment-scoped-api-key";
 });
 
 var client = serviceProvider.GetRequiredService<IFarsightRpcClient>();
-var result = await client.GetRpcsAsync();
+var result = await client.GetRpcsAsync("your-environment-scoped-api-key");
 
 if (result is IFarsightRpcClient.GetRpcsResult.Success ok)
 {

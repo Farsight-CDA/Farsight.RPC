@@ -25,9 +25,13 @@ public sealed class FarsightRpcClient : IFarsightRpcClient
         ConfigureClient(_httpClient, options);
     }
 
-    public async Task<GetRpcsResult> GetRpcsAsync(CancellationToken cancellationToken = default)
+    public async Task<GetRpcsResult> GetRpcsAsync(string apiKey, CancellationToken cancellationToken = default)
     {
-        using var response = await CreateClient().GetAsync("/api/Rpcs", cancellationToken);
+        ArgumentException.ThrowIfNullOrWhiteSpace(apiKey);
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/api/Rpcs");
+        request.Headers.Add(ApiKeyHeaders.API_KEY, apiKey);
+        using var response = await CreateClient().SendAsync(request, cancellationToken);
 
         switch(response.StatusCode)
         {
@@ -71,10 +75,5 @@ public sealed class FarsightRpcClient : IFarsightRpcClient
     internal static void ConfigureClient(HttpClient client, FarsightRpcOptions options)
     {
         client.BaseAddress = options.ApiUrl;
-
-        if(!String.IsNullOrWhiteSpace(options.ApiKey))
-        {
-            client.DefaultRequestHeaders.Add(ApiKeyHeaders.API_KEY, options.ApiKey);
-        }
     }
 }

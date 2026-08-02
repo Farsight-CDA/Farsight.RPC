@@ -154,17 +154,17 @@ public partial class PublicRpcRegistry : Singleton
             var handler = new LegacyTxTypeHandler(_validationSigner);
             await handler.InitializeAsync(chainId, cancellationToken);
 
-            string txBytes = handler.EncodeTxToBytes(
+            var signedTx = await handler.EncodeTxAsync(
                 ITxInput.ForEthTransfer(_validationSigner.Address, 1),
                 LegacyTxParams.Default,
                 new LegacyGasParams(21000, UInt256.Pow(10, 9)),
                 1,
-                out _
+                cancellationToken
             );
 
             var rpcModule = client.AsInternal().Provider.GetRequiredService<IEthRpcModule>();
 
-            await rpcModule.SendRawTransactionAsync(txBytes, cancellationToken);
+            await rpcModule.SendRawTransactionAsync(signedTx.EncodedTx, cancellationToken);
             return false;
         }
         catch(RPCException ex)

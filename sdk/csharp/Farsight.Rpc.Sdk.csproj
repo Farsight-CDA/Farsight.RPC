@@ -8,7 +8,7 @@
 		<RootNamespace>Farsight.Rpc.Sdk</RootNamespace>
 		<AssemblyName>Farsight.Rpc.Sdk</AssemblyName>
 		<PackageId>Farsight.Rpc.Sdk</PackageId>
-		<Description>SDK for reading Farsight RPC provider configuration.</Description>
+		<Description>SDK for reading Farsight RPC provider configuration and remote wallet signing.</Description>
 		<Authors>Farsight</Authors>
 		<RepositoryUrl>https://github.com/Farsight-CDA/Farsight.Rpc</RepositoryUrl>
 		<GeneratePackageOnBuild>false</GeneratePackageOnBuild>
@@ -19,11 +19,11 @@
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-		<NoWarn>1701;1702;CA1873</NoWarn>
+		<NoWarn>1701;1702;CA1873;NU5104</NoWarn>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-		<NoWarn>1701;1702;CA1873</NoWarn>
+		<NoWarn>1701;1702;CA1873;NU5104</NoWarn>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -33,6 +33,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<PackageReference Include="EtherSharp" />
 		<PackageReference Include="Microsoft.Extensions.Diagnostics.Abstractions" />
 		<PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
 		<PackageReference Include="Microsoft.Extensions.Http" />

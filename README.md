@@ -71,6 +71,12 @@ if (signResult is IFarsightRpcClient.SignResult.Success signed)
 {
     byte[] signature = signed.Signature;
 }
+
+IEtherSigner signer = new FarsightEtherSigner(
+    client,
+    "your-wallet-api-key",
+    Address.Parse("0x0123456789abcdef0123456789abcdef01234567")
+);
 ```
 
 More detail and edge cases live in [`sdk/csharp/README.md`](sdk/csharp/README.md).

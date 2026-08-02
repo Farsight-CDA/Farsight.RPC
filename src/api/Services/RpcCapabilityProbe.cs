@@ -285,7 +285,7 @@ public sealed partial class RpcCapabilityProbe : Transient
     {
         bool stateOverrides = await ExecuteOverrideProbeAsync(
             eth,
-            new StateOverride(code: Convert.FromHexString("602A60005260206000F3")),
+            new AccountOverride(code: Convert.FromHexString("602A60005260206000F3")),
             blockOverrides: null,
             expected: 42,
             cancellationToken);
@@ -299,7 +299,7 @@ public sealed partial class RpcCapabilityProbe : Transient
 
         bool blockOverrides = await ExecuteOverrideProbeAsync(
                 eth,
-                new StateOverride(code: Convert.FromHexString("4260005260206000F3")),
+                new AccountOverride(code: Convert.FromHexString("4260005260206000F3")),
                 new BlockOverride(Time: BLOCK_OVERRIDE_TIMESTAMP),
                 BLOCK_OVERRIDE_TIMESTAMP,
                 cancellationToken);
@@ -309,28 +309,30 @@ public sealed partial class RpcCapabilityProbe : Transient
 
     private static async Task<bool> ExecuteOverrideProbeAsync(
         IEthRpcModule eth,
-        StateOverride stateOverride,
+        AccountOverride stateOverride,
         BlockOverride? blockOverrides,
         ulong expected,
         CancellationToken cancellationToken)
     {
         try
         {
-            var stateOverrides = new Dictionary<Address, StateOverride>
+            var stateOverrides = new Dictionary<Address, AccountOverride>
             {
                 [_overrideProbeAddress] = stateOverride,
             };
 
             var result = await eth.CallAsync(
-                from: null,
                 to: _overrideProbeAddress,
                 gas: null,
                 gasPrice: null,
                 value: UInt256.Zero,
                 data: ReadOnlyMemory<byte>.Empty,
-                blockNumber: TargetHeight.Latest,
-                stateOverrides,
-                blockOverrides,
+                options: new CallOptions
+                {
+                    TargetHeight = TargetHeight.Latest,
+                    StateOverrides = stateOverrides,
+                    BlockOverrides = blockOverrides,
+                },
                 cancellationToken);
 
             if(!result.Success || result.Data.Length != 32)

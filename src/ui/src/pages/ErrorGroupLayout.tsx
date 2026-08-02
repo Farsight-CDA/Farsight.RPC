@@ -1,8 +1,9 @@
 import { A, useParams, useLocation } from "@solidjs/router";
 import { Show, createMemo, type ParentComponent } from "solid-js";
 import { useReferenceData } from "../lib/reference-data";
+import { DETAIL_PAGE_MAX_WIDTH } from "../lib/layout";
 import LoadingSpinner from "../components/LoadingSpinner";
-import ArrowLeftIcon from "../components/icons/ArrowLeftIcon";
+import DetailPageHeader from "../components/DetailPageHeader";
 import ErrorGroupIcon from "../components/icons/ErrorGroupIcon";
 import SettingsIcon from "../components/icons/SettingsIcon";
 
@@ -58,51 +59,28 @@ const ErrorGroupLayout: ParentComponent = (props) => {
             </div>
           }
         >
-          <div class="border-b border-b-border bg-b-field/50 px-6 py-3">
-            <div class="mx-auto max-w-3xl">
-              <div class="flex flex-col gap-1.5">
-                <div class="flex items-center gap-2">
-                  <A
-                    href="/errors"
-                    class="group flex items-center gap-1.5 text-[0.65rem] font-bold uppercase tracking-widest text-b-ink/50 transition-colors hover:text-b-accent"
-                  >
-                    <ArrowLeftIcon class="size-3.5 transition-transform group-hover:-translate-x-1" />
-                    Error Groups
-                  </A>
-                </div>
-                <h1 class="font-['Anton',sans-serif] text-3xl leading-none tracking-wide text-b-ink">
-                  {group()!.name}
-                </h1>
-                <div class="flex items-center border-b border-b-border/50">
-                  <A
-                    href={`/errors/${groupId()}/general`}
-                    class={`flex items-center gap-1.5 px-4 py-2 text-[0.65rem] font-bold uppercase tracking-widest transition-all duration-200 ${
-                      getActiveTab() === "general"
-                        ? "border-b-2 border-b-accent bg-b-accent/5 text-b-accent"
-                        : "text-b-ink/50 hover:text-b-ink hover:bg-b-ink/5"
-                    }`}
-                  >
-                    <SettingsIcon class="size-3.5" />
-                    General
-                  </A>
-                  <A
-                    href={`/errors/${groupId()}/matched`}
-                    class={`flex items-center gap-1.5 px-4 py-2 text-[0.65rem] font-bold uppercase tracking-widest transition-all duration-200 ${
-                      getActiveTab() === "matched"
-                        ? "border-b-2 border-b-accent bg-b-accent/5 text-b-accent"
-                        : "text-b-ink/50 hover:text-b-ink hover:bg-b-ink/5"
-                    }`}
-                  >
-                    <ErrorGroupIcon class="size-3.5" />
-                    Matched Errors
-                  </A>
-                </div>
-              </div>
-            </div>
-          </div>
+          <DetailPageHeader
+            backHref="/errors"
+            backLabel="Error Groups"
+            title={<>{group()!.name}</>}
+            tabs={[
+              {
+                href: `/errors/${groupId()}/general`,
+                label: "General",
+                icon: <SettingsIcon class="size-3.5" />,
+                active: getActiveTab() === "general",
+              },
+              {
+                href: `/errors/${groupId()}/matched`,
+                label: "Matched Errors",
+                icon: <ErrorGroupIcon class="size-3.5" />,
+                active: getActiveTab() === "matched",
+              },
+            ]}
+          />
 
           <div class="flex-1 px-6 py-4">
-            <div class="mx-auto max-w-3xl">{props.children}</div>
+            <div class={`mx-auto ${DETAIL_PAGE_MAX_WIDTH}`}>{props.children}</div>
           </div>
         </Show>
       </Show>

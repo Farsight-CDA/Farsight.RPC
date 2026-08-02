@@ -1,4 +1,4 @@
-import { A, useNavigate } from "@solidjs/router";
+import { useNavigate } from "@solidjs/router";
 import {
   For,
   Show,
@@ -7,9 +7,10 @@ import {
   type ParentComponent,
 } from "solid-js";
 import { useReferenceData } from "../lib/reference-data";
+import { DETAIL_PAGE_MAX_WIDTH } from "../lib/layout";
 import { useParams, useLocation, useSearchParams } from "@solidjs/router";
 import LoadingSpinner from "../components/LoadingSpinner";
-import ArrowLeftIcon from "../components/icons/ArrowLeftIcon";
+import DetailPageHeader from "../components/DetailPageHeader";
 import RpcIcon from "../components/icons/RpcIcon";
 import KeyIcon from "../components/icons/KeyIcon";
 import SettingsIcon from "../components/icons/SettingsIcon";
@@ -21,6 +22,68 @@ import ChevronDownIcon from "../components/icons/ChevronDownIcon";
 import { useEnvironment } from "../lib/environment-context";
 import { useApplicationData } from "../lib/application-data";
 import { anyChainFailsValidation } from "../lib/rule-validation";
+
+function EnvironmentSelector() {
+  const environment = useEnvironment();
+
+  return (
+    <div class="relative">
+      <Show when={environment.environmentsState() === "pending"}>
+        <div class="flex h-9 items-center gap-2 border border-b-border bg-b-field px-3 w-48">
+          <LoadingSpinner class="size-3" />
+          <span class="text-[0.65rem] font-bold uppercase tracking-widest text-b-ink/50">
+            Loading…
+          </span>
+        </div>
+      </Show>
+      <Show when={environment.environmentsState() === "errored"}>
+        <p class="border border-red-500/40 bg-red-500/10 px-3 py-2 text-[0.65rem] font-bold uppercase text-red-400 w-48">
+          Error
+        </p>
+      </Show>
+      <Show
+        when={
+          environment.environmentsState() === "ready" &&
+          environment.environments().length > 0
+        }
+      >
+        <select
+          id="environment-select"
+          value={environment.selectedEnvironmentId()}
+          onChange={(e) =>
+            environment.setSelectedEnvironmentId(
+              e.currentTarget.value || undefined,
+            )
+          }
+          class="h-9 w-48 appearance-none border border-b-border bg-b-field px-3 pr-8 text-[0.65rem] font-bold tracking-widest text-b-ink outline-none focus-visible:border-b-accent/50 focus-visible:ring-2 focus-visible:ring-b-accent/20 hover:border-b-border-hover transition-all duration-200 cursor-pointer"
+        >
+          <For each={environment.environments()}>
+            {(env) => (
+              <option value={env.id} class="bg-b-field">
+                {env.name}
+              </option>
+            )}
+          </For>
+        </select>
+        <div class="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2">
+          <ChevronDownIcon class="size-4 text-b-ink/50" />
+        </div>
+      </Show>
+      <Show
+        when={
+          environment.environmentsState() === "ready" &&
+          environment.environments().length === 0
+        }
+      >
+        <div class="flex h-9 items-center border border-b-border bg-b-field px-3 w-48">
+          <span class="text-[0.65rem] font-bold uppercase tracking-widest text-b-ink/50">
+            No environments
+          </span>
+        </div>
+      </Show>
+    </div>
+  );
+}
 
 const ApplicationLayoutContent: ParentComponent = (props) => {
   const referenceData = useReferenceData();
@@ -88,181 +151,93 @@ const ApplicationLayoutContent: ParentComponent = (props) => {
 
   return (
     <main class="flex flex-1 flex-col min-h-0">
-      <div class="border-b border-b-border bg-b-field/50 px-6 py-3 shrink-0">
-        <div class="mx-auto max-w-7xl">
-          <Show when={applicationsState() === "pending"}>
+      <Show when={applicationsState() === "pending"}>
+        <div class="shrink-0 border-b border-b-border bg-b-field/50 px-6 py-3">
+          <div class="mx-auto max-w-7xl">
             <div class="flex items-center gap-3 text-sm font-semibold uppercase tracking-wider text-b-ink/70">
               <LoadingSpinner class="size-5" />
               Loading application…
             </div>
-          </Show>
+          </div>
+        </div>
+      </Show>
 
-          <Show when={applicationsError()}>
+      <Show when={applicationsError()}>
+        <div class="shrink-0 border-b border-b-border bg-b-field/50 px-6 py-3">
+          <div class="mx-auto max-w-7xl">
             <p class="border-4 border-red-500/50 bg-red-500/10 px-3 py-3 text-xs font-bold uppercase leading-snug text-red-400">
               {applicationsError()!.message}
             </p>
-          </Show>
-
-          <Show when={application() && applicationsState() === "ready"}>
-            <div class="flex flex-col gap-1.5">
-              {/* Name row with breadcrumb and app name */}
-              <div class="flex items-center gap-2">
-                <button
-                  onClick={() => navigate("/applications")}
-                  class="group flex items-center gap-1.5 text-[0.65rem] font-bold uppercase tracking-widest text-b-ink/50 transition-colors hover:text-b-accent"
-                >
-                  <ArrowLeftIcon class="size-3.5 transition-transform group-hover:-translate-x-1" />
-                  Applications
-                </button>
-                <h1 class="flex items-center gap-2.5 font-['Anton',sans-serif] text-3xl leading-none tracking-wide text-b-ink">
-                  <span
-                    class="inline-block size-3 rounded-full shrink-0"
-                    style={{ "background-color": application()?.color ?? "#6B7280" }}
-                  />
-                  {application()?.name}
-                  <Show when={hasFailingChains()}>
-                    <WarningIcon class="size-5 text-amber-300" />
-                  </Show>
-                </h1>
-              </div>
-
-              {/* Tab row with optional environment selector */}
-              <div class="flex items-center justify-between border-b border-b-border/50">
-                <div class="flex">
-                  <A
-                    href={applicationHref("general")}
-                    class={`flex items-center gap-1.5 px-4 py-2 text-[0.65rem] font-bold uppercase tracking-widest transition-all duration-200 ${
-                      getActiveTab() === "general"
-                        ? "border-b-2 border-b-accent bg-b-accent/5 text-b-accent"
-                        : "text-b-ink/50 hover:text-b-ink hover:bg-b-ink/5"
-                    }`}
-                  >
-                    <SettingsIcon class="size-3.5" />
-                    General
-                  </A>
-                  <A
-                    href={applicationHref("environments")}
-                    class={`flex items-center gap-1.5 px-4 py-2 text-[0.65rem] font-bold uppercase tracking-widest transition-all duration-200 ${
-                      getActiveTab() === "environments"
-                        ? "border-b-2 border-b-accent bg-b-accent/5 text-b-accent"
-                        : "text-b-ink/50 hover:text-b-ink hover:bg-b-ink/5"
-                    }`}
-                  >
-                    <EnvironmentIcon class="size-3.5" />
-                    Environments
-                  </A>
-                  <A
-                    href={applicationHref("providers")}
-                    class={`flex items-center gap-1.5 px-4 py-2 text-[0.65rem] font-bold uppercase tracking-widest transition-all duration-200 ${
-                      getActiveTab() === "providers"
-                        ? "border-b-2 border-b-accent bg-b-accent/5 text-b-accent"
-                        : "text-b-ink/50 hover:text-b-ink hover:bg-b-ink/5"
-                    }`}
-                  >
-                    <ProviderIcon class="size-3.5" />
-                    Providers
-                  </A>
-                  <A
-                    href={applicationHref("rpcs")}
-                    class={`flex items-center gap-1.5 px-4 py-2 text-[0.65rem] font-bold uppercase tracking-widest transition-all duration-200 ${
-                      getActiveTab() === "rpcs"
-                        ? "border-b-2 border-b-accent bg-b-accent/5 text-b-accent"
-                        : "text-b-ink/50 hover:text-b-ink hover:bg-b-ink/5"
-                    }`}
-                  >
-                    <RpcIcon class="size-3.5" />
-                    RPCs
-                  </A>
-                  <A
-                    href={applicationHref("rules")}
-                    class={`flex items-center gap-1.5 px-4 py-2 text-[0.65rem] font-bold uppercase tracking-widest transition-all duration-200 ${
-                      getActiveTab() === "rules"
-                        ? "border-b-2 border-b-accent bg-b-accent/5 text-b-accent"
-                        : "text-b-ink/50 hover:text-b-ink hover:bg-b-ink/5"
-                    }`}
-                  >
-                    <RuleIcon class="size-3.5" />
-                    Rules
-                  </A>
-                  <A
-                    href={applicationHref("api-keys")}
-                    class={`flex items-center gap-1.5 px-4 py-2 text-[0.65rem] font-bold uppercase tracking-widest transition-all duration-200 ${
-                      getActiveTab() === "api-keys"
-                        ? "border-b-2 border-b-accent bg-b-accent/5 text-b-accent"
-                        : "text-b-ink/50 hover:text-b-ink hover:bg-b-ink/5"
-                    }`}
-                  >
-                    <KeyIcon class="size-3.5" />
-                    API Keys
-                  </A>
-                </div>
-
-                {/* Environment selector - shown on RPCs and Rules tabs */}
-                <Show when={isRpcsTab() || isRulesTab()}>
-                  <div class="relative">
-                    <Show when={environment.environmentsState() === "pending"}>
-                      <div class="flex h-9 items-center gap-2 border border-b-border bg-b-field px-3 w-48">
-                        <LoadingSpinner class="size-3" />
-                        <span class="text-[0.65rem] font-bold uppercase tracking-widest text-b-ink/50">
-                          Loading…
-                        </span>
-                      </div>
-                    </Show>
-                    <Show when={environment.environmentsState() === "errored"}>
-                      <p class="border border-red-500/40 bg-red-500/10 px-3 py-2 text-[0.65rem] font-bold uppercase text-red-400 w-48">
-                        Error
-                      </p>
-                    </Show>
-                    <Show
-                      when={
-                        environment.environmentsState() === "ready" &&
-                        environment.environments().length > 0
-                      }
-                    >
-                      <select
-                        id="environment-select"
-                        value={environment.selectedEnvironmentId()}
-                        onChange={(e) =>
-                          environment.setSelectedEnvironmentId(
-                            e.currentTarget.value || undefined,
-                          )
-                        }
-                        class="h-9 w-48 appearance-none border border-b-border bg-b-field px-3 pr-8 text-[0.65rem] font-bold tracking-widest text-b-ink outline-none focus-visible:border-b-accent/50 focus-visible:ring-2 focus-visible:ring-b-accent/20 hover:border-b-border-hover transition-all duration-200 cursor-pointer"
-                      >
-                        <For each={environment.environments()}>
-                          {(env) => (
-                            <option value={env.id} class="bg-b-field">
-                              {env.name}
-                            </option>
-                          )}
-                        </For>
-                      </select>
-                      <div class="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2">
-                        <ChevronDownIcon class="size-4 text-b-ink/50" />
-                      </div>
-                    </Show>
-                    <Show
-                      when={
-                        environment.environmentsState() === "ready" &&
-                        environment.environments().length === 0
-                      }
-                    >
-                      <div class="flex h-9 items-center border border-b-border bg-b-field px-3 w-48">
-                        <span class="text-[0.65rem] font-bold uppercase tracking-widest text-b-ink/50">
-                          No environments
-                        </span>
-                      </div>
-                    </Show>
-                  </div>
-                </Show>
-              </div>
-            </div>
-          </Show>
+          </div>
         </div>
-      </div>
+      </Show>
+
+      <Show when={application() && applicationsState() === "ready"}>
+        <DetailPageHeader
+          backHref="/applications"
+          backLabel="Applications"
+          title={
+            <>
+              <span
+                class="inline-block size-3 rounded-full shrink-0"
+                style={{
+                  "background-color": application()?.color ?? "#6B7280",
+                }}
+              />
+              {application()?.name}
+              <Show when={hasFailingChains()}>
+                <WarningIcon class="size-5 text-amber-300" />
+              </Show>
+            </>
+          }
+          tabs={[
+            {
+              href: applicationHref("general"),
+              label: "General",
+              icon: <SettingsIcon class="size-3.5" />,
+              active: getActiveTab() === "general",
+            },
+            {
+              href: applicationHref("environments"),
+              label: "Environments",
+              icon: <EnvironmentIcon class="size-3.5" />,
+              active: getActiveTab() === "environments",
+            },
+            {
+              href: applicationHref("providers"),
+              label: "Providers",
+              icon: <ProviderIcon class="size-3.5" />,
+              active: getActiveTab() === "providers",
+            },
+            {
+              href: applicationHref("rpcs"),
+              label: "RPCs",
+              icon: <RpcIcon class="size-3.5" />,
+              active: getActiveTab() === "rpcs",
+            },
+            {
+              href: applicationHref("rules"),
+              label: "Rules",
+              icon: <RuleIcon class="size-3.5" />,
+              active: getActiveTab() === "rules",
+            },
+            {
+              href: applicationHref("api-keys"),
+              label: "API Keys",
+              icon: <KeyIcon class="size-3.5" />,
+              active: getActiveTab() === "api-keys",
+            },
+          ]}
+          trailing={
+            <Show when={isRpcsTab() || isRulesTab()}>
+              <EnvironmentSelector />
+            </Show>
+          }
+        />
+      </Show>
 
       <div class="flex flex-1 flex-col overflow-hidden px-6 py-4 min-h-0">
-        <div class="mx-auto max-w-7xl flex flex-1 flex-col overflow-hidden min-h-0 w-full">{props.children}</div>
+        <div class={`mx-auto ${DETAIL_PAGE_MAX_WIDTH} flex flex-1 flex-col overflow-hidden min-h-0 w-full`}>{props.children}</div>
       </div>
     </main>
   );

@@ -27,7 +27,6 @@ export type ConsumerApiKeySummary = {
   id: string;
   environmentId: string;
   name: string;
-  key: string;
   lastUsedAt?: string;
 };
 

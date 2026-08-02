@@ -1,6 +1,6 @@
 using Farsight.Rpc.Api.Auth;
+using Farsight.Rpc.Api.Common.Extensions;
 using Farsight.Rpc.Api.Persistence;
-using Farsight.Rpc.Api.Validation;
 using FastEndpoints;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;

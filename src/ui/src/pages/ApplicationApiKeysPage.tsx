@@ -2,13 +2,15 @@ import { createEffect, createSignal, For, Show } from "solid-js";
 import { useParams } from "@solidjs/router";
 import LoadingSpinner from "../components/LoadingSpinner";
 import KeyIcon from "../components/icons/KeyIcon";
-import CopyIcon from "../components/icons/CopyIcon";
+import EyeIcon from "../components/icons/EyeIcon";
 import EmptyStateIcon from "../components/icons/EmptyStateIcon";
 import ChevronDownIcon from "../components/icons/ChevronDownIcon";
 import PencilIcon from "../components/icons/PencilIcon";
 import TrashIcon from "../components/icons/TrashIcon";
+import ApiKeyModal from "../components/ApiKeyModal";
 import { createModalBackdropHandlers } from "../lib/createModalBackdropHandlers";
 import { useAuth } from "../lib/auth";
+import { formatLastUsed } from "../lib/format";
 import { useReferenceData } from "../lib/reference-data";
 import {
   useApplicationData,
@@ -71,8 +73,8 @@ export default function ApplicationApiKeysPage() {
   const [deleteKeyError, setDeleteKeyError] = createSignal<string | null>(null);
   const [deleteKeyLoading, setDeleteKeyLoading] = createSignal(false);
   const [createKeyModalOpen, setCreateKeyModalOpen] = createSignal(false);
-  const [copiedKeyId, setCopiedKeyId] = createSignal<string | null>(null);
-  let copyFeedbackTimer: ReturnType<typeof setTimeout> | undefined;
+  const [apiKeyToView, setApiKeyToView] =
+    createSignal<ConsumerApiKeySummary | null>(null);
 
   createEffect(() => {
     const envs = environments();
@@ -252,31 +254,6 @@ export default function ApplicationApiKeysPage() {
     setApiKeyToDelete(null),
   );
 
-  const handleCopyApiKey = (key: ConsumerApiKeySummary) => {
-    void navigator.clipboard.writeText(key.key);
-    if (copyFeedbackTimer !== undefined) {
-      clearTimeout(copyFeedbackTimer);
-    }
-    setCopiedKeyId(key.id);
-    copyFeedbackTimer = setTimeout(() => {
-      setCopiedKeyId(null);
-      copyFeedbackTimer = undefined;
-    }, 2000);
-  };
-
-  const formatLastUsed = (iso?: string) => {
-    if (!iso) return "Never used";
-    const d = new Date(iso);
-    if (Number.isNaN(d.getTime())) return "Unknown";
-    return d.toLocaleString(undefined, {
-      dateStyle: "medium",
-      timeStyle: "short",
-    });
-  };
-
-  const formatKeyPreview = (key: string) =>
-    key.length <= 6 ? key : `${key.slice(0, 6)}…`;
-
   const getEnvironmentName = (environmentId: string) =>
     environments().find((environment) => environment.id === environmentId)
       ?.name ?? "Unknown";
@@ -439,28 +416,21 @@ export default function ApplicationApiKeysPage() {
                                   </span>
                                 </p>
                               </div>
-                              <div class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-2">
-                                <code class="select-all font-mono text-xs font-semibold tracking-wide text-b-ink/85">
-                                  {formatKeyPreview(k.key)}
-                                </code>
-                                <button
-                                  type="button"
-                                  onClick={() => handleCopyApiKey(k)}
-                                  disabled={
-                                    createKeyLoading() ||
-                                    deleteKeyLoading() ||
-                                    editApiKeyLoading()
-                                  }
-                                  class="btn btn-sm btn-interactive btn-disabled btn-secondary inline-flex shrink-0 items-center justify-center gap-2"
-                                >
-                                  <CopyIcon class="size-3.5 opacity-80" />
-                                  {copiedKeyId() === k.id
-                                    ? "Copied"
-                                    : "Copy full key"}
-                                </button>
-                              </div>
                             </div>
                             <div class="flex shrink-0 items-center justify-end gap-2 border-t border-b-border/60 pt-3 sm:border-l sm:border-t-0 sm:pl-6 sm:pt-0">
+                              <button
+                                type="button"
+                                onClick={() => setApiKeyToView(k)}
+                                disabled={
+                                  createKeyLoading() ||
+                                  deleteKeyLoading() ||
+                                  editApiKeyLoading()
+                                }
+                                class="btn btn-sm btn-interactive btn-disabled btn-secondary"
+                                title="View API key"
+                              >
+                                <EyeIcon class="size-4" />
+                              </button>
                               <button
                                 type="button"
                                 onClick={() => startEditingApiKey(k)}
@@ -721,6 +691,30 @@ export default function ApplicationApiKeysPage() {
           </div>
         </div>
       </Show>
+
+      <ApiKeyModal
+        apiKey={apiKeyToView}
+        onClose={() => setApiKeyToView(null)}
+        loadKey={async (apiKeyId) => {
+          const token = auth.token;
+          const app = applicationId();
+          if (!token || !app) {
+            throw new Error("Failed to load API key");
+          }
+          const response = await fetch(
+            `/api/Applications/${app}/ApiKeys/${apiKeyId}/Key`,
+            { headers: { Authorization: `Bearer ${token}` } },
+          );
+          if (!response.ok) {
+            throw new Error(
+              await readErrorMessage(response, "Failed to load API key"),
+            );
+          }
+          const data = (await response.json()) as { key: string };
+          return data.key;
+        }}
+        description="Anyone with access to this key can make requests against this application."
+      />
     </>
   );
 }

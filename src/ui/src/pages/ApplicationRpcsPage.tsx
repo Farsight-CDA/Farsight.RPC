@@ -1321,9 +1321,6 @@ export default function ApplicationRpcsPage() {
                     <div class="flex min-h-0 flex-1 flex-col">
                       <div class="flex shrink-0 flex-col gap-3 border-b border-b-border p-4 sm:flex-row sm:items-center sm:justify-between">
                         <div class="min-w-0">
-                          <p class="text-[0.65rem] font-bold uppercase tracking-[0.35em] text-b-accent">
-                            Chain
-                          </p>
                           <h2 class="flex items-center gap-2 truncate font-['Anton',sans-serif] text-2xl tracking-wide text-b-ink">
                             {activeChain()}
                           </h2>

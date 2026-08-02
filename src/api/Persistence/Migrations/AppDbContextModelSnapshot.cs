@@ -323,6 +323,91 @@ namespace Farsight.Rpc.Api.Persistence.Migrations
                     b.ToTable("UserSecurityKeys", (string)null);
                 });
 
+            modelBuilder.Entity("Farsight.Rpc.Api.Persistence.Entities.Wallet", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Color")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(7)
+                        .HasColumnType("character varying(7)")
+                        .HasDefaultValue("#6B7280");
+
+                    b.Property<string>("Mnemonic")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .UseCollation("name_case_insensitive");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("Wallets", (string)null);
+                });
+
+            modelBuilder.Entity("Farsight.Rpc.Api.Persistence.Entities.WalletApiKey", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset?>("LastUsedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("WalletPrivateKeyId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Key")
+                        .IsUnique();
+
+                    b.HasIndex("WalletPrivateKeyId");
+
+                    b.ToTable("WalletApiKeys", (string)null);
+                });
+
+            modelBuilder.Entity("Farsight.Rpc.Api.Persistence.Entities.WalletPrivateKey", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Curve")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("DerivationPath")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("WalletId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("WalletId", "Curve", "DerivationPath")
+                        .IsUnique();
+
+                    b.ToTable("WalletPrivateKeys", (string)null);
+                });
+
             modelBuilder.Entity("Farsight.Rpc.Api.Persistence.Entities.SecurityKeyChallenge+Login", b =>
                 {
                     b.HasBaseType("Farsight.Rpc.Api.Persistence.Entities.SecurityKeyChallenge");
@@ -428,6 +513,28 @@ namespace Farsight.Rpc.Api.Persistence.Migrations
                     b.Navigation("Environment");
                 });
 
+            modelBuilder.Entity("Farsight.Rpc.Api.Persistence.Entities.WalletApiKey", b =>
+                {
+                    b.HasOne("Farsight.Rpc.Api.Persistence.Entities.WalletPrivateKey", "WalletPrivateKey")
+                        .WithMany("ApiKeys")
+                        .HasForeignKey("WalletPrivateKeyId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("WalletPrivateKey");
+                });
+
+            modelBuilder.Entity("Farsight.Rpc.Api.Persistence.Entities.WalletPrivateKey", b =>
+                {
+                    b.HasOne("Farsight.Rpc.Api.Persistence.Entities.Wallet", "Wallet")
+                        .WithMany("PrivateKeys")
+                        .HasForeignKey("WalletId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Wallet");
+                });
+
             modelBuilder.Entity("Farsight.Rpc.Api.Persistence.Entities.ApplicationEnvironment", b =>
                 {
                     b.Navigation("ApiKeys");
@@ -451,6 +558,16 @@ namespace Farsight.Rpc.Api.Persistence.Migrations
             modelBuilder.Entity("Farsight.Rpc.Api.Persistence.Entities.RpcProvider", b =>
                 {
                     b.Navigation("Rpcs");
+                });
+
+            modelBuilder.Entity("Farsight.Rpc.Api.Persistence.Entities.Wallet", b =>
+                {
+                    b.Navigation("PrivateKeys");
+                });
+
+            modelBuilder.Entity("Farsight.Rpc.Api.Persistence.Entities.WalletPrivateKey", b =>
+                {
+                    b.Navigation("ApiKeys");
                 });
 #pragma warning restore 612, 618
         }

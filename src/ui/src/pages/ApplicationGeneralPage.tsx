@@ -1,39 +1,13 @@
-import { createMemo, createSignal, For, Show } from "solid-js";
 import { useNavigate, useParams } from "@solidjs/router";
-import { PRESET_COLORS } from "../components/ColorPicker";
-import LoadingSpinner from "../components/LoadingSpinner";
-import PencilIcon from "../components/icons/PencilIcon";
-import TrashIcon from "../components/icons/TrashIcon";
-
-import { createModalBackdropHandlers } from "../lib/createModalBackdropHandlers";
+import { createMemo } from "solid-js";
+import ColorSettingsSection from "../components/ColorSettingsSection";
+import DeleteSection from "../components/DeleteSection";
+import InlineNameEdit from "../components/InlineNameEdit";
+import SettingsSection from "../components/SettingsSection";
+import SettingsIcon from "../components/icons/SettingsIcon";
 import { useAuth } from "../lib/auth";
-import {
-  nameValidationHint,
-  nameValidationPattern,
-  validateName,
-} from "../lib/name-validation";
+import { readErrorMessage } from "../lib/error-groups";
 import { useReferenceData } from "../lib/reference-data";
-import { useEscapeKey } from "../lib/useEscapeKey";
-
-async function readErrorMessage(
-  response: Response,
-  fallback: string,
-  conflictHint?: string,
-): Promise<string> {
-  try {
-    const data = (await response.json()) as {
-      message?: string;
-      errors?: Record<string, string[]>;
-    };
-    if (data.message && data.message !== "One or more errors occurred!")
-      return data.message;
-    const first = data.errors && Object.values(data.errors).flat()[0];
-    if (first) return first;
-  } catch {}
-  if (response.status === 409)
-    return conflictHint ?? "An application with this name already exists.";
-  return fallback;
-}
 
 export default function ApplicationGeneralPage() {
   const auth = useAuth();
@@ -47,24 +21,29 @@ export default function ApplicationGeneralPage() {
     () => applications().find((app) => app.id === applicationId()) ?? null,
   );
 
-  const [isEditingName, setIsEditingName] = createSignal(false);
-  const [editingName, setEditingName] = createSignal("");
-  const [renameError, setRenameError] = createSignal<string | null>(null);
-  const [renameLoading, setRenameLoading] = createSignal(false);
+  const handleUpdateName = async (newName: string) => {
+    const token = auth.token;
+    const app = application();
+    if (!token || !app) return;
 
-  const [deleteError, setDeleteError] = createSignal<string | null>(null);
-  const [deleteLoading, setDeleteLoading] = createSignal(false);
-
-  const [colorError, setColorError] = createSignal<string | null>(null);
-  const [colorLoading, setColorLoading] = createSignal(false);
-
-  const [customColor, setCustomColor] = createSignal("");
-  const [showCustom, setShowCustom] = createSignal(false);
-
-  const startEditingName = () => {
-    setRenameError(null);
-    setEditingName(application()?.name ?? "");
-    setIsEditingName(true);
+    const response = await fetch(`/api/Applications/${app.id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ name: newName }),
+    });
+    if (!response.ok) {
+      throw new Error(
+        await readErrorMessage(
+          response,
+          "Failed to rename application",
+          "An application with this name already exists.",
+        ),
+      );
+    }
+    await referenceData.refreshApplications();
   };
 
   const handleUpdateColor = async (newColor: string) => {
@@ -72,455 +51,95 @@ export default function ApplicationGeneralPage() {
     const app = application();
     if (!token || !app) return;
 
-    if (app.color === newColor) return;
-
-    setColorError(null);
-    setColorLoading(true);
-    try {
-      const response = await fetch(`/api/Applications/${app.id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ color: newColor }),
-      });
-      if (!response.ok) {
-        throw new Error(
-          await readErrorMessage(response, "Failed to update color"),
-        );
-      }
-      await referenceData.refreshApplications();
-    } catch (err) {
-      setColorError(
-        err instanceof Error ? err.message : "Failed to update color",
+    const response = await fetch(`/api/Applications/${app.id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ color: newColor }),
+    });
+    if (!response.ok) {
+      throw new Error(
+        await readErrorMessage(response, "Failed to update color"),
       );
-    } finally {
-      setColorLoading(false);
     }
-  };
-
-  const handleCustomSubmit = () => {
-    const hex = customColor();
-    if (/^#[0-9A-Fa-f]{6}$/.test(hex)) {
-      void handleUpdateColor(hex);
-      setShowCustom(false);
-      setCustomColor("");
-    }
-  };
-
-  const handleRename = async () => {
-    const token = auth.token;
-    const app = application();
-    if (!token || !app) return;
-
-    const name = editingName();
-    const validationError = validateName(name);
-    if (validationError) {
-      setRenameError(validationError);
-      return;
-    }
-
-    // Skip API call if name hasn't changed
-    if (app.name === name) {
-      setIsEditingName(false);
-      setEditingName("");
-      return;
-    }
-
-    setRenameError(null);
-    setRenameLoading(true);
-    try {
-      const response = await fetch(`/api/Applications/${app.id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ name }),
-      });
-      if (!response.ok) {
-        throw new Error(
-          await readErrorMessage(response, "Failed to rename application"),
-        );
-      }
-      setIsEditingName(false);
-      setEditingName("");
-      await referenceData.refreshApplications();
-    } catch (err) {
-      setRenameError(
-        err instanceof Error ? err.message : "Failed to rename application",
-      );
-    } finally {
-      setRenameLoading(false);
-    }
+    await referenceData.refreshApplications();
   };
 
   const handleDeleteApplication = async () => {
     const token = auth.token;
     const app = application();
     if (!token || !app) return;
-    setDeleteError(null);
-    setDeleteLoading(true);
-    try {
-      const response = await fetch(`/api/Applications/${app.id}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!response.ok) {
-        throw new Error(
-          await readErrorMessage(response, "Failed to delete application"),
-        );
-      }
-      referenceData.removeApplication(app.id);
-      navigate("/", { replace: true });
-      void referenceData.refreshApplications();
-    } catch (err) {
-      setDeleteError(
-        err instanceof Error ? err.message : "Failed to delete application",
+
+    const response = await fetch(`/api/Applications/${app.id}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!response.ok) {
+      throw new Error(
+        await readErrorMessage(response, "Failed to delete application"),
       );
-    } finally {
-      setDeleteLoading(false);
     }
+    referenceData.removeApplication(app.id);
+    navigate("/", { replace: true });
   };
 
-  useEscapeKey(deleteLoading, () => setDeleteLoading(false));
-
-  const deleteApplicationBackdropHandlers = createModalBackdropHandlers(() =>
-    setDeleteLoading(false),
-  );
-
   return (
-    <>
-      <div class="flex flex-col gap-6">
-        <section class="border border-b-border bg-b-field overflow-hidden">
-          <div class="border-b border-b-border bg-b-paper/30 px-6 py-4">
-            <div class="flex items-center gap-3">
-              <div class="flex size-10 items-center justify-center border border-b-ink/20 bg-b-ink/5">
-                <PencilIcon class="size-5 text-b-ink/70" />
-              </div>
-              <div>
-                <h2 class="font-['Anton',sans-serif] text-xl uppercase tracking-wide text-b-ink">
-                  General Settings
-                </h2>
-                <p class="text-xs font-bold uppercase tracking-widest text-b-ink/50">
-                  Manage application name and deletion
-                </p>
-              </div>
+    <div class="flex flex-col gap-6">
+      <SettingsSection
+        icon={<SettingsIcon class="size-5 text-b-ink/70" />}
+        title="General Settings"
+        subtitle="Manage application name"
+      >
+        <InlineNameEdit
+          value={() => application()?.name ?? ""}
+          label="Application Name"
+          onSave={handleUpdateName}
+          editButtonTitle="Rename application"
+          inputId="edit-app-name"
+        />
+      </SettingsSection>
+
+      <ColorSettingsSection
+        value={() => application()?.color ?? "#6B7280"}
+        subtitle="Visual identifier for the applications list"
+        onSave={handleUpdateColor}
+      />
+
+      <DeleteSection
+        title="Delete Application"
+        subtitle="Remove all data permanently"
+        buttonTitle="Delete application"
+        onDelete={handleDeleteApplication}
+      >
+        <div class="flex flex-col gap-4">
+          <p class="text-sm font-semibold text-b-ink/70">
+            Permanently delete{" "}
+            <span class="font-bold text-red-400">{application()?.name}</span>?
+            This cannot be undone.
+          </p>
+          <div class="flex flex-col gap-2">
+            <div class="flex items-center gap-2 text-sm text-b-ink/60">
+              <span class="inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-red-500/10 px-1.5 text-xs font-bold text-red-400">
+                {application()?.rpcCount ?? 0}
+              </span>
+              <span>
+                RPC{application()?.rpcCount === 1 ? "" : "s"} will be deleted
+              </span>
             </div>
-          </div>
-
-          <div class="p-6">
-            <Show
-              when={!isEditingName()}
-              fallback={
-                <div class="flex flex-col gap-3">
-                  <label class="text-xs font-bold uppercase tracking-widest text-b-ink/70">
-                    Application Name
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    pattern={nameValidationPattern}
-                    value={editingName()}
-                    onInput={(e) => {
-                      setEditingName(e.currentTarget.value);
-                      setRenameError(null);
-                    }}
-                    class="h-11 w-full border border-b-border bg-b-paper px-4 text-sm font-semibold text-b-ink placeholder:text-b-ink/25 outline-none focus-visible:border-b-accent/50 focus-visible:ring-2 focus-visible:ring-b-accent/20 hover:border-b-border-hover transition-all duration-200"
-                    placeholder="MY_APPLICATION"
-                    title={nameValidationHint}
-                    autocomplete="off"
-                  />
-                  <p class="text-xs font-semibold uppercase tracking-wider text-b-ink/40">
-                    {nameValidationHint}
-                  </p>
-                  <Show when={renameError()}>
-                    <p class="border border-red-500/40 bg-red-500/10 px-3 py-3 text-xs font-bold uppercase leading-snug text-red-400">
-                      {renameError()}
-                    </p>
-                  </Show>
-                  <div class="flex flex-col gap-3 sm:flex-row sm:justify-end">
-                    <button
-                      type="button"
-                      onClick={() => void handleRename()}
-                      disabled={renameLoading()}
-                      class="btn btn-md btn-interactive btn-disabled btn-primary"
-                    >
-                      <Show when={renameLoading()}>
-                        <LoadingSpinner class="size-3.5 text-b-paper" />
-                      </Show>
-                      {renameLoading()
-                        ? "Saving…"
-                        : application()?.name === editingName()
-                          ? "Cancel"
-                          : "Save"}
-                    </button>
-                  </div>
-                </div>
-              }
-            >
-              <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <p class="text-xs font-bold uppercase tracking-widest text-b-ink/50 mb-1">
-                    Application Name
-                  </p>
-                  <p class="font-['Anton',sans-serif] text-2xl tracking-wide text-b-ink">
-                    {application()?.name}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={startEditingName}
-                  disabled={renameLoading() || deleteLoading()}
-                  class="btn btn-md btn-interactive btn-disabled btn-secondary shrink-0"
-                  title="Rename application"
-                >
-                  <PencilIcon class="size-4" />
-                </button>
-              </div>
-            </Show>
-          </div>
-        </section>
-
-        <section class="border border-b-border bg-b-field overflow-hidden">
-          <div class="border-b border-b-border bg-b-paper/30 px-6 py-4">
-            <div class="flex items-center gap-3">
-              <div class="flex size-10 items-center justify-center border border-b-ink/20 bg-b-ink/5">
-                <div
-                  class="size-5 rounded-full border border-b-border"
-                  style={{ "background-color": application()?.color ?? "#6B7280" }}
-                />
-              </div>
-              <div>
-                <h2 class="font-['Anton',sans-serif] text-xl uppercase tracking-wide text-b-ink">
-                  Application Color
-                </h2>
-                <p class="text-xs font-bold uppercase tracking-widest text-b-ink/50">
-                  Visual identifier for the applications list
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div class="p-6">
-            <div class="flex flex-col gap-4">
-              <div class="flex items-center gap-3">
-                <div
-                  class="size-8 border border-b-border"
-                  style={{ "background-color": application()?.color ?? "#6B7280" }}
-                />
-                <p class="text-sm font-mono font-semibold text-b-ink/70">
-                  {application()?.color}
-                </p>
-              </div>
-
-              <div class="flex flex-wrap gap-2">
-                <For each={PRESET_COLORS}>
-                  {(color) => (
-                    <button
-                      type="button"
-                      disabled={colorLoading()}
-                      onClick={() => {
-                        if (color !== application()?.color) {
-                          void handleUpdateColor(color);
-                        }
-                      }}
-                      class="relative size-8 border-2 transition-all duration-150 outline-none focus-visible:ring-2 focus-visible:ring-b-accent/40 disabled:opacity-40 disabled:cursor-not-allowed"
-                      style={{
-                        "background-color": color,
-                        "border-color":
-                          (application()?.color ?? "") === color
-                            ? "#fff"
-                            : "transparent",
-                        "box-shadow":
-                          (application()?.color ?? "") === color
-                            ? `0 0 0 2px ${color}`
-                            : "none",
-                        opacity:
-                          (application()?.color ?? "") === color ? 1 : 0.4,
-                      }}
-                      title={color}
-                    />
-                  )}
-                </For>
-                <button
-                  type="button"
-                  disabled={colorLoading()}
-                  onClick={() => {
-                    if (showCustom()) {
-                      setShowCustom(false);
-                      setCustomColor("");
-                    } else {
-                      setShowCustom(true);
-                      if (!PRESET_COLORS.includes(application()?.color ?? "")) {
-                        setCustomColor(application()?.color ?? "");
-                      }
-                    }
-                  }}
-                  class={`flex size-8 items-center justify-center border-2 text-xs font-bold transition-all duration-150 outline-none focus-visible:ring-2 focus-visible:ring-b-accent/40 disabled:opacity-40 disabled:cursor-not-allowed ${
-                    showCustom() || !PRESET_COLORS.includes(application()?.color ?? "")
-                      ? "border-b-accent bg-b-accent/10 text-b-accent"
-                      : "border-b-border bg-b-field text-b-ink/50 hover:border-b-border-hover"
-                  }`}
-                  title="Custom hex color"
-                >
-                  #
-                </button>
-              </div>
-
-              <Show when={showCustom()}>
-                <div class="flex items-center gap-2">
-                  <input
-                    type="text"
-                    value={customColor()}
-                    onInput={(e) => {
-                      let hex = e.currentTarget.value;
-                      if (hex && !hex.startsWith("#")) {
-                        hex = "#" + hex;
-                      }
-                      setCustomColor(hex);
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        handleCustomSubmit();
-                      }
-                    }}
-                    maxlength={7}
-                    placeholder="#FF5722"
-                    disabled={colorLoading()}
-                    class="h-9 w-28 border border-b-border bg-b-paper px-3 text-sm font-mono font-semibold text-b-ink placeholder:text-b-ink/25 outline-none focus-visible:border-b-accent/50 focus-visible:ring-2 focus-visible:ring-b-accent/20 hover:border-b-border-hover transition-all duration-200"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleCustomSubmit}
-                    disabled={
-                      colorLoading() || !/^#[0-9A-Fa-f]{6}$/.test(customColor())
-                    }
-                    class="btn btn-sm btn-interactive btn-disabled btn-primary"
-                  >
-                    Apply
-                  </button>
-                </div>
-              </Show>
-
-              <Show when={colorError()}>
-                <p class="border border-red-500/40 bg-red-500/10 px-3 py-3 text-xs font-bold uppercase leading-snug text-red-400">
-                  {colorError()}
-                </p>
-              </Show>
-            </div>
-          </div>
-        </section>
-
-        <section class="border border-red-500/30 bg-b-field overflow-hidden">
-          <div class="border-b border-red-500/30 bg-red-500/5 px-6 py-4">
-            <div class="flex items-center justify-between gap-4">
-              <div class="flex items-center gap-3">
-                <div class="flex size-10 items-center justify-center border border-red-500/30 bg-red-500/10">
-                  <TrashIcon class="size-5 text-red-400" />
-                </div>
-                <div>
-                  <h2 class="font-['Anton',sans-serif] text-xl uppercase tracking-wide text-red-400">
-                    Delete Application
-                  </h2>
-                  <p class="text-xs font-bold uppercase tracking-widest text-red-400/60">
-                    Remove all data permanently
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setDeleteLoading(true)}
-                disabled={deleteLoading() || isEditingName() || colorLoading()}
-                class="btn btn-md btn-interactive btn-disabled btn-danger"
-                title="Delete application"
-              >
-                <Show
-                  when={deleteLoading()}
-                  fallback={<TrashIcon class="size-4" />}
-                >
-                  <LoadingSpinner class="size-4" />
-                </Show>
-              </button>
-            </div>
-          </div>
-        </section>
-      </div>
-
-      <Show when={deleteLoading()}>
-        <div
-          class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm px-4 py-8"
-          role="presentation"
-          {...deleteApplicationBackdropHandlers}
-        >
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="delete-application-title"
-            class="w-full max-w-md border border-red-500/30 bg-b-field p-8 shadow-[0_25px_50px_rgba(0,0,0,0.5)]"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <p class="mb-2 text-xs font-bold uppercase tracking-[0.35em] text-red-400">
-              Confirm Deletion
-            </p>
-            <h3
-              id="delete-application-title"
-              class="mb-4 font-['Anton',sans-serif] text-4xl uppercase leading-none tracking-wide text-b-ink"
-            >
-              Delete Application
-            </h3>
-            <p class="mb-4 text-sm font-semibold text-b-ink/70">
-              Permanently delete{" "}
-              <span class="font-bold text-red-400">{application()?.name}</span>?
-              This cannot be undone.
-            </p>
-            <div class="mb-6 space-y-2">
-              <div class="flex items-center gap-2 text-sm text-b-ink/60">
-                <span class="inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-red-500/10 px-1.5 text-xs font-bold text-red-400">
-                  {application()?.rpcCount ?? 0}
-                </span>
-                <span>
-                  RPC{application()?.rpcCount === 1 ? "" : "s"} will be deleted
-                </span>
-              </div>
-              <div class="flex items-center gap-2 text-sm text-b-ink/60">
-                <span class="inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-red-500/10 px-1.5 text-xs font-bold text-red-400">
-                  {application()?.apiKeyCount ?? 0}
-                </span>
-                <span>
-                  API key{application()?.apiKeyCount === 1 ? "" : "s"} will be
-                  deleted
-                </span>
-              </div>
-            </div>
-
-            <Show when={deleteError()}>
-              <p class="mb-6 border border-red-500/40 bg-red-500/10 px-3 py-3 text-xs font-bold uppercase leading-snug text-red-400">
-                {deleteError()}
-              </p>
-            </Show>
-
-            <div class="flex flex-col gap-3 sm:flex-row sm:justify-end">
-              <button
-                type="button"
-                onClick={() => setDeleteLoading(false)}
-                class="btn btn-md btn-interactive btn-secondary"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleDeleteApplication}
-                class="btn btn-md btn-interactive btn-danger"
-              >
-                Delete
-              </button>
+            <div class="flex items-center gap-2 text-sm text-b-ink/60">
+              <span class="inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-red-500/10 px-1.5 text-xs font-bold text-red-400">
+                {application()?.apiKeyCount ?? 0}
+              </span>
+              <span>
+                API key{application()?.apiKeyCount === 1 ? "" : "s"} will be
+                deleted
+              </span>
             </div>
           </div>
         </div>
-      </Show>
-    </>
+      </DeleteSection>
+    </div>
   );
 }

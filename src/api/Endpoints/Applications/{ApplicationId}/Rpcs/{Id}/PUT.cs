@@ -22,10 +22,6 @@ public sealed class PUT(AppDbContext dbContext) : Endpoint<PUT.Request>
     {
         public Validator()
         {
-            RuleFor(x => x)
-                .Must(x => x.ProviderId is not null || x.Capabilities is not null || x.EthGetLogsLimit is not null)
-                .WithMessage("At least one field (ProviderId, Capabilities, or EthGetLogsLimit) must be provided.");
-
             When(
                 x => x.ProviderId is not null,
                 () => RuleFor(x => x.ProviderId)

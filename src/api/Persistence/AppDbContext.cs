@@ -17,6 +17,9 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     public DbSet<SecurityKeyChallenge.Login> SecurityKeyLoginChallenges => Set<SecurityKeyChallenge.Login>();
     public DbSet<SecurityKeyChallenge.Registration> SecurityKeyRegistrationChallenges => Set<SecurityKeyChallenge.Registration>();
     public DbSet<UserSecurityKey> UserSecurityKeys => Set<UserSecurityKey>();
+    public DbSet<Wallet> Wallets => Set<Wallet>();
+    public DbSet<WalletApiKey> WalletApiKeys => Set<WalletApiKey>();
+    public DbSet<WalletPrivateKey> WalletPrivateKeys => Set<WalletPrivateKey>();
 
     public DbSet<RpcEndpoint> Rpcs => Set<RpcEndpoint>();
     public DbSet<RpcRule> RpcRules => Set<RpcRule>();

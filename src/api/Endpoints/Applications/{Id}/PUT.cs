@@ -1,6 +1,6 @@
 using Farsight.Rpc.Api.Auth;
+using Farsight.Rpc.Api.Common.Extensions;
 using Farsight.Rpc.Api.Persistence;
-using Farsight.Rpc.Api.Validation;
 using FastEndpoints;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
@@ -20,10 +20,6 @@ public sealed class PUT(AppDbContext dbContext) : Endpoint<PUT.Request>
     {
         public Validator()
         {
-            RuleFor(x => x)
-                .Must(x => x.Name is not null || x.Color is not null)
-                .WithMessage("At least one field (Name or Color) must be provided.");
-
             When(
                 x => x.Name is not null,
                 () => RuleFor(x => x.Name!).ApplyNameValidation()
@@ -31,9 +27,7 @@ public sealed class PUT(AppDbContext dbContext) : Endpoint<PUT.Request>
 
             When(
                 x => x.Color is not null,
-                () => RuleFor(x => x.Color!)
-                    .Matches(@"^#[0-9A-Fa-f]{6}$")
-                    .WithMessage("Color must be a valid hex color code (e.g. #FF5722).")
+                () => RuleFor(x => x.Color).ApplyColorValidation()
                 );
         }
     }

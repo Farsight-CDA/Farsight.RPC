@@ -19,6 +19,13 @@ export type ApplicationSummary = {
   color: string;
 };
 
+export type WalletSummary = {
+  id: string;
+  name: string;
+  privateKeyCount: number;
+  color: string;
+};
+
 export type RpcProviderSummary = {
   id: string;
   name: string;
@@ -35,6 +42,7 @@ export type RpcErrorGroupSummary = {
 
 export type ReferenceDataSnapshot = {
   applications: ApplicationSummary[];
+  wallets: WalletSummary[];
   rpcProviders: RpcProviderSummary[];
   chains: string[];
   errorGroups: RpcErrorGroupSummary[];
@@ -48,15 +56,21 @@ type ListController<T> = {
 
 type ReferenceDataContextValue = {
   applications: ListController<ApplicationSummary>;
+  wallets: ListController<WalletSummary>;
   rpcProviders: ListController<RpcProviderSummary>;
   chains: ListController<string>;
   errorGroups: ListController<RpcErrorGroupSummary>;
   isReferenceDataReady: Accessor<boolean>;
   load: (token?: string | null) => Promise<void>;
   refreshApplications: () => Promise<void>;
+  refreshWallets: () => Promise<void>;
   refreshRpcProviders: () => Promise<void>;
   refreshErrorGroups: () => Promise<void>;
   removeApplication: (applicationId: string) => void;
+  removeWallet: (walletId: string) => void;
+  addApplication: (app: ApplicationSummary) => void;
+  addWallet: (wallet: WalletSummary) => void;
+  addErrorGroup: (group: RpcErrorGroupSummary) => void;
 };
 
 const ReferenceDataContext = createContext<ReferenceDataContextValue>();
@@ -80,12 +94,17 @@ async function fetchReferenceList<T>(
 export async function preloadReferenceData(
   token: string,
 ): Promise<ReferenceDataSnapshot> {
-  const [applications, rpcProviders, chains, errorGroups] =
+  const [applications, wallets, rpcProviders, chains, errorGroups] =
     await Promise.all([
       fetchReferenceList<ApplicationSummary>(
         "/api/Applications",
         token,
         "Failed to load applications",
+      ),
+      fetchReferenceList<WalletSummary>(
+        "/api/Wallets",
+        token,
+        "Failed to load wallets",
       ),
       fetchReferenceList<RpcProviderSummary>(
         "/api/RpcProviders",
@@ -102,6 +121,7 @@ export async function preloadReferenceData(
 
   return {
     applications,
+    wallets,
     rpcProviders,
     chains,
     errorGroups,
@@ -129,6 +149,12 @@ export function ReferenceDataProvider(props: ReferenceDataProviderProps) {
   const [applicationsError, setApplicationsError] = createSignal<Error | null>(
     null,
   );
+
+  const [wallets, setWallets] = createSignal(initialData?.wallets ?? []);
+  const [walletsState, setWalletsState] = createSignal<LoadState>(
+    initialData ? "ready" : "idle",
+  );
+  const [walletsError, setWalletsError] = createSignal<Error | null>(null);
 
   const [rpcProviders, setRpcProviders] = createSignal(
     initialData?.rpcProviders ?? [],
@@ -164,6 +190,9 @@ export function ReferenceDataProvider(props: ReferenceDataProviderProps) {
     setApplications([]);
     setApplicationsState("idle");
     setApplicationsError(null);
+    setWallets([]);
+    setWalletsState("idle");
+    setWalletsError(null);
     setRpcProviders([]);
     setRpcProvidersState("idle");
     setRpcProvidersError(null);
@@ -190,6 +219,10 @@ export function ReferenceDataProvider(props: ReferenceDataProviderProps) {
       applications().length > 0 && isRefresh ? "refreshing" : "pending",
     );
     setApplicationsError(null);
+    setWalletsState(
+      wallets().length > 0 && isRefresh ? "refreshing" : "pending",
+    );
+    setWalletsError(null);
     setRpcProvidersState(
       rpcProviders().length > 0 && isRefresh ? "refreshing" : "pending",
     );
@@ -205,6 +238,7 @@ export function ReferenceDataProvider(props: ReferenceDataProviderProps) {
     activeLoad = (async () => {
       const [
         applicationsResult,
+        walletsResult,
         rpcProvidersResult,
         chainsResult,
         errorGroupsResult,
@@ -213,6 +247,11 @@ export function ReferenceDataProvider(props: ReferenceDataProviderProps) {
           "/api/Applications",
           token,
           "Failed to load applications",
+        ),
+        fetchReferenceList<WalletSummary>(
+          "/api/Wallets",
+          token,
+          "Failed to load wallets",
         ),
         fetchReferenceList<RpcProviderSummary>(
           "/api/RpcProviders",
@@ -241,6 +280,18 @@ export function ReferenceDataProvider(props: ReferenceDataProviderProps) {
             : new Error("Failed to load applications"),
         );
         setApplicationsState("errored");
+      }
+
+      if (walletsResult.status === "fulfilled") {
+        setWallets(walletsResult.value);
+        setWalletsState("ready");
+      } else {
+        setWalletsError(
+          walletsResult.reason instanceof Error
+            ? walletsResult.reason
+            : new Error("Failed to load wallets"),
+        );
+        setWalletsState("errored");
       }
 
       if (rpcProvidersResult.status === "fulfilled") {
@@ -319,6 +370,33 @@ export function ReferenceDataProvider(props: ReferenceDataProviderProps) {
     }
   };
 
+  const refreshWallets = async () => {
+    const token = auth.token;
+    if (!token) {
+      clear();
+      return;
+    }
+
+    setWalletsState(wallets().length > 0 ? "refreshing" : "pending");
+    setWalletsError(null);
+
+    try {
+      const nextWallets = await fetchReferenceList<WalletSummary>(
+        "/api/Wallets",
+        token,
+        "Failed to load wallets",
+      );
+      setWallets(nextWallets);
+      setWalletsState("ready");
+      setLoadedToken(token);
+    } catch (error) {
+      setWalletsError(
+        error instanceof Error ? error : new Error("Failed to load wallets"),
+      );
+      setWalletsState("errored");
+    }
+  };
+
   const refreshRpcProviders = async () => {
     const token = auth.token;
     if (!token) {
@@ -385,6 +463,44 @@ export function ReferenceDataProvider(props: ReferenceDataProviderProps) {
     setApplicationsState("ready");
   };
 
+  const removeWallet = (walletId: string) => {
+    setWallets((current) =>
+      current.filter((wallet) => wallet.id !== walletId),
+    );
+    setWalletsError(null);
+    setWalletsState("ready");
+  };
+
+  const addApplication = (app: ApplicationSummary) => {
+    setApplications((current) => {
+      const next = [...current, app];
+      next.sort((a, b) => a.name.localeCompare(b.name));
+      return next;
+    });
+    setApplicationsError(null);
+    setApplicationsState("ready");
+  };
+
+  const addWallet = (wallet: WalletSummary) => {
+    setWallets((current) => {
+      const next = [...current, wallet];
+      next.sort((a, b) => a.name.localeCompare(b.name));
+      return next;
+    });
+    setWalletsError(null);
+    setWalletsState("ready");
+  };
+
+  const addErrorGroup = (group: RpcErrorGroupSummary) => {
+    setErrorGroups((current) => {
+      const next = [...current, group];
+      next.sort((a, b) => a.name.localeCompare(b.name));
+      return next;
+    });
+    setErrorGroupsError(null);
+    setErrorGroupsState("ready");
+  };
+
   createEffect(() => {
     const token = auth.token;
     if (!token) {
@@ -411,6 +527,11 @@ export function ReferenceDataProvider(props: ReferenceDataProviderProps) {
       state: applicationsState,
       error: applicationsError,
     },
+    wallets: {
+      data: wallets,
+      state: walletsState,
+      error: walletsError,
+    },
     rpcProviders: {
       data: rpcProviders,
       state: rpcProvidersState,
@@ -429,9 +550,14 @@ export function ReferenceDataProvider(props: ReferenceDataProviderProps) {
     isReferenceDataReady,
     load,
     refreshApplications,
+    refreshWallets,
     refreshRpcProviders,
     refreshErrorGroups,
     removeApplication,
+    removeWallet,
+    addApplication,
+    addWallet,
+    addErrorGroup,
   };
 
   return (

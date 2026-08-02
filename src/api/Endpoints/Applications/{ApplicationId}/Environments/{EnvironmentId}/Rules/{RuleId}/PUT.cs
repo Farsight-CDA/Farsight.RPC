@@ -21,10 +21,6 @@ public sealed class PUT(AppDbContext dbContext) : Endpoint<PUT.Request>
     {
         public Validator()
         {
-            RuleFor(x => x)
-                .Must(static request => request.AllOf is not null || request.AnyOf is not null)
-                .WithMessage("At least one field (AllOf or AnyOf) must be provided.");
-
             When(
                 x => x.AllOf is not null,
                 () =>

@@ -19,7 +19,6 @@ public sealed class GETById(AppDbContext dbContext) : Endpoint<GETById.Request, 
         Guid Id,
         Guid EnvironmentId,
         string Name,
-        string Key,
         DateTimeOffset? LastUsedAt
     );
 
@@ -67,7 +66,7 @@ public sealed class GETById(AppDbContext dbContext) : Endpoint<GETById.Request, 
             .Where(k => k.ApplicationId == req.ApplicationId)
             .OrderBy(k => k.Environment!.Name)
             .ThenBy(k => k.Id)
-            .Select(k => new ApiKeySummary(k.Id, k.EnvironmentId, k.Name, k.Key, k.LastUsedAt))
+            .Select(k => new ApiKeySummary(k.Id, k.EnvironmentId, k.Name, k.LastUsedAt))
             .ToArrayAsync(ct);
 
         var environments = await dbContext.ApplicationEnvironments

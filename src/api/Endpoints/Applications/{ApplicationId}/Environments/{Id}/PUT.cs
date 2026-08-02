@@ -1,5 +1,6 @@
 using Farsight.Chains;
 using Farsight.Rpc.Api.Auth;
+using Farsight.Rpc.Api.Common.Extensions;
 using Farsight.Rpc.Api.Persistence;
 using Farsight.Rpc.Api.Services;
 using Farsight.Rpc.Api.Validation;
@@ -23,10 +24,6 @@ public sealed class PUT(AppDbContext dbContext) : Endpoint<PUT.Request>
     {
         public Validator()
         {
-            RuleFor(x => x)
-                .Must(x => x.Name is not null || x.Chains is not null)
-                .WithMessage("At least one field (Name or Chains) must be provided.");
-
             When(
                 x => x.Name is not null,
                 () => RuleFor(x => x.Name!).ApplyNameValidation());

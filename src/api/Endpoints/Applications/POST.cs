@@ -1,7 +1,7 @@
 using Farsight.Rpc.Api.Auth;
+using Farsight.Rpc.Api.Common.Extensions;
 using Farsight.Rpc.Api.Persistence;
 using Farsight.Rpc.Api.Persistence.Entities;
-using Farsight.Rpc.Api.Validation;
 using FastEndpoints;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
@@ -9,7 +9,7 @@ using Npgsql;
 
 namespace Farsight.Rpc.Api.Endpoints.Applications;
 
-public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request>
+public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request, POST.Response>
 {
     public sealed record Request(
         string Name,
@@ -21,14 +21,15 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request>
         public Validator()
         {
             RuleFor(x => x.Name).ApplyNameValidation();
-
-            RuleFor(x => x.Color)
-                .NotEmpty()
-                .WithMessage("Color is required.")
-                .Matches(@"^#[0-9A-Fa-f]{6}$")
-                .WithMessage("Color must be a valid hex color code (e.g. #FF5722).");
+            RuleFor(x => x.Color).ApplyColorValidation();
         }
     }
+
+    public new sealed record Response(
+        Guid Id,
+        string Name,
+        string Color
+    );
 
     public override void Configure()
     {
@@ -38,11 +39,6 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request>
 
     public override async Task HandleAsync(Request req, CancellationToken ct)
     {
-        if(await dbContext.ConsumerApplications.AnyAsync(a => a.Name == req.Name, ct))
-        {
-            ThrowError("An application with this name already exists.", 409);
-        }
-
         var application = new ConsumerApplication
         {
             Id = Guid.NewGuid(),
@@ -60,6 +56,6 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request>
             ThrowError("An application with this name already exists.", 409);
         }
 
-        await Send.NoContentAsync(ct);
+        await Send.OkAsync(new Response(application.Id, application.Name, application.Color), ct);
     }
 }

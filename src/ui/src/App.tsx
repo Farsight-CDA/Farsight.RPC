@@ -21,6 +21,7 @@ import {
   type ReferenceDataSnapshot,
 } from "./lib/reference-data";
 import { ApplicationDataProvider } from "./lib/application-data";
+import { WalletDataProvider } from "./lib/wallet-data";
 import ErrorGroupsPage from "./pages/ErrorGroupsPage";
 import ErrorGroupNewPage from "./pages/ErrorGroupNewPage";
 import ErrorGroupLayout from "./pages/ErrorGroupLayout";
@@ -29,6 +30,10 @@ import ErrorGroupMatchedPage from "./pages/ErrorGroupMatchedPage";
 import HomePage from "./pages/HomePage";
 import AccountPage from "./pages/AccountPage";
 import WalletsPage from "./pages/WalletsPage";
+import WalletNewPage from "./pages/WalletNewPage";
+import WalletLayout from "./pages/WalletLayout";
+import WalletGeneralPage from "./pages/WalletGeneralPage";
+import WalletPrivateKeysPage from "./pages/WalletPrivateKeysPage";
 
 function ApplicationShell(props: RouteSectionProps) {
   return (
@@ -44,6 +49,16 @@ function ErrorGroupShell(props: RouteSectionProps) {
   return (
     <RequireAuth>
       <ErrorGroupLayout>{props.children}</ErrorGroupLayout>
+    </RequireAuth>
+  );
+}
+
+function WalletShell(props: RouteSectionProps) {
+  return (
+    <RequireAuth>
+      <WalletDataProvider>
+        <WalletLayout>{props.children}</WalletLayout>
+      </WalletDataProvider>
     </RequireAuth>
   );
 }
@@ -102,6 +117,19 @@ export default function App(props: AppProps) {
               </RequireAuth>
             )}
           />
+          <Route
+            path="/wallets/new"
+            component={() => (
+              <RequireAuth>
+                <WalletNewPage />
+              </RequireAuth>
+            )}
+          />
+          <Route path="/wallets/:walletId" component={WalletShell}>
+            <Route path="/" component={WalletGeneralPage} />
+            <Route path="/general" component={WalletGeneralPage} />
+            <Route path="/private-keys" component={WalletPrivateKeysPage} />
+          </Route>
           <Route
             path="/errors"
             component={() => (

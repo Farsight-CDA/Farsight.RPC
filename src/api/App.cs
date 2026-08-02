@@ -1,6 +1,7 @@
 using Farsight.Rpc.Api.Common;
 using Farsight.Rpc.Api.Configuration;
 using Farsight.Rpc.Api.Persistence;
+using Farsight.Rpc.Api.Persistence.Entities;
 using Farsight.Rpc.Types;
 using FastEndpoints;
 using FastEndpoints.Security;
@@ -11,6 +12,7 @@ using OpenTelemetry.Logs;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using System.Net;
+using System.Text.Json.Serialization;
 
 namespace Farsight.Rpc.Api;
 
@@ -143,6 +145,10 @@ public static class App
         app.UseRouting();
         app.UseAuthentication();
         app.UseAuthorization();
-        app.UseFastEndpoints(x => FarsightRpcJson.ConfigureJsonConverters(x.Serializer.Options));
+        app.UseFastEndpoints(x =>
+        {
+            FarsightRpcJson.ConfigureJsonConverters(x.Serializer.Options);
+            x.Serializer.Options.Converters.Add(new JsonStringEnumConverter<WalletCurve>());
+        });
     }
 }

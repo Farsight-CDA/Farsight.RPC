@@ -18,6 +18,12 @@ export type WalletApiKeySummary = {
   lastUsedAt?: string;
 };
 
+export type WalletPrivateKeyGroupSummary = {
+  id: string;
+  name: string;
+  description: string;
+};
+
 export type WalletPrivateKeySummary = {
   id: string;
   curve: string;
@@ -26,6 +32,7 @@ export type WalletPrivateKeySummary = {
   address: string;
   publicKey: string;
   apiKeys: WalletApiKeySummary[];
+  groupId?: string;
 };
 
 type WalletDetail = {
@@ -33,6 +40,7 @@ type WalletDetail = {
   name: string;
   color: string;
   privateKeys: WalletPrivateKeySummary[];
+  privateKeyGroups: WalletPrivateKeyGroupSummary[];
 };
 
 type ListController<T> = {
@@ -44,12 +52,20 @@ type ListController<T> = {
 type WalletDataContextValue = {
   walletId: Accessor<string | undefined>;
   privateKeys: ListController<WalletPrivateKeySummary>;
+  privateKeyGroups: ListController<WalletPrivateKeyGroupSummary>;
   refresh: () => Promise<void>;
   addPrivateKey: (privateKey: WalletPrivateKeySummary) => void;
   removePrivateKey: (privateKeyId: string) => void;
+  assignPrivateKeyGroup: (privateKeyId: string, groupId?: string) => void;
   addApiKey: (privateKeyId: string, apiKey: WalletApiKeySummary) => void;
   renameApiKey: (privateKeyId: string, apiKeyId: string, name: string) => void;
   removeApiKey: (privateKeyId: string, apiKeyId: string) => void;
+  addPrivateKeyGroup: (group: WalletPrivateKeyGroupSummary) => void;
+  updatePrivateKeyGroup: (
+    groupId: string,
+    updates: { name: string; description: string },
+  ) => void;
+  removePrivateKeyGroup: (groupId: string) => void;
 };
 
 const WalletDataContext = createContext<WalletDataContextValue>();
@@ -74,6 +90,9 @@ export function WalletDataProvider(props: ParentProps) {
   const [privateKeys, setPrivateKeys] = createSignal<WalletPrivateKeySummary[]>(
     [],
   );
+  const [privateKeyGroups, setPrivateKeyGroups] = createSignal<
+    WalletPrivateKeyGroupSummary[]
+  >([]);
   const [privateKeysState, setPrivateKeysState] =
     createSignal<LoadState>("idle");
   const [privateKeysError, setPrivateKeysError] = createSignal<Error | null>(
@@ -85,6 +104,7 @@ export function WalletDataProvider(props: ParentProps) {
 
   const clear = () => {
     setPrivateKeys([]);
+    setPrivateKeyGroups([]);
     setPrivateKeysState("idle");
     setPrivateKeysError(null);
     setLoadedKey(null);
@@ -113,6 +133,7 @@ export function WalletDataProvider(props: ParentProps) {
       try {
         const detail = await fetchWalletDetail(id, token);
         setPrivateKeys(detail.privateKeys);
+        setPrivateKeyGroups(detail.privateKeyGroups);
         setPrivateKeysState("ready");
         setLoadedKey(requestKey);
       } catch (error) {
@@ -154,6 +175,18 @@ export function WalletDataProvider(props: ParentProps) {
   const removePrivateKey = (privateKeyId: string) => {
     setPrivateKeys((current) =>
       current.filter((privateKey) => privateKey.id !== privateKeyId),
+    );
+    setPrivateKeysError(null);
+    setPrivateKeysState("ready");
+  };
+
+  const assignPrivateKeyGroup = (privateKeyId: string, groupId?: string) => {
+    setPrivateKeys((current) =>
+      current.map((privateKey) =>
+        privateKey.id === privateKeyId
+          ? { ...privateKey, groupId: groupId ?? "" }
+          : privateKey,
+      ),
     );
     setPrivateKeysError(null);
     setPrivateKeysState("ready");
@@ -209,6 +242,35 @@ export function WalletDataProvider(props: ParentProps) {
     setPrivateKeysState("ready");
   };
 
+  const addPrivateKeyGroup = (group: WalletPrivateKeyGroupSummary) => {
+    setPrivateKeyGroups((current) =>
+      [...current, group].sort((a, b) => a.name.localeCompare(b.name)),
+    );
+    setPrivateKeysError(null);
+    setPrivateKeysState("ready");
+  };
+
+  const updatePrivateKeyGroup = (
+    groupId: string,
+    updates: { name: string; description: string },
+  ) => {
+    setPrivateKeyGroups((current) =>
+      current.map((group) =>
+        group.id === groupId ? { ...group, ...updates } : group,
+      ),
+    );
+    setPrivateKeysError(null);
+    setPrivateKeysState("ready");
+  };
+
+  const removePrivateKeyGroup = (groupId: string) => {
+    setPrivateKeyGroups((current) =>
+      current.filter((group) => group.id !== groupId),
+    );
+    setPrivateKeysError(null);
+    setPrivateKeysState("ready");
+  };
+
   const value: WalletDataContextValue = {
     walletId,
     privateKeys: {
@@ -216,12 +278,21 @@ export function WalletDataProvider(props: ParentProps) {
       state: privateKeysState,
       error: privateKeysError,
     },
+    privateKeyGroups: {
+      data: privateKeyGroups,
+      state: privateKeysState,
+      error: privateKeysError,
+    },
     refresh,
     addPrivateKey,
     removePrivateKey,
+    assignPrivateKeyGroup,
     addApiKey,
     renameApiKey,
     removeApiKey,
+    addPrivateKeyGroup,
+    updatePrivateKeyGroup,
+    removePrivateKeyGroup,
   };
 
   return (

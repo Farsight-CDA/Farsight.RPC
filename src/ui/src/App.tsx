@@ -34,6 +34,7 @@ import WalletNewPage from "./pages/WalletNewPage";
 import WalletLayout from "./pages/WalletLayout";
 import WalletGeneralPage from "./pages/WalletGeneralPage";
 import WalletPrivateKeysPage from "./pages/WalletPrivateKeysPage";
+import WalletPrivateKeyGroupsPage from "./pages/WalletPrivateKeyGroupsPage";
 
 function ApplicationShell(props: RouteSectionProps) {
   return (
@@ -129,6 +130,10 @@ export default function App(props: AppProps) {
             <Route path="/" component={WalletGeneralPage} />
             <Route path="/general" component={WalletGeneralPage} />
             <Route path="/private-keys" component={WalletPrivateKeysPage} />
+            <Route
+              path="/private-key-groups"
+              component={WalletPrivateKeyGroupsPage}
+            />
           </Route>
           <Route
             path="/errors"

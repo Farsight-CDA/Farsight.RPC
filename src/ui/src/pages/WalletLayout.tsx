@@ -6,6 +6,7 @@ import LoadingSpinner from "../components/LoadingSpinner";
 import DetailPageHeader from "../components/DetailPageHeader";
 import KeyIcon from "../components/icons/KeyIcon";
 import SettingsIcon from "../components/icons/SettingsIcon";
+import StructureIcon from "../components/icons/StructureIcon";
 import WalletIcon from "../components/icons/WalletIcon";
 
 const WalletLayout: ParentComponent = (props) => {
@@ -23,6 +24,7 @@ const WalletLayout: ParentComponent = (props) => {
 
   const getActiveTab = () => {
     const path = location.pathname;
+    if (path.includes("/private-key-groups")) return "key-groups";
     if (path.includes("/private-keys")) return "private-keys";
     return "general";
   };
@@ -84,6 +86,12 @@ const WalletLayout: ParentComponent = (props) => {
                 label: "Private Keys",
                 icon: <KeyIcon class="size-3.5" />,
                 active: getActiveTab() === "private-keys",
+              },
+              {
+                href: `/wallets/${walletId()}/private-key-groups`,
+                label: "Key Groups",
+                icon: <StructureIcon class="size-3.5" />,
+                active: getActiveTab() === "key-groups",
               },
             ]}
           />

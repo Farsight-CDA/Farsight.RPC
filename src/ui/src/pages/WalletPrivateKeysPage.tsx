@@ -46,6 +46,7 @@ import { useReferenceData } from "../lib/reference-data";
 import {
   useWalletData,
   type WalletApiKeySummary,
+  type WalletPrivateKeyGroupSummary,
   type WalletPrivateKeySummary,
 } from "../lib/wallet-data";
 
@@ -86,12 +87,62 @@ function NamedPathBadge(props: {
   );
 }
 
+function GroupBadge(props: { name: string; class?: string }) {
+  return (
+    <span
+      class={`inline-flex min-w-0 items-center border font-bold uppercase tracking-widest text-rose-300 border-rose-500/30 bg-rose-500/10 ${props.class ?? "h-4 px-1.5 text-[0.55rem] leading-none"}`}
+      title={props.name}
+    >
+      <span class="truncate">{props.name}</span>
+    </span>
+  );
+}
+
 type SidebarGroup = {
   id: string;
   label: string;
   headerClass: string;
   keys: WalletPrivateKeySummary[];
 };
+
+function GroupPickerButtons(props: {
+  groups: () => WalletPrivateKeyGroupSummary[];
+  selectedGroupId: () => string;
+  onToggle: (groupId: string) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <>
+      <Show
+        when={props.groups().length > 0}
+        fallback={
+          <p class="text-xs font-semibold text-b-ink/45">
+            No groups yet. Create one in the Key Groups tab.
+          </p>
+        }
+      >
+        <div class="flex flex-wrap gap-1.5">
+          <For each={props.groups()}>
+            {(group) => (
+              <button
+                type="button"
+                disabled={props.disabled}
+                onClick={() => props.onToggle(group.id)}
+                class={`h-8 border px-3 text-[0.65rem] font-bold uppercase tracking-widest transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-b-accent/40 disabled:opacity-40 disabled:cursor-not-allowed ${
+                  props.selectedGroupId() === group.id
+                    ? "border-b-accent bg-b-accent text-b-paper"
+                    : "border-b-border bg-b-paper text-b-ink/50 hover:border-b-border-hover hover:text-b-ink"
+                }`}
+              >
+                {group.name}
+              </button>
+            )}
+          </For>
+        </div>
+      </Show>
+    </>
+  );
+}
 
 function CopyAddressButton(props: { address: string }) {
   const [copied, setCopied] = createSignal(false);
@@ -136,6 +187,16 @@ export default function WalletPrivateKeysPage() {
   const privateKeys = walletData.privateKeys.data;
   const privateKeysState = walletData.privateKeys.state;
   const privateKeysError = walletData.privateKeys.error;
+  const groups = walletData.privateKeyGroups.data;
+
+  const groupById = createMemo(() => {
+    const map = new Map<string, WalletPrivateKeyGroupSummary>();
+    for (const group of groups()) map.set(group.id, group);
+    return map;
+  });
+
+  const groupOf = (privateKey: WalletPrivateKeySummary | null) =>
+    privateKey ? (groupById().get(privateKey.groupId ?? "") ?? null) : null;
 
   const wallet = createMemo(
     () =>
@@ -158,6 +219,8 @@ export default function WalletPrivateKeysPage() {
     () =>
       privateKeys().find((pk) => pk.id === activePrivateKeyId()) ?? null,
   );
+
+  const activeGroup = createMemo(() => groupOf(activePrivateKey()));
 
   const activePrivateKeyMatch = createMemo(() => {
     const key = activePrivateKey();
@@ -224,6 +287,7 @@ export default function WalletPrivateKeysPage() {
   const [pkAddressFormat, setPkAddressFormat] =
     createSignal<AddressFormat>("Evm");
   const [pkPath, setPkPath] = createSignal("");
+  const [pkGroupId, setPkGroupId] = createSignal("");
   const [pkError, setPkError] = createSignal<string | null>(null);
   const [pkLoading, setPkLoading] = createSignal(false);
 
@@ -261,12 +325,22 @@ export default function WalletPrivateKeysPage() {
   const [deleteKeyError, setDeleteKeyError] = createSignal<string | null>(null);
   const [deleteKeyLoading, setDeleteKeyLoading] = createSignal(false);
 
+  // Edit key group
+  const [pkGroupTarget, setPkGroupTarget] =
+    createSignal<WalletPrivateKeySummary | null>(null);
+  const [pkGroupSelection, setPkGroupSelection] = createSignal("");
+  const [pkGroupEditError, setPkGroupEditError] = createSignal<string | null>(
+    null,
+  );
+  const [pkGroupEditLoading, setPkGroupEditLoading] = createSignal(false);
+
   const isBusy = () =>
     pkLoading() ||
     createKeyLoading() ||
     editKeyLoading() ||
     deletePkLoading() ||
-    deleteKeyLoading();
+    deleteKeyLoading() ||
+    pkGroupEditLoading();
 
   const openCreatePkModal = () => {
     if (isBusy()) return;
@@ -276,6 +350,7 @@ export default function WalletPrivateKeysPage() {
     setPkCurve("Secp256k1");
     setPkAddressFormat("Evm");
     setPkPath("");
+    setPkGroupId("");
     setCreatePkOpen(true);
   };
 
@@ -344,6 +419,10 @@ export default function WalletPrivateKeysPage() {
             curve,
             addressFormat,
             derivationPath: path,
+            groupId:
+              pkGroupId().length > 0
+                ? pkGroupId()
+                : "00000000-0000-0000-0000-000000000000",
           }),
         },
       );
@@ -359,6 +438,7 @@ export default function WalletPrivateKeysPage() {
         addressFormat: AddressFormat;
         address: string;
         publicKey: string;
+        groupId: string;
       };
       walletData.addPrivateKey({
         ...created,
@@ -574,6 +654,62 @@ export default function WalletPrivateKeysPage() {
     }
   };
 
+  const openGroupModal = (pk: WalletPrivateKeySummary) => {
+    if (isBusy()) return;
+    setPkGroupEditError(null);
+    setPkGroupTarget(pk);
+    setPkGroupSelection(pk.groupId ?? "");
+  };
+
+  const closeGroupModal = () => {
+    if (pkGroupEditLoading()) return;
+    setPkGroupTarget(null);
+    setPkGroupSelection("");
+    setPkGroupEditError(null);
+  };
+
+  const handleSaveKeyGroup = async () => {
+    const token = auth.token;
+    const pk = pkGroupTarget();
+    if (!token || !pk) return;
+
+    setPkGroupEditError(null);
+    setPkGroupEditLoading(true);
+    try {
+      const response = await fetch(
+        `/api/Wallets/${walletId()}/PrivateKeys/${pk.id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            groupId:
+              pkGroupSelection().length > 0
+                ? pkGroupSelection()
+                : "00000000-0000-0000-0000-000000000000",
+          }),
+        },
+      );
+      if (!response.ok) {
+        throw new Error(
+          await readErrorMessage(response, "Failed to update key group"),
+        );
+      }
+      walletData.assignPrivateKeyGroup(pk.id, pkGroupSelection());
+      setPkGroupTarget(null);
+      setPkGroupSelection("");
+      void walletData.refresh();
+    } catch (err) {
+      setPkGroupEditError(
+        err instanceof Error ? err.message : "Failed to update key group",
+      );
+    } finally {
+      setPkGroupEditLoading(false);
+    }
+  };
+
   return (
     <>
       <div class="flex min-h-0 flex-1 flex-col gap-6">
@@ -690,7 +826,7 @@ export default function WalletPrivateKeysPage() {
                                   }`}
                                 >
                                   <div class="flex min-w-0 flex-col gap-1">
-                                    <div class="flex min-w-0 items-center">
+                                    <div class="flex min-w-0 items-center gap-1">
                                       <Show
                                         when={match === null}
                                         fallback={
@@ -706,6 +842,12 @@ export default function WalletPrivateKeysPage() {
                                         >
                                           {pk.derivationPath}
                                         </p>
+                                      </Show>
+                                      <Show when={groupOf(pk) !== null}>
+                                        <GroupBadge
+                                          name={groupOf(pk)!.name}
+                                          class="h-4 max-w-28 shrink-0 px-1.5 text-[0.55rem] leading-none"
+                                        />
                                       </Show>
                                     </div>
                                     <p
@@ -727,6 +869,18 @@ export default function WalletPrivateKeysPage() {
                                       title="View private key"
                                     >
                                       <EyeIcon class="size-4" />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        openGroupModal(pk);
+                                      }}
+                                      disabled={isBusy()}
+                                      class="opacity-0 transition-opacity duration-150 hover:text-b-accent group-hover:opacity-100 focus:opacity-100 disabled:opacity-30"
+                                      title="Edit key group"
+                                    >
+                                      <PencilIcon class="size-4" />
                                     </button>
                                     <button
                                       type="button"
@@ -793,6 +947,12 @@ export default function WalletPrivateKeysPage() {
                                 namedPath={activePrivateKeyMatch()!.namedPath}
                                 index={activePrivateKeyMatch()!.index}
                                 class="px-2 py-0.5 text-[0.6rem]"
+                              />
+                            </Show>
+                            <Show when={activeGroup() !== null}>
+                              <GroupBadge
+                                name={activeGroup()!.name}
+                                class="max-w-40 shrink-0 px-2 py-0.5 text-[0.6rem]"
                               />
                             </Show>
                             <code
@@ -1115,6 +1275,22 @@ export default function WalletPrivateKeysPage() {
             </div>
           </Show>
 
+          <div class="flex flex-col gap-2">
+            <p class="text-xs font-bold uppercase tracking-widest text-b-ink/70">
+              Group
+            </p>
+            <GroupPickerButtons
+              groups={groups}
+              selectedGroupId={pkGroupId}
+              onToggle={(groupId) =>
+                setPkGroupId((current) =>
+                  current === groupId ? "" : groupId,
+                )
+              }
+              disabled={pkLoading()}
+            />
+          </div>
+
           <Show when={pkError()}>
             <p class="border border-red-500/40 bg-red-500/10 px-3 py-3 text-xs font-bold uppercase leading-snug text-red-400">
               {pkError()}
@@ -1383,6 +1559,71 @@ export default function WalletPrivateKeysPage() {
           return data.key;
         }}
       />
+
+      {/* Edit key group modal */}
+      <Modal
+        open={() => pkGroupTarget() !== null}
+        onClose={closeGroupModal}
+      >
+        <p class="mb-2 text-xs font-bold uppercase tracking-[0.35em] text-b-accent">
+          Edit
+        </p>
+        <h3
+          id="edit-key-group-title"
+          class="mb-2 font-['Anton',sans-serif] text-4xl uppercase leading-none tracking-wide text-b-ink"
+        >
+          Key Group
+        </h3>
+        <p class="mb-6 font-mono text-xs font-semibold text-b-ink/50">
+          {pkGroupTarget()
+            ? formatDerivationPath(pkGroupTarget()!.derivationPath)
+            : ""}
+        </p>
+
+        <div class="mb-6 flex flex-col gap-2">
+          <p class="text-xs font-bold uppercase tracking-widest text-b-ink/70">
+            Group
+          </p>
+          <GroupPickerButtons
+            groups={groups}
+            selectedGroupId={pkGroupSelection}
+            onToggle={(groupId) =>
+              setPkGroupSelection((current) =>
+                current === groupId ? "" : groupId,
+              )
+            }
+            disabled={pkGroupEditLoading()}
+          />
+        </div>
+
+        <Show when={pkGroupEditError()}>
+          <p class="mb-6 border border-red-500/40 bg-red-500/10 px-3 py-3 text-xs font-bold uppercase leading-snug text-red-400">
+            {pkGroupEditError()}
+          </p>
+        </Show>
+
+        <div class="flex flex-col gap-3 sm:flex-row sm:justify-end">
+          <button
+            type="button"
+            onClick={closeGroupModal}
+            disabled={pkGroupEditLoading()}
+            class="btn btn-md btn-interactive btn-disabled btn-secondary"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleSaveKeyGroup()}
+            disabled={pkGroupEditLoading()}
+            class="btn btn-md btn-interactive btn-disabled btn-primary"
+          >
+            <Show when={pkGroupEditLoading()}>
+              <LoadingSpinner class="size-3.5 text-b-paper" />
+            </Show>
+            {pkGroupEditLoading() ? "Saving…" : "Save"}
+          </button>
+        </div>
+      </Modal>
     </>
   );
 }

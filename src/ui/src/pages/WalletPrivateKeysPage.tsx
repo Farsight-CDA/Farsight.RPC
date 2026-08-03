@@ -11,6 +11,8 @@ import Modal from "../components/Modal";
 import SegmentedControl from "../components/SegmentedControl";
 import ApiKeyModal from "../components/ApiKeyModal";
 import PrivateKeyModal from "../components/PrivateKeyModal";
+import CheckmarkIcon from "../components/icons/CheckmarkIcon";
+import CopyIcon from "../components/icons/CopyIcon";
 import EmptyStateIcon from "../components/icons/EmptyStateIcon";
 import EyeIcon from "../components/icons/EyeIcon";
 import KeyIcon from "../components/icons/KeyIcon";
@@ -90,6 +92,38 @@ type SidebarGroup = {
   headerClass: string;
   keys: WalletPrivateKeySummary[];
 };
+
+function CopyAddressButton(props: { address: string }) {
+  const [copied, setCopied] = createSignal(false);
+  let timer: ReturnType<typeof setTimeout> | undefined;
+
+  const handleCopy = () => {
+    void navigator.clipboard.writeText(props.address);
+    if (timer !== undefined) {
+      clearTimeout(timer);
+    }
+    setCopied(true);
+    timer = setTimeout(() => {
+      setCopied(false);
+      timer = undefined;
+    }, 2000);
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={handleCopy}
+      class="inline-flex size-6 shrink-0 items-center justify-center rounded border border-b-border bg-b-field text-b-ink transition-all duration-200 hover:border-b-border-hover hover:bg-b-stripe focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-b-accent"
+      title={copied() ? "Copied" : "Copy address"}
+    >
+      {copied() ? (
+        <CheckmarkIcon class="size-3 text-b-accent" />
+      ) : (
+        <CopyIcon class="size-3 opacity-70" />
+      )}
+    </button>
+  );
+}
 
 export default function WalletPrivateKeysPage() {
   const auth = useAuth();
@@ -767,6 +801,9 @@ export default function WalletPrivateKeysPage() {
                             >
                               {activePrivateKey()!.address}
                             </code>
+                            <CopyAddressButton
+                              address={activePrivateKey()!.address}
+                            />
                           </div>
                         </div>
                         <div class="flex shrink-0 flex-col self-start sm:self-center">

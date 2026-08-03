@@ -22,6 +22,9 @@ export type WalletPrivateKeySummary = {
   id: string;
   curve: string;
   derivationPath: string;
+  addressFormat: "Evm" | "Solana";
+  address: string;
+  publicKey: string;
   apiKeys: WalletApiKeySummary[];
 };
 

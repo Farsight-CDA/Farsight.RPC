@@ -15,6 +15,7 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request, POST.R
 {
     public sealed record Request(
         [property: RouteParam] Guid WalletId,
+        WalletCurve Curve,
         WalletAddressFormat AddressFormat,
         string DerivationPath
     )
@@ -23,6 +24,10 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request, POST.R
         {
             public Validator()
             {
+                RuleFor(x => x.Curve)
+                    .Must(static curve => Enum.IsDefined(curve))
+                    .WithMessage("Unsupported wallet curve.");
+
                 RuleFor(x => x.AddressFormat)
                     .Must(static addressFormat => Enum.IsDefined(addressFormat))
                     .WithMessage("Unsupported wallet address format.");
@@ -32,14 +37,14 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request, POST.R
                     .NotEmpty()
                     .WithMessage("Derivation path is required.")
                     .Must(IsValidDerivationPath)
-                    .WithMessage("Derivation path must be valid for the selected wallet address format.");
+                    .WithMessage("Derivation path must be valid for the selected curve.");
             }
 
             private static bool IsValidDerivationPath(Request request, string derivationPath)
             {
                 uint[] path = new uint[BIP44.GetPathLength(derivationPath)];
                 return BIP44.TryParse(derivationPath, path, out _)
-                    && (request.AddressFormat != WalletAddressFormat.Solana
+                    && (request.Curve != WalletCurve.Ed25519
                         || path.All(index => index >= Slip10.HardenedOffset));
             }
         }
@@ -73,17 +78,15 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request, POST.R
         }
 
         string derivationPath = BIP44.MakePath(BIP44.Parse(req.DerivationPath));
-        var addressFormat = req.AddressFormat;
-        var curve = WalletAddressFormatter.GetCurve(addressFormat);
-        byte[] publicKey = WalletKeyDerivation.DerivePublicKey(curve, mnemonic, derivationPath);
+        byte[] publicKey = WalletKeyDerivation.DerivePublicKey(req.Curve, mnemonic, derivationPath);
 
         var privateKey = new WalletPrivateKey
         {
             Id = Guid.NewGuid(),
             WalletId = req.WalletId,
-            Curve = curve,
+            Curve = req.Curve,
             DerivationPath = derivationPath,
-            AddressFormat = addressFormat,
+            AddressFormat = req.AddressFormat,
             PublicKey = publicKey,
         };
 

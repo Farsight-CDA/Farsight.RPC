@@ -11,6 +11,7 @@ type PrivateKeyModalProps = {
     id: string;
     curve: string;
     derivationPath: string;
+    publicKey: string;
   } | null>;
   loadKey: (privateKeyId: string) => Promise<string>;
   onClose: () => void;
@@ -22,7 +23,11 @@ export default function PrivateKeyModal(props: PrivateKeyModalProps) {
   const [error, setError] = createSignal<string | null>(null);
   const [revealed, setRevealed] = createSignal(false);
   const [copied, setCopied] = createSignal(false);
+  const [pathCopied, setPathCopied] = createSignal(false);
+  const [publicKeyCopied, setPublicKeyCopied] = createSignal(false);
   let copyFeedbackTimer: ReturnType<typeof setTimeout> | undefined;
+  let pathCopyFeedbackTimer: ReturnType<typeof setTimeout> | undefined;
+  let publicKeyCopyFeedbackTimer: ReturnType<typeof setTimeout> | undefined;
 
   const load = async (privateKeyId: string) => {
     setError(null);
@@ -30,6 +35,8 @@ export default function PrivateKeyModal(props: PrivateKeyModalProps) {
     setKeyValue(null);
     setRevealed(false);
     setCopied(false);
+    setPathCopied(false);
+    setPublicKeyCopied(false);
     try {
       setKeyValue(await props.loadKey(privateKeyId));
     } catch (err) {
@@ -50,9 +57,19 @@ export default function PrivateKeyModal(props: PrivateKeyModalProps) {
     props.onClose();
     setRevealed(false);
     setCopied(false);
+    setPathCopied(false);
+    setPublicKeyCopied(false);
     if (copyFeedbackTimer !== undefined) {
       clearTimeout(copyFeedbackTimer);
       copyFeedbackTimer = undefined;
+    }
+    if (pathCopyFeedbackTimer !== undefined) {
+      clearTimeout(pathCopyFeedbackTimer);
+      pathCopyFeedbackTimer = undefined;
+    }
+    if (publicKeyCopyFeedbackTimer !== undefined) {
+      clearTimeout(publicKeyCopyFeedbackTimer);
+      publicKeyCopyFeedbackTimer = undefined;
     }
   };
 
@@ -67,6 +84,34 @@ export default function PrivateKeyModal(props: PrivateKeyModalProps) {
     copyFeedbackTimer = setTimeout(() => {
       setCopied(false);
       copyFeedbackTimer = undefined;
+    }, 2000);
+  };
+
+  const handleCopyPath = () => {
+    const value = props.privateKey()?.derivationPath;
+    if (!value) return;
+    void navigator.clipboard.writeText(value);
+    if (pathCopyFeedbackTimer !== undefined) {
+      clearTimeout(pathCopyFeedbackTimer);
+    }
+    setPathCopied(true);
+    pathCopyFeedbackTimer = setTimeout(() => {
+      setPathCopied(false);
+      pathCopyFeedbackTimer = undefined;
+    }, 2000);
+  };
+
+  const handleCopyPublicKey = () => {
+    const value = props.privateKey()?.publicKey;
+    if (!value) return;
+    void navigator.clipboard.writeText(value);
+    if (publicKeyCopyFeedbackTimer !== undefined) {
+      clearTimeout(publicKeyCopyFeedbackTimer);
+    }
+    setPublicKeyCopied(true);
+    publicKeyCopyFeedbackTimer = setTimeout(() => {
+      setPublicKeyCopied(false);
+      publicKeyCopyFeedbackTimer = undefined;
     }, 2000);
   };
 
@@ -87,13 +132,61 @@ export default function PrivateKeyModal(props: PrivateKeyModalProps) {
             when={error()}
             fallback={
               <Show when={keyValue() !== null}>
-                <p class="mb-4 font-mono text-[0.7rem] font-semibold tracking-widest text-b-ink/45">
-                  {props.privateKey()?.curve}
-                  {" · "}
-                  {props.privateKey()
-                    ? formatDerivationPath(props.privateKey()!.derivationPath)
-                    : ""}
-                </p>
+                <div class="mb-6 flex flex-col gap-4">
+                  <p class="font-mono text-[0.7rem] font-semibold tracking-widest text-b-ink/45">
+                    {props.privateKey()?.curve}
+                    {" · "}
+                    {props.privateKey()
+                      ? formatDerivationPath(
+                          props.privateKey()!.derivationPath,
+                        )
+                      : ""}
+                  </p>
+                  <div>
+                    <div class="mb-2 flex items-center justify-between gap-3">
+                      <p class="text-xs font-bold uppercase tracking-widest text-b-ink/70">
+                        Derivation Path
+                      </p>
+                      <button
+                        type="button"
+                        onClick={handleCopyPath}
+                        class="btn btn-sm btn-interactive btn-disabled btn-secondary"
+                      >
+                        {pathCopied() ? (
+                          <CheckmarkIcon class="size-3.5" />
+                        ) : (
+                          <CopyIcon class="size-3.5" />
+                        )}
+                        {pathCopied() ? "Copied" : "Copy"}
+                      </button>
+                    </div>
+                    <code class="block select-all break-all border border-b-border bg-b-paper p-3 font-mono text-xs font-semibold tracking-wide text-b-ink/85">
+                      {props.privateKey()?.derivationPath}
+                    </code>
+                  </div>
+                  <div>
+                    <div class="mb-2 flex items-center justify-between gap-3">
+                      <p class="text-xs font-bold uppercase tracking-widest text-b-ink/70">
+                        Public Key
+                      </p>
+                      <button
+                        type="button"
+                        onClick={handleCopyPublicKey}
+                        class="btn btn-sm btn-interactive btn-disabled btn-secondary"
+                      >
+                        {publicKeyCopied() ? (
+                          <CheckmarkIcon class="size-3.5" />
+                        ) : (
+                          <CopyIcon class="size-3.5" />
+                        )}
+                        {publicKeyCopied() ? "Copied" : "Copy"}
+                      </button>
+                    </div>
+                    <code class="block select-all break-all border border-b-border bg-b-paper p-3 font-mono text-xs font-semibold tracking-wide text-b-ink/85">
+                      {props.privateKey()?.publicKey}
+                    </code>
+                  </div>
+                </div>
                 <p class="mb-4 text-sm font-semibold text-b-ink/70">
                   Anyone with access to this private key can control the
                   wallet. Keep it secret.

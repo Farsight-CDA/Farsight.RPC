@@ -29,10 +29,12 @@ import {
   MAX_DERIVATION_INDEX,
   NAMED_DERIVATION_PATHS,
   validateDerivationIndex,
+  type AddressFormat,
+  type DerivationCurve,
   type NamedDerivationPath,
 } from "../lib/derivation-paths";
 import { readErrorMessage } from "../lib/error-groups";
-import { formatLastUsed } from "../lib/format";
+import { formatLastUsed, truncateMiddle } from "../lib/format";
 import {
   nameValidationHint,
   nameValidationPattern,
@@ -44,8 +46,6 @@ import {
   type WalletApiKeySummary,
   type WalletPrivateKeySummary,
 } from "../lib/wallet-data";
-
-const CURVE_OPTIONS = ["Secp256k1", "Ed25519"] as const;
 
 function curveBadgeClass(curve: string): string {
   switch (curve) {
@@ -184,7 +184,9 @@ export default function WalletPrivateKeysPage() {
   const [createPkOpen, setCreatePkOpen] = createSignal(false);
   const [createMode, setCreateMode] = createSignal<string>("evm");
   const [pkIndex, setPkIndex] = createSignal("");
-  const [pkCurve, setPkCurve] = createSignal("Secp256k1");
+  const [pkCurve, setPkCurve] = createSignal<DerivationCurve>("Secp256k1");
+  const [pkAddressFormat, setPkAddressFormat] =
+    createSignal<AddressFormat>("Evm");
   const [pkPath, setPkPath] = createSignal("");
   const [pkError, setPkError] = createSignal<string | null>(null);
   const [pkLoading, setPkLoading] = createSignal(false);
@@ -235,6 +237,8 @@ export default function WalletPrivateKeysPage() {
     setPkError(null);
     setCreateMode("evm");
     setPkIndex("");
+    setPkCurve("Secp256k1");
+    setPkAddressFormat("Evm");
     setPkPath("");
     setCreatePkOpen(true);
   };
@@ -250,7 +254,8 @@ export default function WalletPrivateKeysPage() {
     const token = auth.token;
     if (!token) return;
 
-    let curve: string;
+    let curve: DerivationCurve;
+    let addressFormat: AddressFormat;
     let path: string;
 
     const namedPath = getNamedDerivationPath(createMode());
@@ -269,6 +274,7 @@ export default function WalletPrivateKeysPage() {
         return;
       }
       curve = namedPath.curve;
+      addressFormat = namedPath.addressFormat;
       path = pathValue;
     } else {
       const manualPath = pkPath().trim();
@@ -283,6 +289,7 @@ export default function WalletPrivateKeysPage() {
         return;
       }
       curve = pkCurve();
+      addressFormat = pkAddressFormat();
       path = manualPath;
     }
 
@@ -299,6 +306,7 @@ export default function WalletPrivateKeysPage() {
           },
           body: JSON.stringify({
             curve,
+            addressFormat,
             derivationPath: path,
           }),
         },
@@ -312,6 +320,9 @@ export default function WalletPrivateKeysPage() {
         id: string;
         curve: string;
         derivationPath: string;
+        addressFormat: AddressFormat;
+        address: string;
+        publicKey: string;
       };
       walletData.addPrivateKey({
         ...created,
@@ -590,14 +601,6 @@ export default function WalletPrivateKeysPage() {
                 {/* Sidebar: derivation paths */}
                 <aside class="flex max-h-[min(22rem,52vh)] min-h-0 flex-col overflow-hidden border border-b-border bg-b-field lg:max-h-none lg:w-72 lg:shrink-0">
                   <div class="shrink-0 space-y-3 border-b border-b-border p-4">
-                    <div class="flex items-center justify-between gap-2">
-                      <p class="text-xs font-bold uppercase tracking-[0.35em] text-b-accent">
-                        Private Keys
-                      </p>
-                      <span class="tabular-nums text-[0.65rem] font-bold uppercase tracking-widest text-b-ink/45">
-                        {privateKeys().length}
-                      </span>
-                    </div>
                     <button
                       type="button"
                       onClick={openCreatePkModal}
@@ -650,23 +653,31 @@ export default function WalletPrivateKeysPage() {
                                       : "border-transparent bg-b-paper/15 text-b-ink/85 hover:border-b-border-hover hover:bg-b-paper/35"
                                   }`}
                                 >
-                                  <div class="flex min-w-0 items-center">
-                                    <Show
-                                      when={match === null}
-                                      fallback={
-                                        <NamedPathBadge
-                                          namedPath={match!.namedPath}
-                                          index={match!.index}
-                                        />
-                                      }
-                                    >
-                                      <p
-                                        class="truncate font-mono text-xs font-semibold text-b-ink/80"
-                                        title={pk.derivationPath}
+                                  <div class="flex min-w-0 flex-col gap-1">
+                                    <div class="flex min-w-0 items-center">
+                                      <Show
+                                        when={match === null}
+                                        fallback={
+                                          <NamedPathBadge
+                                            namedPath={match!.namedPath}
+                                            index={match!.index}
+                                          />
+                                        }
                                       >
-                                        {pk.derivationPath}
-                                      </p>
-                                    </Show>
+                                        <p
+                                          class="truncate font-mono text-xs font-semibold text-b-ink/80"
+                                          title={pk.derivationPath}
+                                        >
+                                          {pk.derivationPath}
+                                        </p>
+                                      </Show>
+                                    </div>
+                                    <p
+                                      class="truncate font-mono text-[0.65rem] font-semibold text-b-ink/50"
+                                      title={pk.address}
+                                    >
+                                      {truncateMiddle(pk.address)}
+                                    </p>
                                   </div>
                                   <div class="flex shrink-0 items-center gap-2">
                                     <button
@@ -750,9 +761,9 @@ export default function WalletPrivateKeysPage() {
                             </Show>
                             <code
                               class="truncate font-mono text-sm font-semibold text-b-ink"
-                              title={activePrivateKey()!.derivationPath}
+                              title={activePrivateKey()!.address}
                             >
-                              {activePrivateKey()!.derivationPath}
+                              {activePrivateKey()!.address}
                             </code>
                           </div>
                         </div>
@@ -956,26 +967,48 @@ export default function WalletPrivateKeysPage() {
             when={createNamedPath()}
             fallback={
               <>
-                <div class="flex flex-col gap-2">
-                  <label
-                    for="new-private-key-curve"
-                    class="text-xs font-bold uppercase tracking-widest text-b-ink/70"
-                  >
-                    Curve
-                  </label>
-                  <select
-                    id="new-private-key-curve"
-                    value={pkCurve()}
-                    onChange={(e) => setPkCurve(e.currentTarget.value)}
-                    class="h-11 w-full appearance-none border border-b-border bg-b-field px-4 pr-10 text-sm font-bold tracking-widest text-b-ink outline-none focus-visible:border-b-accent/50 focus-visible:ring-2 focus-visible:ring-b-accent/20 hover:border-b-border-hover transition-all duration-200 cursor-pointer"
-                  >
-                    <For each={CURVE_OPTIONS}>
-                      {(opt) => <option value={opt}>{opt}</option>}
-                    </For>
-                  </select>
-                  <p class="text-xs font-semibold uppercase tracking-wider text-b-ink/40">
-                    Elliptic curve used for key derivation
-                  </p>
+                <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                  <div class="flex flex-col gap-2">
+                    <label
+                      for="new-private-key-curve"
+                      class="text-xs font-bold uppercase tracking-widest text-b-ink/70"
+                    >
+                      Curve
+                    </label>
+                    <select
+                      id="new-private-key-curve"
+                      value={pkCurve()}
+                      onChange={(e) =>
+                        setPkCurve(e.currentTarget.value as DerivationCurve)
+                      }
+                      class="h-11 w-full appearance-none border border-b-border bg-b-field px-4 pr-10 text-sm font-bold tracking-widest text-b-ink outline-none focus-visible:border-b-accent/50 focus-visible:ring-2 focus-visible:ring-b-accent/20 hover:border-b-border-hover transition-all duration-200 cursor-pointer"
+                    >
+                      <option value="Secp256k1">Secp256k1</option>
+                      <option value="Ed25519">Ed25519</option>
+                    </select>
+                  </div>
+
+                  <div class="flex flex-col gap-2">
+                    <label
+                      for="new-private-key-address-format"
+                      class="text-xs font-bold uppercase tracking-widest text-b-ink/70"
+                    >
+                      Address Format
+                    </label>
+                    <select
+                      id="new-private-key-address-format"
+                      value={pkAddressFormat()}
+                      onChange={(e) =>
+                        setPkAddressFormat(
+                          e.currentTarget.value as AddressFormat,
+                        )
+                      }
+                      class="h-11 w-full appearance-none border border-b-border bg-b-field px-4 pr-10 text-sm font-bold tracking-widest text-b-ink outline-none focus-visible:border-b-accent/50 focus-visible:ring-2 focus-visible:ring-b-accent/20 hover:border-b-border-hover transition-all duration-200 cursor-pointer"
+                    >
+                      <option value="Evm">Evm</option>
+                      <option value="Solana">Solana</option>
+                    </select>
+                  </div>
                 </div>
 
                 <div class="flex flex-col gap-2">
@@ -1002,9 +1035,6 @@ export default function WalletPrivateKeysPage() {
                     spellcheck={false}
                     autofocus
                   />
-                  <p class="text-xs font-semibold uppercase tracking-wider text-b-ink/40">
-                    {derivationPathHint}
-                  </p>
                 </div>
               </>
             }

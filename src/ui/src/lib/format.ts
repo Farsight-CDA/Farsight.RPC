@@ -7,3 +7,12 @@ export function formatLastUsed(iso?: string): string {
     timeStyle: "short",
   });
 }
+
+export function truncateMiddle(
+  value: string,
+  headLength = 8,
+  tailLength = 6,
+): string {
+  if (value.length <= headLength + tailLength) return value;
+  return `${value.slice(0, headLength)}…${value.slice(-tailLength)}`;
+}

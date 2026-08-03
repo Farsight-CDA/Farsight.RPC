@@ -7,11 +7,14 @@ export const derivationPathHint =
 
 export type DerivationCurve = "Secp256k1" | "Ed25519";
 
+export type AddressFormat = "Evm" | "Solana";
+
 export type NamedDerivationPath = {
   id: string;
   label: string;
   description: string;
   curve: DerivationCurve;
+  addressFormat: AddressFormat;
   /** Path prefix before the index segment, e.g. "m/44'/60'/0'/0/". */
   prefix: string;
   /** Path suffix after the index segment, e.g. "/0'". */
@@ -45,6 +48,7 @@ const NAMED_DERIVATION_PATH_DEFINITIONS: readonly Omit<
     label: "EVM",
     description: "Ethereum",
     curve: "Secp256k1",
+    addressFormat: "Evm",
     prefix: "m/44'/60'/0'/0/",
     suffix: "",
     hardenedIndex: false,
@@ -54,6 +58,7 @@ const NAMED_DERIVATION_PATH_DEFINITIONS: readonly Omit<
     label: "Solana",
     description: "Solana",
     curve: "Ed25519",
+    addressFormat: "Solana",
     prefix: "m/44'/501'/",
     suffix: "/0'",
     hardenedIndex: true,

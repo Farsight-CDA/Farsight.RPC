@@ -17,7 +17,7 @@ internal static class WalletKeyDerivation
         {
             int publicKeyLength = curve switch
             {
-                WalletCurve.Secp256k1 => Secp256k1.Instance.CompressedPublicKeyLength,
+                WalletCurve.Secp256k1 => Secp256k1.Instance.UncompressedPublicKeyLength,
                 WalletCurve.Ed25519 => ED25519.Instance.PublicKeyLength,
                 _ => throw new InvalidOperationException($"Unsupported wallet curve '{curve}'."),
             };
@@ -26,7 +26,10 @@ internal static class WalletKeyDerivation
             switch(curve)
             {
                 case WalletCurve.Secp256k1:
-                    Secp256k1.Instance.MakeCompressedPublicKey(privateKey, publicKey);
+                    Secp256k1.Instance.MakeUncompressedPublicKey(privateKey, publicKey);
+                    // Keysmith exposes the native little-endian coordinates; store canonical big-endian X || Y.
+                    publicKey.AsSpan(..32).Reverse();
+                    publicKey.AsSpan(32..).Reverse();
                     break;
                 case WalletCurve.Ed25519:
                     ED25519.Instance.MakePublicKey(privateKey, publicKey);

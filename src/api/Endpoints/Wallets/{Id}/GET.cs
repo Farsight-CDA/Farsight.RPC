@@ -1,4 +1,5 @@
 using Farsight.Rpc.Api.Auth;
+using Farsight.Rpc.Api.Cryptography;
 using Farsight.Rpc.Api.Persistence;
 using Farsight.Rpc.Api.Persistence.Entities;
 using FastEndpoints;
@@ -19,6 +20,8 @@ public sealed class GETById(AppDbContext dbContext) : Endpoint<GETById.Request, 
         WalletCurve Curve,
         string DerivationPath,
         byte[] PublicKey,
+        WalletAddressFormat AddressFormat,
+        string Address,
         ApiKeySummary[] ApiKeys
     );
 
@@ -57,7 +60,14 @@ public sealed class GETById(AppDbContext dbContext) : Endpoint<GETById.Request, 
             .Where(privateKey => privateKey.WalletId == req.WalletId)
             .OrderBy(privateKey => privateKey.Curve)
             .ThenBy(privateKey => privateKey.DerivationPath)
-            .Select(privateKey => new { privateKey.Id, privateKey.Curve, privateKey.DerivationPath, privateKey.PublicKey })
+            .Select(privateKey => new
+            {
+                privateKey.Id,
+                privateKey.Curve,
+                privateKey.DerivationPath,
+                privateKey.AddressFormat,
+                privateKey.PublicKey,
+            })
             .ToArrayAsync(ct);
 
         var apiKeys = await dbContext.WalletApiKeys
@@ -79,6 +89,8 @@ public sealed class GETById(AppDbContext dbContext) : Endpoint<GETById.Request, 
                 privateKey.Curve,
                 privateKey.DerivationPath,
                 privateKey.PublicKey,
+                privateKey.AddressFormat,
+                WalletAddressFormatter.FormatAddress(privateKey.AddressFormat, privateKey.PublicKey),
                 [.. apiKeysByPrivateKey[privateKey.Id]]
             ))
             .ToArray();

@@ -149,6 +149,7 @@ public static class App
         {
             FarsightRpcJson.ConfigureJsonConverters(x.Serializer.Options);
             x.Serializer.Options.Converters.Add(new JsonStringEnumConverter<WalletCurve>());
+            x.Serializer.Options.Converters.Add(new JsonStringEnumConverter<WalletAddressFormat>());
         });
     }
 }

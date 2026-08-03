@@ -15,7 +15,7 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request, POST.R
 {
     public sealed record Request(
         [property: RouteParam] Guid WalletId,
-        WalletCurve? Curve,
+        WalletAddressFormat AddressFormat,
         string DerivationPath
     )
     {
@@ -23,26 +23,24 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request, POST.R
         {
             public Validator()
             {
-                RuleFor(x => x.Curve)
-                    .Cascade(CascadeMode.Stop)
-                    .NotNull()
-                    .WithMessage("Wallet curve is required.")
-                    .Must(static curve => Enum.IsDefined(curve!.Value))
-                    .WithMessage("Invalid wallet curve value.");
+                RuleFor(x => x.AddressFormat)
+                    .Must(static addressFormat => Enum.IsDefined(addressFormat))
+                    .WithMessage("Unsupported wallet address format.");
 
                 RuleFor(x => x.DerivationPath)
                     .Cascade(CascadeMode.Stop)
                     .NotEmpty()
                     .WithMessage("Derivation path is required.")
                     .Must(IsValidDerivationPath)
-                    .WithMessage("Derivation path must be valid for the selected wallet curve.");
+                    .WithMessage("Derivation path must be valid for the selected wallet address format.");
             }
 
             private static bool IsValidDerivationPath(Request request, string derivationPath)
             {
                 uint[] path = new uint[BIP44.GetPathLength(derivationPath)];
                 return BIP44.TryParse(derivationPath, path, out _)
-                    && (request.Curve != WalletCurve.Ed25519 || path.All(index => index >= Slip10.HardenedOffset));
+                    && (request.AddressFormat != WalletAddressFormat.Solana
+                        || path.All(index => index >= Slip10.HardenedOffset));
             }
         }
     }
@@ -51,7 +49,9 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request, POST.R
         Guid Id,
         WalletCurve Curve,
         string DerivationPath,
-        byte[] PublicKey
+        byte[] PublicKey,
+        WalletAddressFormat AddressFormat,
+        string Address
     );
 
     public override void Configure()
@@ -73,14 +73,18 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request, POST.R
         }
 
         string derivationPath = BIP44.MakePath(BIP44.Parse(req.DerivationPath));
+        var addressFormat = req.AddressFormat;
+        var curve = WalletAddressFormatter.GetCurve(addressFormat);
+        byte[] publicKey = WalletKeyDerivation.DerivePublicKey(curve, mnemonic, derivationPath);
 
         var privateKey = new WalletPrivateKey
         {
             Id = Guid.NewGuid(),
             WalletId = req.WalletId,
-            Curve = req.Curve!.Value,
+            Curve = curve,
             DerivationPath = derivationPath,
-            PublicKey = WalletKeyDerivation.DerivePublicKey(req.Curve.Value, mnemonic, derivationPath),
+            AddressFormat = addressFormat,
+            PublicKey = publicKey,
         };
 
         dbContext.WalletPrivateKeys.Add(privateKey);
@@ -91,14 +95,16 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request, POST.R
         }
         catch(DbUpdateException ex) when(ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation })
         {
-            ThrowError("A key with this curve and derivation path already exists in the wallet.", StatusCodes.Status409Conflict);
+            ThrowError("A key with this derivation path already exists in the wallet.", StatusCodes.Status409Conflict);
         }
 
         await Send.OkAsync(new Response(
             privateKey.Id,
             privateKey.Curve,
             privateKey.DerivationPath,
-            privateKey.PublicKey
+            privateKey.PublicKey,
+            privateKey.AddressFormat,
+            WalletAddressFormatter.FormatAddress(privateKey.AddressFormat, privateKey.PublicKey)
         ), ct);
     }
 }

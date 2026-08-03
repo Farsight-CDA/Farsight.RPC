@@ -16,6 +16,8 @@ internal sealed class WalletPrivateKeyEFConfiguration : IEntityTypeConfiguration
         entity.Property(x => x.Curve)
             .HasConversion<string>();
         entity.Property(x => x.DerivationPath);
+        entity.Property(x => x.AddressFormat)
+            .HasConversion<string>();
         entity.Property(x => x.PublicKey);
 
         entity.HasMany(x => x.ApiKeys)

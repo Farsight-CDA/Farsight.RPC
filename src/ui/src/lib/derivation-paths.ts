@@ -7,7 +7,7 @@ export const derivationPathHint =
 
 export type DerivationCurve = "Secp256k1" | "Ed25519";
 
-export type AddressFormat = "Evm" | "Solana";
+export type AddressFormat = "Evm" | "Solana" | "Cosmos";
 
 export type NamedDerivationPath = {
   id: string;
@@ -62,6 +62,16 @@ const NAMED_DERIVATION_PATH_DEFINITIONS: readonly Omit<
     prefix: "m/44'/501'/",
     suffix: "/0'",
     hardenedIndex: true,
+  },
+  {
+    id: "cosmos",
+    label: "Cosmos",
+    description: "Cosmos",
+    curve: "Secp256k1",
+    addressFormat: "Cosmos",
+    prefix: "m/44'/118'/0'/0/",
+    suffix: "",
+    hardenedIndex: false,
   },
 ];
 

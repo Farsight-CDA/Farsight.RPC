@@ -61,11 +61,13 @@ function curveBadgeClass(curve: string): string {
 const namedPathBadgeClass: Record<string, string> = {
   evm: "text-violet-300 border-violet-500/30 bg-violet-500/10",
   solana: "text-green-300 border-green-500/30 bg-green-500/10",
+  cosmos: "text-amber-300 border-amber-500/30 bg-amber-500/10",
 };
 
 const namedPathHeaderClass: Record<string, string> = {
   evm: "text-violet-300",
   solana: "text-green-300",
+  cosmos: "text-amber-300",
 };
 
 function NamedPathBadge(props: {
@@ -1007,6 +1009,7 @@ export default function WalletPrivateKeysPage() {
                     >
                       <option value="Evm">Evm</option>
                       <option value="Solana">Solana</option>
+                      <option value="Cosmos">Cosmos</option>
                     </select>
                   </div>
                 </div>

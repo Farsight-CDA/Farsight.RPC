@@ -29,8 +29,13 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request, POST.R
                     .WithMessage("Unsupported wallet curve.");
 
                 RuleFor(x => x.AddressFormat)
+                    .Cascade(CascadeMode.Stop)
                     .Must(static addressFormat => Enum.IsDefined(addressFormat))
-                    .WithMessage("Unsupported wallet address format.");
+                    .WithMessage("Unsupported wallet address format.")
+                    .Must(static (request, addressFormat) =>
+                        !Enum.IsDefined(request.Curve)
+                        || IsCompatible(request.Curve, addressFormat))
+                    .WithMessage("Selected wallet curve and address format are incompatible.");
 
                 RuleFor(x => x.DerivationPath)
                     .Cascade(CascadeMode.Stop)
@@ -47,6 +52,15 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request, POST.R
                     && (request.Curve != WalletCurve.Ed25519
                         || path.All(index => index >= Slip10.HardenedOffset));
             }
+
+            private static bool IsCompatible(WalletCurve curve, WalletAddressFormat addressFormat)
+                => (curve, addressFormat) switch
+                {
+                    (WalletCurve.Secp256k1, WalletAddressFormat.Evm) => true,
+                    (WalletCurve.Secp256k1, WalletAddressFormat.Cosmos) => true,
+                    (WalletCurve.Ed25519, WalletAddressFormat.Solana) => true,
+                    _ => false,
+                };
         }
     }
 

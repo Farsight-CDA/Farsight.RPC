@@ -20,6 +20,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     public DbSet<Wallet> Wallets => Set<Wallet>();
     public DbSet<WalletApiKey> WalletApiKeys => Set<WalletApiKey>();
     public DbSet<WalletPrivateKey> WalletPrivateKeys => Set<WalletPrivateKey>();
+    public DbSet<WalletPrivateKeyGroup> WalletPrivateKeyGroups => Set<WalletPrivateKeyGroup>();
 
     public DbSet<RpcEndpoint> Rpcs => Set<RpcEndpoint>();
     public DbSet<RpcRule> RpcRules => Set<RpcRule>();

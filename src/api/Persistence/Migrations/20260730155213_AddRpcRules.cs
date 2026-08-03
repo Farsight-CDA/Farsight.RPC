@@ -41,7 +41,7 @@ public partial class AddRpcRules : Migration
         migrationBuilder.CreateIndex(
             name: "IX_RpcRules_ApplicationId_EnvironmentId",
             table: "RpcRules",
-            columns: new[] { "ApplicationId", "EnvironmentId" });
+            columns: ["ApplicationId", "EnvironmentId"]);
 
         migrationBuilder.CreateIndex(
             name: "IX_RpcRules_EnvironmentId",

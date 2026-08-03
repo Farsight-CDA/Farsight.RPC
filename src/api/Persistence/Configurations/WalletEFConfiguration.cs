@@ -24,6 +24,11 @@ internal sealed class WalletEFConfiguration : IEntityTypeConfiguration<Wallet>
             .HasForeignKey(x => x.WalletId)
             .OnDelete(DeleteBehavior.Cascade);
 
+        entity.HasMany(x => x.PrivateKeyGroups)
+            .WithOne(x => x.Wallet)
+            .HasForeignKey(x => x.WalletId)
+            .OnDelete(DeleteBehavior.Cascade);
+
         entity.ToTable("Wallets");
     }
 }

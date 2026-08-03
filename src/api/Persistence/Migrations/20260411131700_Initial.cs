@@ -127,13 +127,13 @@ public partial class Initial : Migration
         migrationBuilder.CreateIndex(
             name: "IX_ApplicationEnvironments_ApplicationId_Name",
             table: "ApplicationEnvironments",
-            columns: new[] { "ApplicationId", "Name" },
+            columns: ["ApplicationId", "Name"],
             unique: true);
 
         migrationBuilder.CreateIndex(
             name: "IX_ConsumerApiKeys_ApplicationId_EnvironmentId",
             table: "ConsumerApiKeys",
-            columns: new[] { "ApplicationId", "EnvironmentId" });
+            columns: ["ApplicationId", "EnvironmentId"]);
 
         migrationBuilder.CreateIndex(
             name: "IX_ConsumerApiKeys_EnvironmentId",
@@ -155,7 +155,7 @@ public partial class Initial : Migration
         migrationBuilder.CreateIndex(
             name: "IX_Rpcs_ApplicationId_EnvironmentId",
             table: "Rpcs",
-            columns: new[] { "ApplicationId", "EnvironmentId" });
+            columns: ["ApplicationId", "EnvironmentId"]);
 
         migrationBuilder.CreateIndex(
             name: "IX_Rpcs_EnvironmentId",

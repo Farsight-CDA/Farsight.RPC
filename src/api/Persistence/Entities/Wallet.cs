@@ -9,4 +9,7 @@ public sealed class Wallet
 
     //Navigation Property
     public List<WalletPrivateKey>? PrivateKeys { get; private set; }
+
+    //Navigation Property
+    public List<WalletPrivateKeyGroup>? PrivateKeyGroups { get; private set; }
 }

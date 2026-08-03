@@ -19,6 +19,12 @@ internal sealed class WalletPrivateKeyEFConfiguration : IEntityTypeConfiguration
         entity.Property(x => x.AddressFormat)
             .HasConversion<string>();
         entity.Property(x => x.PublicKey);
+        entity.Property(x => x.GroupId);
+
+        entity.HasOne(x => x.Group)
+            .WithMany(x => x.PrivateKeys)
+            .HasForeignKey(x => x.GroupId)
+            .OnDelete(DeleteBehavior.SetNull);
 
         entity.HasMany(x => x.ApiKeys)
             .WithOne(x => x.WalletPrivateKey)

@@ -8,9 +8,13 @@ public sealed class WalletPrivateKey
     public required string DerivationPath { get; init; }
     public required WalletAddressFormat AddressFormat { get; init; }
     public required byte[] PublicKey { get; init; }
+    public Guid? GroupId { get; set; }
 
     //Navigation Property
     public Wallet? Wallet { get; private set; }
+
+    //Navigation Property
+    public WalletPrivateKeyGroup? Group { get; private set; }
 
     //Navigation Property
     public List<WalletApiKey>? ApiKeys { get; private set; }

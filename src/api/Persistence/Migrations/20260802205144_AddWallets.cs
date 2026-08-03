@@ -80,7 +80,7 @@ public partial class AddWallets : Migration
         migrationBuilder.CreateIndex(
             name: "IX_WalletKeys_WalletId_Curve_DerivationPath",
             table: "WalletKeys",
-            columns: new[] { "WalletId", "Curve", "DerivationPath" },
+            columns: ["WalletId", "Curve", "DerivationPath"],
             unique: true);
 
         migrationBuilder.CreateIndex(

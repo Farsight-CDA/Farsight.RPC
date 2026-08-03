@@ -17,7 +17,8 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request, POST.R
         [property: RouteParam] Guid WalletId,
         WalletCurve Curve,
         WalletAddressFormat AddressFormat,
-        string DerivationPath
+        string DerivationPath,
+        Guid GroupId
     )
     {
         public sealed class Validator : FastEndpoints.Validator<Request>
@@ -70,7 +71,8 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request, POST.R
         string DerivationPath,
         byte[] PublicKey,
         WalletAddressFormat AddressFormat,
-        string Address
+        string Address,
+        Guid GroupId
     );
 
     public override void Configure()
@@ -91,6 +93,16 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request, POST.R
             ThrowError("Wallet not found.", StatusCodes.Status404NotFound);
         }
 
+        Guid? groupId = req.GroupId == Guid.Empty ? null : req.GroupId;
+
+        if(groupId is not null
+            && !await dbContext.WalletPrivateKeyGroups.AnyAsync(
+                group => group.WalletId == req.WalletId && group.Id == groupId,
+                ct))
+        {
+            ThrowError("Private key group not found.", StatusCodes.Status404NotFound);
+        }
+
         string derivationPath = BIP44.MakePath(BIP44.Parse(req.DerivationPath));
         byte[] publicKey = WalletKeyDerivation.DerivePublicKey(req.Curve, mnemonic, derivationPath);
 
@@ -102,6 +114,7 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request, POST.R
             DerivationPath = derivationPath,
             AddressFormat = req.AddressFormat,
             PublicKey = publicKey,
+            GroupId = groupId,
         };
 
         dbContext.WalletPrivateKeys.Add(privateKey);
@@ -114,6 +127,10 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request, POST.R
         {
             ThrowError("A key with this derivation path already exists in the wallet.", StatusCodes.Status409Conflict);
         }
+        catch(DbUpdateException ex) when(ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.ForeignKeyViolation })
+        {
+            ThrowError("Private key group not found.", StatusCodes.Status404NotFound);
+        }
 
         await Send.OkAsync(new Response(
             privateKey.Id,
@@ -121,7 +138,8 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request, POST.R
             privateKey.DerivationPath,
             privateKey.PublicKey,
             privateKey.AddressFormat,
-            WalletAddressFormatter.FormatAddress(privateKey.AddressFormat, privateKey.PublicKey)
+            WalletAddressFormatter.FormatAddress(privateKey.AddressFormat, privateKey.PublicKey),
+            privateKey.GroupId ?? Guid.Empty
         ), ct);
     }
 }

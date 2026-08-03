@@ -91,13 +91,13 @@ public partial class UnifyRpcEndpoints : Migration
         migrationBuilder.CreateIndex(
             name: "IX_Rpcs_ApplicationId_EnvironmentId_Chain_Address",
             table: "Rpcs",
-            columns: new[] { "ApplicationId", "EnvironmentId", "Chain", "Address" },
+            columns: ["ApplicationId", "EnvironmentId", "Chain", "Address"],
             unique: true);
 
         migrationBuilder.CreateIndex(
             name: "IX_Rpcs_ApplicationId_EnvironmentId_Chain_Order",
             table: "Rpcs",
-            columns: new[] { "ApplicationId", "EnvironmentId", "Chain", "Order" },
+            columns: ["ApplicationId", "EnvironmentId", "Chain", "Order"],
             unique: true);
     }
 

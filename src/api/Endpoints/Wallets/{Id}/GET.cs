@@ -22,7 +22,14 @@ public sealed class GETById(AppDbContext dbContext) : Endpoint<GETById.Request, 
         byte[] PublicKey,
         WalletAddressFormat AddressFormat,
         string Address,
-        ApiKeySummary[] ApiKeys
+        ApiKeySummary[] ApiKeys,
+        Guid GroupId
+    );
+
+    public sealed record PrivateKeyGroupSummary(
+        Guid Id,
+        string Name,
+        string Description
     );
 
     public sealed record Request(
@@ -33,7 +40,8 @@ public sealed class GETById(AppDbContext dbContext) : Endpoint<GETById.Request, 
         Guid Id,
         string Name,
         string Color,
-        PrivateKeySummary[] PrivateKeys
+        PrivateKeySummary[] PrivateKeys,
+        PrivateKeyGroupSummary[] PrivateKeyGroups
     );
 
     public override void Configure()
@@ -67,6 +75,7 @@ public sealed class GETById(AppDbContext dbContext) : Endpoint<GETById.Request, 
                 privateKey.DerivationPath,
                 privateKey.AddressFormat,
                 privateKey.PublicKey,
+                privateKey.GroupId,
             })
             .ToArrayAsync(ct);
 
@@ -91,10 +100,19 @@ public sealed class GETById(AppDbContext dbContext) : Endpoint<GETById.Request, 
                 privateKey.PublicKey,
                 privateKey.AddressFormat,
                 WalletAddressFormatter.FormatAddress(privateKey.AddressFormat, privateKey.PublicKey),
-                [.. apiKeysByPrivateKey[privateKey.Id]]
+                [.. apiKeysByPrivateKey[privateKey.Id]],
+                privateKey.GroupId ?? Guid.Empty
             ))
             .ToArray();
 
-        await Send.OkAsync(new Response(wallet.Id, wallet.Name, wallet.Color, privateKeySummaries), ct);
+        var privateKeyGroups = await dbContext.WalletPrivateKeyGroups
+            .AsNoTracking()
+            .Where(group => group.WalletId == req.WalletId)
+            .OrderBy(group => group.Name)
+            .ThenBy(group => group.Id)
+            .Select(group => new PrivateKeyGroupSummary(group.Id, group.Name, group.Description))
+            .ToArrayAsync(ct);
+
+        await Send.OkAsync(new Response(wallet.Id, wallet.Name, wallet.Color, privateKeySummaries, privateKeyGroups), ct);
     }
 }

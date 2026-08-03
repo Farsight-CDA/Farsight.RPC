@@ -20,8 +20,8 @@ public partial class AddPublicRpcs : Migration
 
         migrationBuilder.InsertData(
             table: "RpcProviders",
-            columns: new[] { "Id", "Name", "RateLimit" },
-            values: new object[] { new Guid("00000000-0000-0000-0000-000000000001"), "Public RPC", 5 });
+            columns: ["Id", "Name", "RateLimit"],
+            values: [new Guid("00000000-0000-0000-0000-000000000001"), "Public RPC", 5]);
     }
 
     /// <inheritdoc />

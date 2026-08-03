@@ -72,17 +72,14 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request, Wallet
 
     private static byte[] SignData(WalletPrivateKey privateKey, string mnemonic, ReadOnlySpan<byte> data)
     {
-        Span<byte> privateKeyBytes = stackalloc byte[32];
+        byte[] privateKeyBytes = WalletKeyDerivation.DerivePrivateKey(
+            privateKey.Curve,
+            mnemonic,
+            privateKey.DerivationPath
+        );
 
         try
         {
-            WalletKeyDerivation.DerivePrivateKey(
-                privateKey.Curve,
-                mnemonic,
-                privateKey.DerivationPath,
-                privateKeyBytes
-            );
-
             switch(privateKey.Curve)
             {
                 case WalletCurve.Secp256k1:

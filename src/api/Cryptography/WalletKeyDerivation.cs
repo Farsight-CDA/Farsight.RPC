@@ -11,12 +11,10 @@ internal static class WalletKeyDerivation
 {
     public static byte[] DerivePublicKey(WalletCurve curve, string mnemonic, string derivationPath)
     {
-        Span<byte> privateKey = stackalloc byte[32];
+        byte[] privateKey = DerivePrivateKey(curve, mnemonic, derivationPath);
 
         try
         {
-            DerivePrivateKey(curve, mnemonic, derivationPath, privateKey);
-
             int publicKeyLength = curve switch
             {
                 WalletCurve.Secp256k1 => Secp256k1.Instance.CompressedPublicKeyLength,
@@ -43,17 +41,12 @@ internal static class WalletKeyDerivation
         }
     }
 
-    public static void DerivePrivateKey(
+    public static byte[] DerivePrivateKey(
         WalletCurve curve,
         string mnemonic,
-        string derivationPath,
-        Span<byte> destination)
+        string derivationPath)
     {
-        if(destination.Length != 32)
-        {
-            throw new ArgumentException("The private key destination must be 32 bytes.", nameof(destination));
-        }
-
+        byte[] privateKey = new byte[32];
         Span<byte> seed = stackalloc byte[64];
         Span<byte> chainCode = stackalloc byte[32];
 
@@ -66,15 +59,19 @@ internal static class WalletKeyDerivation
 
             bool derived = curve switch
             {
-                WalletCurve.Secp256k1 => Slip10.TryDerivePath(Secp256k1.Instance, seed, destination, chainCode, derivationPath),
-                WalletCurve.Ed25519 => Slip10.TryDerivePath(ED25519.Instance, seed, destination, chainCode, derivationPath),
+                WalletCurve.Secp256k1 => Slip10.TryDerivePath(Secp256k1.Instance, seed, privateKey, chainCode, derivationPath),
+                WalletCurve.Ed25519 => Slip10.TryDerivePath(ED25519.Instance, seed, privateKey, chainCode, derivationPath),
                 _ => throw new InvalidOperationException($"Unsupported wallet curve '{curve}'."),
             };
 
-            if(!derived)
-            {
-                throw new InvalidOperationException($"Failed to derive the {curve} private key.");
-            }
+            return derived
+                ? privateKey
+                : throw new InvalidOperationException($"Failed to derive the {curve} private key.");
+        }
+        catch
+        {
+            CryptographicOperations.ZeroMemory(privateKey);
+            throw;
         }
         finally
         {

@@ -75,7 +75,10 @@ public sealed class FarsightEtherSigner : IEtherSigner
         {
             throw new InvalidOperationException("The wallet API returned an invalid secp256k1 recovery identifier.");
         }
-        //
+
+        signature.AsSpan(..32).Reverse();
+        signature.AsSpan(32..64).Reverse();
+
         return new RecoverableEtherSignature(
             Bytes32.FromBytes(signature.AsSpan(0, 32)),
             Bytes32.FromBytes(signature.AsSpan(32, 32)),

@@ -15,7 +15,7 @@ internal static partial class ValidationExtensions
                 .Must(static name => name is not null && name.AsSpan().Trim().Length == name.Length)
                 .WithMessage("Name cannot have leading or trailing whitespace.")
                 .Must(static name => name is not null && AllowedNameCharactersRegex().IsMatch(name))
-                .WithMessage("Name can only contain letters, numbers, spaces, periods, underscores, and hyphens.");
+                .WithMessage("Name can only contain letters, numbers, spaces, periods, underscores, hyphens, and number signs (#).");
 
         public IRuleBuilderOptions<T, string?> ApplyColorValidation()
             => ruleBuilder
@@ -26,7 +26,7 @@ internal static partial class ValidationExtensions
                 .WithMessage("Color must be a valid hex color code (e.g. #FF5722).");
     }
 
-    [GeneratedRegex("^[A-Za-z0-9_. -]+$", RegexOptions.CultureInvariant)]
+    [GeneratedRegex("^[A-Za-z0-9_. #-]+$", RegexOptions.CultureInvariant)]
     private static partial Regex AllowedNameCharactersRegex();
 
     [GeneratedRegex("^#[0-9A-Fa-f]{6}$", RegexOptions.CultureInvariant)]

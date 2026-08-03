@@ -72,10 +72,9 @@ if (signResult is IFarsightRpcClient.SignResult.Success signed)
     byte[] signature = signed.Signature;
 }
 
-IEtherSigner signer = new FarsightEtherSigner(
+IEtherSigner signer = await FarsightEtherSigner.CreateAsync(
     client,
-    "your-wallet-api-key",
-    Address.Parse("0x0123456789abcdef0123456789abcdef01234567")
+    "your-wallet-api-key"
 );
 ```
 

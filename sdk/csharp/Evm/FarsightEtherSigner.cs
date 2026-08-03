@@ -15,14 +15,37 @@ public sealed class FarsightEtherSigner : IEtherSigner
 
     public Address Address { get; }
 
-    public FarsightEtherSigner(IFarsightRpcClient client, string apiKey, Address address)
+    private FarsightEtherSigner(IFarsightRpcClient client, string apiKey, Address address)
+    {
+        _client = client;
+        _apiKey = apiKey;
+        Address = address;
+    }
+
+    public static async Task<FarsightEtherSigner> CreateAsync(
+        IFarsightRpcClient client,
+        string apiKey,
+        CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(client);
         ArgumentException.ThrowIfNullOrWhiteSpace(apiKey);
 
-        _client = client;
-        _apiKey = apiKey;
-        Address = address;
+        var result = await client.GetWalletInfoAsync(apiKey, cancellationToken);
+        string address = result switch
+        {
+            IFarsightRpcClient.GetWalletInfoResult.Success success => success.Address,
+            IFarsightRpcClient.GetWalletInfoResult.InvalidApiKey => throw new InvalidOperationException("The wallet API key was rejected."),
+            _ => throw new InvalidOperationException("Unknown wallet information result."),
+        };
+
+        try
+        {
+            return new FarsightEtherSigner(client, apiKey, Address.Parse(address));
+        }
+        catch(Exception ex) when(ex is ArgumentException or FormatException)
+        {
+            throw new InvalidOperationException("The wallet API key is not associated with a compatible EVM private key.", ex);
+        }
     }
 
     public async ValueTask<EtherSignature> SignAsync(Bytes32 hash, CancellationToken cancellationToken = default)

@@ -37,6 +37,26 @@ public partial interface IFarsightRpcClient
     }
 
     /// <summary>
+    /// Represents the possible outcomes of a wallet information request.
+    /// </summary>
+    public abstract record GetWalletInfoResult
+    {
+        /// <summary>
+        /// Represents a successful wallet information request.
+        /// </summary>
+        /// <param name="Address">The address associated with the wallet API key.</param>
+        public sealed record Success(string Address) : GetWalletInfoResult;
+
+        /// <summary>
+        /// Represents a response where the provided wallet API key was not found.
+        /// </summary>
+        public sealed record InvalidApiKey : GetWalletInfoResult
+        {
+            internal static InvalidApiKey Instance { get; } = new();
+        }
+    }
+
+    /// <summary>
     /// Represents the possible outcomes of a wallet signing request.
     /// </summary>
     public abstract record SignResult
@@ -71,6 +91,14 @@ public partial interface IFarsightRpcClient
     /// <param name="cancellationToken">The token used to cancel the operation.</param>
     /// <returns>The RPC endpoints and provider metadata for the provided API key.</returns>
     public Task<GetRpcsResult> GetRpcsAsync(string apiKey, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets information about the wallet private key associated with a wallet API key.
+    /// </summary>
+    /// <param name="apiKey">The wallet API key used to authorize the request.</param>
+    /// <param name="cancellationToken">The token used to cancel the operation.</param>
+    /// <returns>The linked key information or the reason the request was rejected.</returns>
+    public Task<GetWalletInfoResult> GetWalletInfoAsync(string apiKey, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Signs data with the wallet private key associated with the provided wallet API key.

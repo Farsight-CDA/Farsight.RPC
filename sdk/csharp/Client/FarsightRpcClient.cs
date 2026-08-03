@@ -69,6 +69,28 @@ public sealed class FarsightRpcClient : IFarsightRpcClient
         }
     }
 
+    public async Task<GetWalletInfoResult> GetWalletInfoAsync(string apiKey, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(apiKey);
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/api/Wallets/Info");
+        request.Headers.Add(ApiKeyHeaders.API_KEY, apiKey);
+        using var response = await CreateClient().SendAsync(request, cancellationToken);
+
+        switch(response.StatusCode)
+        {
+            case HttpStatusCode.Forbidden:
+                return GetWalletInfoResult.InvalidApiKey.Instance;
+            case HttpStatusCode.OK:
+                var result = await response.Content.ReadFromJsonAsync(FarsightRpcJsonContext.Default.WalletInfoDto, cancellationToken)
+                    ?? throw new InvalidOperationException("Null response");
+                return new GetWalletInfoResult.Success(result.Address);
+            default:
+                response.EnsureSuccessStatusCode();
+                throw new InvalidOperationException();
+        }
+    }
+
     public async Task<SignResult> SignAsync(string apiKey, byte[] data, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(apiKey);

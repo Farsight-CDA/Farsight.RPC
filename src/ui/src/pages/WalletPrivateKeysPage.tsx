@@ -1,5 +1,11 @@
 import { useParams, useSearchParams } from "@solidjs/router";
-import { createEffect, createMemo, createSignal, For, Show } from "solid-js";
+import {
+  createEffect,
+  createMemo,
+  createSignal,
+  For,
+  Show,
+} from "solid-js";
 import LoadingSpinner from "../components/LoadingSpinner";
 import Modal from "../components/Modal";
 import SegmentedControl from "../components/SegmentedControl";
@@ -11,6 +17,19 @@ import PencilIcon from "../components/icons/PencilIcon";
 import PlusIcon from "../components/icons/PlusIcon";
 import TrashIcon from "../components/icons/TrashIcon";
 import { useAuth } from "../lib/auth";
+import {
+  createNamedDerivationPath,
+  derivationPathHint,
+  derivationPathPattern,
+  formatDerivationPath,
+  getNamedDerivationPath,
+  isValidDerivationPath,
+  matchNamedDerivationPath,
+  MAX_DERIVATION_INDEX,
+  NAMED_DERIVATION_PATHS,
+  validateDerivationIndex,
+  type NamedDerivationPath,
+} from "../lib/derivation-paths";
 import { readErrorMessage } from "../lib/error-groups";
 import { formatLastUsed } from "../lib/format";
 import {
@@ -27,24 +46,6 @@ import {
 
 const CURVE_OPTIONS = ["Secp256k1", "Ed25519"] as const;
 
-const derivationPathPattern = "^m(?:\\/[0-9]+'?)+$";
-const derivationPathHint =
-  "BIP44 path, e.g. m/44'/60'/0'/0/0. Ed25519 requires all segments to be hardened (trailing apostrophe).";
-
-const EVM_DERIVATION_PREFIX = "m/44'/60'/0'/0/";
-const evmPathPattern = /^m\/44'\/60'\/0'\/0\/(\d+)$/;
-const MAX_EVM_INDEX = 2147483647;
-
-function getEvmIndex(path: string): number | null {
-  const match = evmPathPattern.exec(path);
-  return match ? Number(match[1]) : null;
-}
-
-function formatPrivateKeyPath(path: string): string {
-  const index = getEvmIndex(path);
-  return index !== null ? `EVM #${index}` : path;
-}
-
 function curveBadgeClass(curve: string): string {
   switch (curve) {
     case "Secp256k1":
@@ -56,21 +57,32 @@ function curveBadgeClass(curve: string): string {
   }
 }
 
-const evmBadgeClass =
-  "inline-flex items-center border font-bold uppercase tracking-widest text-violet-300 border-violet-500/30 bg-violet-500/10";
+const namedPathBadgeClass: Record<string, string> = {
+  evm: "text-violet-300 border-violet-500/30 bg-violet-500/10",
+  solana: "text-green-300 border-green-500/30 bg-green-500/10",
+};
 
-function EvmBadge(props: { index: number; class?: string }) {
+const namedPathHeaderClass: Record<string, string> = {
+  evm: "text-violet-300",
+  solana: "text-green-300",
+};
+
+function NamedPathBadge(props: {
+  namedPath: NamedDerivationPath;
+  index: number;
+  class?: string;
+}) {
   return (
     <span
-      class={`${evmBadgeClass} ${props.class ?? "h-4 px-1.5 text-[0.55rem] leading-none"}`}
+      class={`inline-flex items-center border font-bold uppercase tracking-widest ${namedPathBadgeClass[props.namedPath.id] ?? "text-b-ink/50 border-b-border bg-b-paper/30"} ${props.class ?? "h-4 px-1.5 text-[0.55rem] leading-none"}`}
     >
-      EVM #{props.index}
+      {props.namedPath.label} #{props.index}
     </span>
   );
 }
 
 type SidebarGroup = {
-  id: "evm" | "secp256k1" | "ed25519";
+  id: string;
   label: string;
   headerClass: string;
   keys: WalletPrivateKeySummary[];
@@ -110,34 +122,51 @@ export default function WalletPrivateKeysPage() {
       privateKeys().find((pk) => pk.id === activePrivateKeyId()) ?? null,
   );
 
+  const activePrivateKeyMatch = createMemo(() => {
+    const key = activePrivateKey();
+    return key ? matchNamedDerivationPath(key.derivationPath) : null;
+  });
+
   const sidebarGroups = createMemo<SidebarGroup[]>(() => {
     const list = privateKeys();
-    const evm = list.filter((pk) => getEvmIndex(pk.derivationPath) !== null);
-    const secp256k1 = list.filter(
-      (pk) => pk.curve === "Secp256k1" && getEvmIndex(pk.derivationPath) === null,
+    const namedPathGroups: SidebarGroup[] = NAMED_DERIVATION_PATHS.map(
+      (namedPath) => ({
+        id: namedPath.id,
+        label: namedPath.label,
+        headerClass:
+          namedPathHeaderClass[namedPath.id] ?? "text-b-ink/50",
+        keys: list.filter(
+          (pk) =>
+            matchNamedDerivationPath(pk.derivationPath)?.namedPath.id ===
+            namedPath.id,
+        ),
+      }),
     );
-    const ed25519 = list.filter((pk) => pk.curve === "Ed25519");
-    const groups: SidebarGroup[] = [
-      {
-        id: "evm",
-        label: "EVM",
-        headerClass: "text-violet-300",
-        keys: evm,
-      },
+    const unnamedGroups: SidebarGroup[] = [
       {
         id: "secp256k1",
         label: "Secp256k1",
         headerClass: "text-orange-300",
-        keys: secp256k1,
+        keys: list.filter(
+          (pk) =>
+            pk.curve === "Secp256k1" &&
+            matchNamedDerivationPath(pk.derivationPath) === null,
+        ),
       },
       {
         id: "ed25519",
         label: "Ed25519",
         headerClass: "text-sky-300",
-        keys: ed25519,
+        keys: list.filter(
+          (pk) =>
+            pk.curve === "Ed25519" &&
+            matchNamedDerivationPath(pk.derivationPath) === null,
+        ),
       },
     ];
-    return groups.filter((group) => group.keys.length > 0);
+    return [...namedPathGroups, ...unnamedGroups].filter(
+      (group) => group.keys.length > 0,
+    );
   });
 
   createEffect(() => {
@@ -152,12 +181,16 @@ export default function WalletPrivateKeysPage() {
 
   // Create private key modal
   const [createPkOpen, setCreatePkOpen] = createSignal(false);
-  const [createMode, setCreateMode] = createSignal<"evm" | "manual">("evm");
+  const [createMode, setCreateMode] = createSignal<string>("evm");
   const [pkIndex, setPkIndex] = createSignal("");
   const [pkCurve, setPkCurve] = createSignal("Secp256k1");
   const [pkPath, setPkPath] = createSignal("");
   const [pkError, setPkError] = createSignal<string | null>(null);
   const [pkLoading, setPkLoading] = createSignal(false);
+
+  const createNamedPath = createMemo(
+    () => getNamedDerivationPath(createMode()) ?? null,
+  );
 
   // Create API key modal
   const [createKeyOpen, setCreateKeyOpen] = createSignal(false);
@@ -216,30 +249,30 @@ export default function WalletPrivateKeysPage() {
     let curve: string;
     let path: string;
 
-    if (createMode() === "evm") {
-      const index = pkIndex().trim();
-      if (!/^\d+$/.test(index)) {
-        setPkError("Index must be a non-negative integer.");
+    const namedPath = getNamedDerivationPath(createMode());
+    if (namedPath) {
+      const indexError = validateDerivationIndex(pkIndex());
+      if (indexError) {
+        setPkError(indexError);
         return;
       }
-      const indexValue = Number(index);
-      if (
-        !Number.isSafeInteger(indexValue) ||
-        indexValue < 0 ||
-        indexValue > MAX_EVM_INDEX
-      ) {
-        setPkError(`Index must be between 0 and ${MAX_EVM_INDEX}.`);
+      const pathValue = createNamedDerivationPath(
+        namedPath.id,
+        Number(pkIndex().trim()),
+      );
+      if (pathValue === null) {
+        setPkError(`Index must be between 0 and ${MAX_DERIVATION_INDEX}.`);
         return;
       }
-      curve = "Secp256k1";
-      path = `${EVM_DERIVATION_PREFIX}${indexValue}`;
+      curve = namedPath.curve;
+      path = pathValue;
     } else {
       const manualPath = pkPath().trim();
       if (manualPath.length === 0) {
         setPkError("Derivation path is required.");
         return;
       }
-      if (!new RegExp(derivationPathPattern).test(manualPath)) {
+      if (!isValidDerivationPath(manualPath)) {
         setPkError(
           "Derivation path must be a valid BIP44 path, e.g. m/44'/60'/0'/0/0.",
         );
@@ -591,7 +624,9 @@ export default function WalletPrivateKeysPage() {
                           <For each={group.keys}>
                             {(pk) => {
                               const isActive = () => activePrivateKeyId() === pk.id;
-                              const evmIndex = getEvmIndex(pk.derivationPath);
+                              const match = matchNamedDerivationPath(
+                                pk.derivationPath,
+                              );
                               return (
                                 <div
                                   role="button"
@@ -613,8 +648,13 @@ export default function WalletPrivateKeysPage() {
                                 >
                                   <div class="flex min-w-0 items-center">
                                     <Show
-                                      when={evmIndex === null}
-                                      fallback={<EvmBadge index={evmIndex!} />}
+                                      when={match === null}
+                                      fallback={
+                                        <NamedPathBadge
+                                          namedPath={match!.namedPath}
+                                          index={match!.index}
+                                        />
+                                      }
                                     >
                                       <p
                                         class="truncate font-mono text-xs font-semibold text-b-ink/80"
@@ -675,11 +715,7 @@ export default function WalletPrivateKeysPage() {
                         <div class="min-w-0">
                           <div class="flex min-w-0 items-center gap-2">
                             <Show
-                              when={
-                                getEvmIndex(
-                                  activePrivateKey()!.derivationPath,
-                                ) !== null
-                              }
+                              when={activePrivateKeyMatch()}
                               fallback={
                                 <span
                                   class={`inline-flex shrink-0 items-center border px-2 py-0.5 text-[0.6rem] font-bold uppercase tracking-widest ${curveBadgeClass(activePrivateKey()!.curve)}`}
@@ -688,10 +724,9 @@ export default function WalletPrivateKeysPage() {
                                 </span>
                               }
                             >
-                              <EvmBadge
-                                index={getEvmIndex(
-                                  activePrivateKey()!.derivationPath,
-                                )!}
+                              <NamedPathBadge
+                                namedPath={activePrivateKeyMatch()!.namedPath}
+                                index={activePrivateKeyMatch()!.index}
                                 class="px-2 py-0.5 text-[0.6rem]"
                               />
                             </Show>
@@ -887,7 +922,10 @@ export default function WalletPrivateKeysPage() {
             </p>
             <SegmentedControl
               options={[
-                { value: "evm", label: "EVM" },
+                ...NAMED_DERIVATION_PATHS.map((namedPath) => ({
+                  value: namedPath.id,
+                  label: namedPath.label,
+                })),
                 { value: "manual", label: "Manual" },
               ]}
               value={createMode()}
@@ -897,7 +935,7 @@ export default function WalletPrivateKeysPage() {
           </div>
 
           <Show
-            when={createMode() === "evm"}
+            when={createNamedPath()}
             fallback={
               <>
                 <div class="flex flex-col gap-2">
@@ -965,7 +1003,7 @@ export default function WalletPrivateKeysPage() {
                 type="number"
                 required
                 min={0}
-                max={MAX_EVM_INDEX}
+                max={MAX_DERIVATION_INDEX}
                 step={1}
                 value={pkIndex()}
                 onInput={(e) => {
@@ -977,9 +1015,15 @@ export default function WalletPrivateKeysPage() {
                 autocomplete="off"
                 autofocus
               />
-              <p class="text-xs font-semibold uppercase tracking-wider text-b-ink/40">
-                Derives m/44'/60'/0'/0/{`{index}`} on Secp256k1 (Ethereum)
-              </p>
+              <Show when={createNamedPath()}>
+                <p class="text-xs font-semibold uppercase tracking-wider text-b-ink/40">
+                  Derives {createNamedPath()!.prefix}
+                  {`{index}`}
+                  {createNamedPath()!.hardenedIndex ? "'" : ""}
+                  {createNamedPath()!.suffix} on {createNamedPath()!.curve} (
+                  {createNamedPath()!.description})
+                </p>
+              </Show>
             </div>
           </Show>
 
@@ -1107,7 +1151,7 @@ export default function WalletPrivateKeysPage() {
         <p class="mb-4 text-sm font-semibold text-b-ink/70">
           Permanently delete{" "}
           <span class="font-mono font-bold text-red-400">
-            {pkToDelete() ? formatPrivateKeyPath(pkToDelete()!.derivationPath) : ""}
+            {pkToDelete() ? formatDerivationPath(pkToDelete()!.derivationPath) : ""}
           </span>
           ? Its{" "}
           <span class="font-bold text-b-ink">
@@ -1168,7 +1212,7 @@ export default function WalletPrivateKeysPage() {
           Permanently revoke this key for private key{" "}
           <span class="font-mono font-bold text-red-400">
             {activePrivateKey()
-              ? formatPrivateKeyPath(activePrivateKey()!.derivationPath)
+              ? formatDerivationPath(activePrivateKey()!.derivationPath)
               : ""}
           </span>
           ?

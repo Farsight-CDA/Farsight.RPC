@@ -10,6 +10,7 @@ import LoadingSpinner from "../components/LoadingSpinner";
 import Modal from "../components/Modal";
 import SegmentedControl from "../components/SegmentedControl";
 import ApiKeyModal from "../components/ApiKeyModal";
+import PrivateKeyModal from "../components/PrivateKeyModal";
 import EmptyStateIcon from "../components/icons/EmptyStateIcon";
 import EyeIcon from "../components/icons/EyeIcon";
 import KeyIcon from "../components/icons/KeyIcon";
@@ -209,6 +210,9 @@ export default function WalletPrivateKeysPage() {
   const [editKeyLoading, setEditKeyLoading] = createSignal(false);
 
   // Delete confirmations
+  const [pkToView, setPkToView] = createSignal<WalletPrivateKeySummary | null>(
+    null,
+  );
   const [pkToDelete, setPkToDelete] = createSignal<WalletPrivateKeySummary | null>(
     null,
   );
@@ -664,19 +668,33 @@ export default function WalletPrivateKeysPage() {
                                       </p>
                                     </Show>
                                   </div>
-                                  <button
-                                    type="button"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setDeletePkError(null);
-                                      setPkToDelete(pk);
-                                    }}
-                                    disabled={isBusy()}
-                                    class="shrink-0 opacity-0 transition-opacity duration-150 hover:text-red-400 group-hover:opacity-100 focus:opacity-100 disabled:opacity-30"
-                                    title="Delete private key"
-                                  >
-                                    <TrashIcon class="size-4" />
-                                  </button>
+                                  <div class="flex shrink-0 items-center gap-2">
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setPkToView(pk);
+                                      }}
+                                      disabled={isBusy()}
+                                      class="opacity-0 transition-opacity duration-150 hover:text-b-accent group-hover:opacity-100 focus:opacity-100 disabled:opacity-30"
+                                      title="View private key"
+                                    >
+                                      <EyeIcon class="size-4" />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setDeletePkError(null);
+                                        setPkToDelete(pk);
+                                      }}
+                                      disabled={isBusy()}
+                                      class="opacity-0 transition-opacity duration-150 hover:text-red-400 group-hover:opacity-100 focus:opacity-100 disabled:opacity-30"
+                                      title="Delete private key"
+                                    >
+                                      <TrashIcon class="size-4" />
+                                    </button>
+                                  </div>
                                 </div>
                               );
                             }}
@@ -1272,6 +1290,28 @@ export default function WalletPrivateKeysPage() {
           return data.key;
         }}
         description="Anyone with access to this key can sign transactions and control this wallet."
+      />
+
+      <PrivateKeyModal
+        privateKey={pkToView}
+        onClose={() => setPkToView(null)}
+        loadKey={async (privateKeyId) => {
+          const token = auth.token;
+          if (!token) {
+            throw new Error("Failed to load private key");
+          }
+          const response = await fetch(
+            `/api/Wallets/${walletId()}/PrivateKeys/${privateKeyId}/Key`,
+            { headers: { Authorization: `Bearer ${token}` } },
+          );
+          if (!response.ok) {
+            throw new Error(
+              await readErrorMessage(response, "Failed to load private key"),
+            );
+          }
+          const data = (await response.json()) as { key: string };
+          return data.key;
+        }}
       />
     </>
   );

@@ -6,6 +6,7 @@ public sealed class WalletPrivateKey
     public required Guid WalletId { get; init; }
     public required WalletCurve Curve { get; init; }
     public required string DerivationPath { get; init; }
+    public required byte[] PublicKey { get; init; }
 
     //Navigation Property
     public Wallet? Wallet { get; private set; }

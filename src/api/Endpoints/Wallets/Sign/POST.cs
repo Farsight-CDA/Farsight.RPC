@@ -1,12 +1,11 @@
+using Farsight.Rpc.Api.Cryptography;
 using Farsight.Rpc.Api.Persistence;
 using Farsight.Rpc.Api.Persistence.Entities;
 using Farsight.Rpc.Types;
 using FastEndpoints;
 using FluentValidation;
-using Keysmith.Net.BIP;
 using Keysmith.Net.EC;
 using Keysmith.Net.ED;
-using Keysmith.Net.SLIP;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Cryptography;
 
@@ -73,34 +72,24 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request, Wallet
 
     private static byte[] SignData(WalletPrivateKey privateKey, string mnemonic, ReadOnlySpan<byte> data)
     {
-        Span<byte> seed = stackalloc byte[64];
         Span<byte> privateKeyBytes = stackalloc byte[32];
-        Span<byte> chainCode = stackalloc byte[32];
 
         try
         {
-            if(!BIP39.TryMnemonicToSeed(seed, mnemonic))
-            {
-                throw new InvalidOperationException("Failed to derive the wallet seed.");
-            }
+            WalletKeyDerivation.DerivePrivateKey(
+                privateKey.Curve,
+                mnemonic,
+                privateKey.DerivationPath,
+                privateKeyBytes
+            );
 
             switch(privateKey.Curve)
             {
                 case WalletCurve.Secp256k1:
-                    if(!Slip10.TryDerivePath(Secp256k1.Instance, seed, privateKeyBytes, chainCode, privateKey.DerivationPath))
-                    {
-                        throw new InvalidOperationException("Failed to derive the secp256k1 private key.");
-                    }
-
                     byte[] secp256k1Signature = new byte[Secp256k1.Instance.RecoverableSignatureLength];
                     Secp256k1.Instance.SignRecoverable(privateKeyBytes, data, secp256k1Signature);
                     return secp256k1Signature;
                 case WalletCurve.Ed25519:
-                    if(!Slip10.TryDerivePath(ED25519.Instance, seed, privateKeyBytes, chainCode, privateKey.DerivationPath))
-                    {
-                        throw new InvalidOperationException("Failed to derive the Ed25519 private key.");
-                    }
-
                     byte[] ed25519Signature = new byte[ED25519.Instance.SignatureLength];
                     ED25519.Instance.Sign(privateKeyBytes, data, ed25519Signature);
                     return ed25519Signature;
@@ -110,9 +99,7 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request, Wallet
         }
         finally
         {
-            CryptographicOperations.ZeroMemory(seed);
             CryptographicOperations.ZeroMemory(privateKeyBytes);
-            CryptographicOperations.ZeroMemory(chainCode);
         }
     }
 }

@@ -18,6 +18,7 @@ public sealed class GETById(AppDbContext dbContext) : Endpoint<GETById.Request, 
         Guid Id,
         WalletCurve Curve,
         string DerivationPath,
+        byte[] PublicKey,
         ApiKeySummary[] ApiKeys
     );
 
@@ -56,7 +57,7 @@ public sealed class GETById(AppDbContext dbContext) : Endpoint<GETById.Request, 
             .Where(privateKey => privateKey.WalletId == req.WalletId)
             .OrderBy(privateKey => privateKey.Curve)
             .ThenBy(privateKey => privateKey.DerivationPath)
-            .Select(privateKey => new { privateKey.Id, privateKey.Curve, privateKey.DerivationPath })
+            .Select(privateKey => new { privateKey.Id, privateKey.Curve, privateKey.DerivationPath, privateKey.PublicKey })
             .ToArrayAsync(ct);
 
         var apiKeys = await dbContext.WalletApiKeys
@@ -77,6 +78,7 @@ public sealed class GETById(AppDbContext dbContext) : Endpoint<GETById.Request, 
                 privateKey.Id,
                 privateKey.Curve,
                 privateKey.DerivationPath,
+                privateKey.PublicKey,
                 [.. apiKeysByPrivateKey[privateKey.Id]]
             ))
             .ToArray();

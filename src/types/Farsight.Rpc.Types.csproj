@@ -9,4 +9,8 @@
 		<AssemblyName>Farsight.Rpc.Types</AssemblyName>
 	</PropertyGroup>
 
+	<ItemGroup>
+		<PackageReference Include="EtherSharp" />
+	</ItemGroup>
+
 </Project>

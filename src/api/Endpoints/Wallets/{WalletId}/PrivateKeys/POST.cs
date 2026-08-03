@@ -1,4 +1,5 @@
 using Farsight.Rpc.Api.Auth;
+using Farsight.Rpc.Api.Cryptography;
 using Farsight.Rpc.Api.Persistence;
 using Farsight.Rpc.Api.Persistence.Entities;
 using FastEndpoints;
@@ -49,7 +50,8 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request, POST.R
     public new sealed record Response(
         Guid Id,
         WalletCurve Curve,
-        string DerivationPath
+        string DerivationPath,
+        byte[] PublicKey
     );
 
     public override void Configure()
@@ -60,17 +62,25 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request, POST.R
 
     public override async Task HandleAsync(Request req, CancellationToken ct)
     {
-        if(!await dbContext.Wallets.AnyAsync(wallet => wallet.Id == req.WalletId, ct))
+        string? mnemonic = await dbContext.Wallets
+            .Where(wallet => wallet.Id == req.WalletId)
+            .Select(wallet => wallet.Mnemonic)
+            .SingleOrDefaultAsync(ct);
+
+        if(mnemonic is null)
         {
             ThrowError("Wallet not found.", StatusCodes.Status404NotFound);
         }
+
+        string derivationPath = BIP44.MakePath(BIP44.Parse(req.DerivationPath));
 
         var privateKey = new WalletPrivateKey
         {
             Id = Guid.NewGuid(),
             WalletId = req.WalletId,
             Curve = req.Curve!.Value,
-            DerivationPath = BIP44.MakePath(BIP44.Parse(req.DerivationPath)),
+            DerivationPath = derivationPath,
+            PublicKey = WalletKeyDerivation.DerivePublicKey(req.Curve.Value, mnemonic, derivationPath),
         };
 
         dbContext.WalletPrivateKeys.Add(privateKey);
@@ -84,6 +94,11 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request, POST.R
             ThrowError("A key with this curve and derivation path already exists in the wallet.", StatusCodes.Status409Conflict);
         }
 
-        await Send.OkAsync(new Response(privateKey.Id, privateKey.Curve, privateKey.DerivationPath), ct);
+        await Send.OkAsync(new Response(
+            privateKey.Id,
+            privateKey.Curve,
+            privateKey.DerivationPath,
+            privateKey.PublicKey
+        ), ct);
     }
 }

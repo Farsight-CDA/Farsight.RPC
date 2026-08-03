@@ -1,3 +1,4 @@
+using EtherSharp.Common.Converter;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -11,6 +12,7 @@ public static class FarsightRpcJson
         options.PropertyNameCaseInsensitive = true;
         options.Converters.Add(new JsonStringEnumConverter<RpcCapability>());
         options.Converters.Add(new JsonStringEnumConverter<RpcErrorAction>());
+        options.Converters.Add(HexStringByteArrayConverter.Instance);
         return options;
     }
 }

@@ -38,6 +38,7 @@ public sealed partial class RpcCapabilityProbe : Transient
             "tx not found",
             "transaction 0x0000000000000000000000000000000000000000000000000000000000000000 not found",
             "unknown transaction",
+            "unknown block or tx index",
             "no transaction found",
             "cannot find block hash for transaction",
             "receipt could not be found",
@@ -52,8 +53,8 @@ public sealed partial class RpcCapabilityProbe : Transient
             "insufficient fee",
             "tx fee",
             "exceeds transaction sender account balance",
-            "max fee per gas less than block base fee",
-            "gas price less than block base fee",
+            "gas price",
+            "base fee",
             "already known",
             "transaction underpriced",
             "insufficient to cover the transaction cost",
@@ -61,11 +62,7 @@ public sealed partial class RpcCapabilityProbe : Transient
             "the sender account doesn't exist",
             "cannot pay gas",
             "Transaction fee too low",
-            "invalid gas price",
-            "gas fee cap is below the minimum base fee",
             "value transfer not allowed",
-            "transaction gas price below minimum",
-            "below current base fee"
         ],
         StringComparison.OrdinalIgnoreCase
     );
@@ -87,18 +84,18 @@ public sealed partial class RpcCapabilityProbe : Transient
 
         var ethRpcModule = client.AsInternal().Provider.GetRequiredService<IEthRpcModule>();
 
-        (bool archive, RpcCapabilityError? archiveError) =
+        (bool archive, var archiveError) =
             await ProbeArchiveAsync(ethRpcModule, cancellationToken);
-        (bool debugApi, bool tracingApi, RpcCapabilityError[] tracingErrors) =
+        (bool debugApi, bool tracingApi, var tracingErrors) =
             await ProbeTracingApisAsync(client, cancellationToken);
-        (bool stateOverrides, bool blockOverrides, RpcCapabilityError? overrideError) =
+        (bool stateOverrides, bool blockOverrides, var overrideError) =
             await ProbeOverridesAsync(ethRpcModule, cancellationToken);
-        (ulong? ethGetLogsLimit, RpcCapabilityError? ethGetLogsError) = await ProbeEthGetLogsLimitAsync(
+        (ulong? ethGetLogsLimit, var ethGetLogsError) = await ProbeEthGetLogsLimitAsync(
             ethRpcModule,
             latestBlockNumber,
             cancellationToken
         );
-        (bool sendRawTransaction, RpcCapabilityError? sendRawTransactionError) =
+        (bool sendRawTransaction, var sendRawTransactionError) =
             await ProbeSendRawTransactionAsync(chainId, ethRpcModule, cancellationToken);
 
         var capabilities = new List<RpcCapability>(8);

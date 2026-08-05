@@ -1,4 +1,5 @@
 using Farsight.Rpc.Api.Auth;
+using Farsight.Rpc.Api.Common.Extensions;
 using Farsight.Rpc.Api.Persistence;
 using Farsight.Rpc.Api.Persistence.Entities.Rpc;
 using Farsight.Rpc.Types;
@@ -13,6 +14,7 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request>
     public sealed record Request(
         [property: RouteParam] Guid ApplicationId,
         [property: RouteParam] Guid EnvironmentId,
+        string[] Chains,
         RpcCapability[] AllOf,
         RpcCapability[] AnyOf
     );
@@ -21,6 +23,15 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request>
     {
         public Validator()
         {
+            RuleFor(x => x.Chains)
+                .NotNull()
+                .WithMessage("Chains is required.")
+                .Must(static chains => chains is null || chains.Distinct(StringComparer.OrdinalIgnoreCase).Count() == chains.Length)
+                .WithMessage("Chains must not contain duplicates.");
+
+            RuleForEach(x => x.Chains!)
+                .ApplyChainValidation();
+
             RuleFor(x => x.AllOf)
                 .NotNull()
                 .WithMessage("AllOf is required.")
@@ -73,6 +84,7 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request>
             Id = Guid.NewGuid(),
             ApplicationId = req.ApplicationId,
             EnvironmentId = req.EnvironmentId,
+            Chains = [.. req.Chains.Order(StringComparer.Ordinal)],
             AllOf = [.. req.AllOf.Order()],
             AnyOf = [.. req.AnyOf.Order()],
         });

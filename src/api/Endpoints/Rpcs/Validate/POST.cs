@@ -1,5 +1,6 @@
 using Farsight.Chains;
 using Farsight.Rpc.Api.Auth;
+using Farsight.Rpc.Api.Common.Extensions;
 using Farsight.Rpc.Api.Services;
 using Farsight.Rpc.Api.Validation;
 using Farsight.Rpc.Types;

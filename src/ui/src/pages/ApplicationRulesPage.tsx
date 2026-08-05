@@ -1,9 +1,13 @@
-import { Accessor, createMemo, createSignal, For, Show } from "solid-js";
+import { Accessor, createEffect, createMemo, createSignal, For, onCleanup, Show } from "solid-js";
 import LoadingSpinner from "../components/LoadingSpinner";
 import RuleIcon from "../components/icons/RuleIcon";
+import CheckmarkIcon from "../components/icons/CheckmarkIcon";
+import ChevronDownIcon from "../components/icons/ChevronDownIcon";
+import CloseIcon from "../components/icons/CloseIcon";
 import EmptyStateIcon from "../components/icons/EmptyStateIcon";
 import PencilIcon from "../components/icons/PencilIcon";
 import PlusIcon from "../components/icons/PlusIcon";
+import SearchIcon from "../components/icons/SearchIcon";
 import TrashIcon from "../components/icons/TrashIcon";
 import WarningIcon from "../components/icons/WarningIcon";
 import { createModalBackdropHandlers } from "../lib/createModalBackdropHandlers";
@@ -11,6 +15,7 @@ import { useAuth } from "../lib/auth";
 import { useApplicationData, type ApplicationRpcRule } from "../lib/application-data";
 import { useEnvironment } from "../lib/environment-context";
 import { useEscapeKey } from "../lib/useEscapeKey";
+import { useReferenceData } from "../lib/reference-data";
 
 const allCapabilities: RpcCapability[] = [
   "Archive",
@@ -75,6 +80,12 @@ function capabilityStyle(capability: RpcCapability): string {
   }
 }
 
+const chainChipStyle =
+  "inline-flex items-center border border-b-accent/30 bg-b-accent/10 px-2 py-1 text-[0.65rem] font-bold uppercase tracking-wider text-b-accent";
+
+const allChainsChipStyle =
+  "inline-flex items-center gap-1.5 border border-green-500/30 bg-green-500/10 px-2 py-1 text-[0.65rem] font-bold uppercase tracking-wider text-green-400";
+
 async function readErrorMessage(
   response: Response,
   fallback: string,
@@ -110,10 +121,12 @@ function validateCapabilities(
 }
 
 function buildRuleBody(
+  chains: string[],
   allOf: RpcCapability[],
   anyOf: RpcCapability[],
-): { allOf: RpcCapability[]; anyOf: RpcCapability[] } {
+): { chains: string[]; allOf: RpcCapability[]; anyOf: RpcCapability[] } {
   return {
+    chains: [...chains].sort(),
     allOf: [...allOf].sort(),
     anyOf: [...anyOf].sort(),
   };
@@ -123,6 +136,7 @@ export default function ApplicationRulesPage() {
   const auth = useAuth();
   const applicationData = useApplicationData();
   const environment = useEnvironment();
+  const referenceData = useReferenceData();
 
   const rules = applicationData.rules.data;
   const rulesState = applicationData.rules.state;
@@ -131,10 +145,18 @@ export default function ApplicationRulesPage() {
   const environments = environment.environments;
   const environmentsState = environment.environmentsState;
 
+  const allChains = referenceData.chains.data;
+  const allChainsState = referenceData.chains.state;
+  const allChainsError = referenceData.chains.error;
+
   const [isModalOpen, setIsModalOpen] = createSignal(false);
   const [modalMode, setModalMode] = createSignal<"create" | "edit">("create");
   const [editingRuleId, setEditingRuleId] = createSignal<string | null>(null);
   const [modalEnvironmentId, setModalEnvironmentId] = createSignal<string>("");
+  const [chains, setChains] = createSignal<string[]>([]);
+  const [chainPickerOpen, setChainPickerOpen] = createSignal(false);
+  const [chainFilter, setChainFilter] = createSignal("");
+  let chainPickerRef: HTMLDivElement | undefined;
   const [allOf, setAllOf] = createSignal<RpcCapability[]>([]);
   const [anyOf, setAnyOf] = createSignal<RpcCapability[]>([]);
   const [modalError, setModalError] = createSignal<string | null>(null);
@@ -155,9 +177,31 @@ export default function ApplicationRulesPage() {
     return environments().find((env) => env.id === selectedId) ?? null;
   });
 
+  const availableRuleChains = createMemo(() => {
+    const selected = new Set(chains());
+    const candidates = new Set<string>(allChains());
+    for (const chain of chains()) {
+      candidates.add(chain);
+    }
+    return Array.from(candidates)
+      .filter((chain) => !selected.has(chain))
+      .sort((a, b) => a.localeCompare(b));
+  });
+
+  const filteredAvailableRuleChains = createMemo(() => {
+    const filter = chainFilter().trim().toLowerCase();
+    if (!filter) return availableRuleChains();
+    return availableRuleChains().filter((chain) =>
+      chain.toLowerCase().includes(filter),
+    );
+  });
+
   const openCreateModal = () => {
     setModalMode("create");
     setEditingRuleId(null);
+    setChains([]);
+    setChainPickerOpen(false);
+    setChainFilter("");
     setAllOf([]);
     setAnyOf([]);
     setModalError(null);
@@ -168,6 +212,9 @@ export default function ApplicationRulesPage() {
     setModalMode("edit");
     setEditingRuleId(rule.id);
     setModalEnvironmentId(rule.environmentId);
+    setChains(rule.chains);
+    setChainPickerOpen(false);
+    setChainFilter("");
     setAllOf(rule.allOf as RpcCapability[]);
     setAnyOf(rule.anyOf as RpcCapability[]);
     setModalError(null);
@@ -179,7 +226,13 @@ export default function ApplicationRulesPage() {
     setIsModalOpen(false);
   };
 
-  useEscapeKey(isModalOpen, closeModal);
+  useEscapeKey(isModalOpen, () => {
+    if (chainPickerOpen()) {
+      setChainPickerOpen(false);
+      return;
+    }
+    closeModal();
+  });
   useEscapeKey(
     () => ruleToDelete() !== null,
     () => {
@@ -206,6 +259,33 @@ export default function ApplicationRulesPage() {
     setModalError(null);
   };
 
+  const toggleChainPicker = () => {
+    setChainFilter("");
+    setChainPickerOpen((open) => !open);
+  };
+
+  const addChain = (chain: string) => {
+    if (chains().includes(chain)) return;
+    setChains((current) => [...current, chain]);
+    setModalError(null);
+  };
+
+  const removeChain = (chain: string) => {
+    setChains((current) => current.filter((c) => c !== chain));
+    setModalError(null);
+  };
+
+  createEffect(() => {
+    if (!chainPickerOpen()) return;
+    const handleClick = (event: MouseEvent) => {
+      if (!chainPickerRef?.contains(event.target as Node)) {
+        setChainPickerOpen(false);
+      }
+    };
+    document.addEventListener("click", handleClick);
+    onCleanup(() => document.removeEventListener("click", handleClick));
+  });
+
   const handleSave = async () => {
     const token = auth.token;
     const appId = applicationData.applicationId();
@@ -228,7 +308,7 @@ export default function ApplicationRulesPage() {
       if (!environmentId) {
         throw new Error("Select an environment.");
       }
-      const body = buildRuleBody(allOf(), anyOf());
+      const body = buildRuleBody(chains(), allOf(), anyOf());
 
       if (modalMode() === "create") {
         const response = await fetch(
@@ -240,6 +320,7 @@ export default function ApplicationRulesPage() {
               Authorization: `Bearer ${token}`,
             },
             body: JSON.stringify({
+              chains: body.chains,
               allOf: body.allOf,
               anyOf: body.anyOf,
             }),
@@ -260,6 +341,7 @@ export default function ApplicationRulesPage() {
               Authorization: `Bearer ${token}`,
             },
             body: JSON.stringify({
+              chains: body.chains,
               allOf: body.allOf,
               anyOf: body.anyOf,
             }),
@@ -374,6 +456,26 @@ export default function ApplicationRulesPage() {
                     <div class="flex flex-col gap-3 border border-b-border bg-b-paper/40 p-4 shadow-[0_1px_0_rgba(0,0,0,0.35)] transition-colors hover:border-b-border-hover sm:flex-row sm:items-center sm:justify-between">
                       <div class="min-w-0 flex-1">
                         <div class="flex flex-col gap-2">
+                          <div class="flex flex-wrap items-center gap-2">
+                            <span class="text-[0.65rem] font-bold uppercase tracking-widest text-b-ink/50">
+                              Chains:
+                            </span>
+                            <Show
+                              when={rule.chains.length > 0}
+                              fallback={
+                                <span class={allChainsChipStyle}>
+                                  <CheckmarkIcon class="size-3" />
+                                  All
+                                </span>
+                              }
+                            >
+                              <For each={rule.chains}>
+                                {(chain) => (
+                                  <span class={chainChipStyle}>{chain}</span>
+                                )}
+                              </For>
+                            </Show>
+                          </div>
                           <Show when={rule.allOf.length > 0}>
                             <div class="flex flex-wrap items-center gap-2">
                               <span class="text-[0.65rem] font-bold uppercase tracking-widest text-b-ink/50">
@@ -486,6 +588,149 @@ export default function ApplicationRulesPage() {
 
             <div class="flex flex-col gap-6">
               <div class="flex flex-col gap-4">
+                <div>
+                  <p class="mb-3 text-xs font-bold uppercase tracking-widest text-b-ink/70">
+                    Chains
+                  </p>
+
+                  <div class="relative" ref={chainPickerRef}>
+                    <div
+                      role="button"
+                      tabindex="0"
+                      aria-expanded={chainPickerOpen()}
+                      onClick={toggleChainPicker}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          toggleChainPicker();
+                        }
+                      }}
+                      class={`flex min-h-11 w-full cursor-pointer items-center gap-2 border bg-b-paper px-3 py-2 transition-all duration-200 hover:border-b-border-hover focus-visible:border-b-accent/50 focus-visible:ring-2 focus-visible:ring-b-accent/20 ${
+                        chainPickerOpen()
+                          ? "border-b-accent/50 ring-2 ring-b-accent/20"
+                          : "border-b-border"
+                      }`}
+                    >
+                      <Show
+                        when={chains().length === 0}
+                        fallback={
+                          <div class="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
+                            <For each={chains()}>
+                              {(chain) => (
+                                <span class={`${chainChipStyle} gap-1`}>
+                                  {chain}
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      removeChain(chain);
+                                    }}
+                                    disabled={modalLoading()}
+                                    class="text-b-accent/60 transition-colors hover:text-red-400 disabled:cursor-not-allowed disabled:opacity-50"
+                                    title={`Remove ${chain}`}
+                                  >
+                                    <CloseIcon class="size-3" />
+                                  </button>
+                                </span>
+                              )}
+                            </For>
+                          </div>
+                        }
+                      >
+                        <div class="flex min-w-0 flex-1 items-center">
+                          <span class="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-green-400">
+                            <CheckmarkIcon class="size-4" />
+                            All
+                          </span>
+                        </div>
+                      </Show>
+                      <ChevronDownIcon
+                        class={`size-4 shrink-0 text-b-ink/40 transition-transform duration-200 ${
+                          chainPickerOpen() ? "rotate-180" : ""
+                        }`}
+                      />
+                    </div>
+
+                    <Show when={chainPickerOpen()}>
+                      <div class="absolute left-0 right-0 top-full z-20 mt-2 border border-b-border bg-b-field shadow-[0_25px_50px_rgba(0,0,0,0.5)]">
+                        <div class="border-b border-b-border p-2">
+                          <div class="relative">
+                            <input
+                              type="text"
+                              autofocus
+                              value={chainFilter()}
+                              onInput={(e) =>
+                                setChainFilter(e.currentTarget.value)
+                              }
+                              placeholder="Filter chains..."
+                              class="h-10 w-full border border-b-border bg-b-paper px-3 pr-10 text-sm font-semibold text-b-ink placeholder:text-b-ink/25 outline-none focus-visible:border-b-accent/50 focus-visible:ring-2 focus-visible:ring-b-accent/20 hover:border-b-border-hover transition-all duration-200"
+                            />
+                            <div class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2">
+                              <SearchIcon class="size-4 text-b-ink/30" />
+                            </div>
+                          </div>
+                        </div>
+
+                        <div class="max-h-44 overflow-y-auto overscroll-contain p-1">
+                          <Show when={allChainsError()}>
+                            <p class="m-1 border border-red-500/40 bg-red-500/10 px-3 py-2 text-xs font-bold uppercase leading-snug text-red-400">
+                              {allChainsError()!.message}
+                            </p>
+                          </Show>
+
+                          <Show when={allChainsState() === "pending"}>
+                            <div class="flex items-center justify-center gap-2 py-4 text-xs font-bold uppercase tracking-widest text-b-ink/60">
+                              <LoadingSpinner class="size-3.5" />
+                              Loading chains…
+                            </div>
+                          </Show>
+
+                          <Show
+                            when={
+                              (allChainsState() === "ready" ||
+                                allChainsState() === "refreshing") &&
+                              filteredAvailableRuleChains().length > 0
+                            }
+                          >
+                            <For each={filteredAvailableRuleChains()}>
+                              {(chain) => (
+                                <button
+                                  type="button"
+                                  onClick={() => addChain(chain)}
+                                  disabled={modalLoading()}
+                                  class="group flex w-full items-center justify-between gap-2 border-b border-b-border/50 px-3 py-2 text-left transition-colors last:border-b-0 hover:bg-b-accent/5 disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                  <span class="min-w-0 truncate font-['Anton',sans-serif] text-sm tracking-wide text-b-ink/85 group-hover:text-b-ink">
+                                    {chain}
+                                  </span>
+                                  <PlusIcon class="size-3.5 shrink-0 text-b-accent/60 group-hover:text-b-accent" />
+                                </button>
+                              )}
+                            </For>
+                          </Show>
+
+                          <Show
+                            when={
+                              (allChainsState() === "ready" ||
+                                allChainsState() === "refreshing") &&
+                              !allChainsError() &&
+                              filteredAvailableRuleChains().length === 0
+                            }
+                          >
+                            <div class="px-3 py-3 text-center">
+                              <p class="text-xs font-semibold uppercase tracking-wider text-b-ink/50">
+                                {availableRuleChains().length === 0
+                                  ? "All chains are added"
+                                  : "No chains match your filter"}
+                              </p>
+                            </div>
+                          </Show>
+                        </div>
+                      </div>
+                    </Show>
+                  </div>
+                </div>
+
                 <div>
                   <p class="mb-3 text-xs font-bold uppercase tracking-widest text-b-ink/70">
                     All of (required together)

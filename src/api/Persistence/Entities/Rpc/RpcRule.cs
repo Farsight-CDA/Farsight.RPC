@@ -8,6 +8,7 @@ public sealed class RpcRule
     public required Guid Id { get; init; }
     public required Guid ApplicationId { get; init; }
     public required Guid EnvironmentId { get; init; }
+    public required string[] Chains { get; set; }
     public required RpcCapability[] AllOf { get; set; }
     public required RpcCapability[] AnyOf { get; set; }
 

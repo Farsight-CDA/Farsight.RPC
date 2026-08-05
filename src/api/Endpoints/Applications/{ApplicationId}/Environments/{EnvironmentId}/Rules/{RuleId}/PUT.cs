@@ -1,4 +1,5 @@
 using Farsight.Rpc.Api.Auth;
+using Farsight.Rpc.Api.Common.Extensions;
 using Farsight.Rpc.Api.Persistence;
 using Farsight.Rpc.Types;
 using FastEndpoints;
@@ -13,6 +14,7 @@ public sealed class PUT(AppDbContext dbContext) : Endpoint<PUT.Request>
         [property: RouteParam] Guid ApplicationId,
         [property: RouteParam] Guid EnvironmentId,
         [property: RouteParam] Guid RuleId,
+        string[]? Chains,
         RpcCapability[]? AllOf,
         RpcCapability[]? AnyOf
     );
@@ -21,6 +23,18 @@ public sealed class PUT(AppDbContext dbContext) : Endpoint<PUT.Request>
     {
         public Validator()
         {
+            When(
+                x => x.Chains is not null,
+                () =>
+                {
+                    RuleFor(x => x.Chains!)
+                        .Must(static chains => chains.Distinct(StringComparer.OrdinalIgnoreCase).Count() == chains.Length)
+                        .WithMessage("Chains must not contain duplicates.");
+
+                    RuleForEach(x => x.Chains!)
+                        .ApplyChainValidation();
+                });
+
             When(
                 x => x.AllOf is not null,
                 () =>
@@ -78,6 +92,11 @@ public sealed class PUT(AppDbContext dbContext) : Endpoint<PUT.Request>
         if(allOf.Intersect(anyOf).Any())
         {
             ThrowError("A capability cannot appear in both AllOf and AnyOf.");
+        }
+
+        if(req.Chains is not null)
+        {
+            rule.Chains = [.. req.Chains.Order(StringComparer.Ordinal)];
         }
 
         if(req.AllOf is not null)

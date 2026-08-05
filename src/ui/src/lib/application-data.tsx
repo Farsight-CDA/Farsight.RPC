@@ -33,6 +33,7 @@ export type ConsumerApiKeySummary = {
 export type ApplicationRpcRule = {
   id: string;
   environmentId: string;
+  chains: string[];
   allOf: string[];
   anyOf: string[];
 };

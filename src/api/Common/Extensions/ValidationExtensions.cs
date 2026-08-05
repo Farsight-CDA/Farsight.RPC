@@ -1,3 +1,4 @@
+using Farsight.Chains;
 using FluentValidation;
 using System.Text.RegularExpressions;
 
@@ -5,6 +6,14 @@ namespace Farsight.Rpc.Api.Common.Extensions;
 
 internal static partial class ValidationExtensions
 {
+    extension<T>(IRuleBuilder<T, string> ruleBuilder)
+    {
+        public IRuleBuilderOptions<T, string> ApplyChainValidation()
+            => ruleBuilder
+                .Must(ChainRegistry.IsRegisteredChain)
+                .WithMessage("Chain is invalid.");
+    }
+
     extension<T>(IRuleBuilderInitial<T, string?> ruleBuilder)
     {
         public IRuleBuilderOptions<T, string?> ApplyNameValidation()

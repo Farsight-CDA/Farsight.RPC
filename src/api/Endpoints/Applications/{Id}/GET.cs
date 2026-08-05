@@ -25,6 +25,7 @@ public sealed class GETById(AppDbContext dbContext) : Endpoint<GETById.Request, 
     public sealed record RuleSummary(
         Guid Id,
         Guid EnvironmentId,
+        string[] Chains,
         RpcCapability[] AllOf,
         RpcCapability[] AnyOf
     );
@@ -81,7 +82,7 @@ public sealed class GETById(AppDbContext dbContext) : Endpoint<GETById.Request, 
             .Where(rule => rule.ApplicationId == req.ApplicationId)
             .OrderBy(rule => rule.Environment!.Name)
             .ThenBy(rule => rule.Id)
-            .Select(rule => new RuleSummary(rule.Id, rule.EnvironmentId, rule.AllOf, rule.AnyOf))
+            .Select(rule => new RuleSummary(rule.Id, rule.EnvironmentId, rule.Chains, rule.AllOf, rule.AnyOf))
             .ToArrayAsync(ct);
 
         await Send.OkAsync(new Response(

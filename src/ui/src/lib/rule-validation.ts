@@ -32,7 +32,9 @@ export function chainRuleValidation(
   rules: ApplicationRpcRule[],
 ): boolean {
   const environmentRules = rules.filter(
-    (rule) => rule.environmentId === environmentId,
+    (rule) =>
+      rule.environmentId === environmentId &&
+      (rule.chains.length === 0 || rule.chains.includes(chain)),
   );
   if (environmentRules.length === 0) return true;
 

@@ -1,9 +1,7 @@
-using Farsight.Chains;
 using Farsight.Rpc.Api.Auth;
 using Farsight.Rpc.Api.Common.Extensions;
 using Farsight.Rpc.Api.Persistence;
 using Farsight.Rpc.Api.Services;
-using Farsight.Rpc.Api.Validation;
 using FastEndpoints;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
@@ -31,13 +29,7 @@ public sealed class PUT(AppDbContext dbContext) : Endpoint<PUT.Request>
             When(
                 x => x.Chains is not null,
                 () => RuleForEach(x => x.Chains!)
-                    .Cascade(CascadeMode.Stop)
-                    .Must(static chain => !String.IsNullOrWhiteSpace(chain))
-                    .WithMessage(ChainValidation.REQUIRED_MESSAGE)
-                    .MaximumLength(30)
-                    .WithMessage(ChainValidation.LENGTH_MESSAGE)
-                    .Must(ChainRegistry.IsRegisteredChain)
-                    .WithMessage(ChainValidation.INVALID_MESSAGE));
+                    .ApplyChainValidation());
         }
     }
 

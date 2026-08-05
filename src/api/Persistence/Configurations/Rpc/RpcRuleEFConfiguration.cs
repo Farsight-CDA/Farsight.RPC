@@ -8,6 +8,11 @@ namespace Farsight.Rpc.Api.Persistence.Configurations.Rpc;
 
 internal sealed class RpcRuleEFConfiguration : IEntityTypeConfiguration<RpcRule>
 {
+    private static readonly ValueComparer<string[]> _chainsComparer = new(
+        (left, right) => left != null && right != null && left.SequenceEqual(right),
+        values => values.Aggregate(0, (hash, value) => HashCode.Combine(hash, value)),
+        values => values.ToArray());
+
     private static readonly ValueComparer<RpcCapability[]> _capabilitiesComparer = new(
         (left, right) => left != null && right != null && left.SequenceEqual(right),
         values => values.Aggregate(0, (hash, value) => HashCode.Combine(hash, value)),
@@ -22,6 +27,9 @@ internal sealed class RpcRuleEFConfiguration : IEntityTypeConfiguration<RpcRule>
         entity.Property(x => x.Id);
         entity.Property(x => x.ApplicationId);
         entity.Property(x => x.EnvironmentId);
+        entity.Property(x => x.Chains)
+            .HasColumnType("text[]")
+            .Metadata.SetValueComparer(_chainsComparer);
         entity.Property(x => x.AllOf)
             .HasColumnType("integer[]")
             .Metadata.SetValueComparer(_capabilitiesComparer);

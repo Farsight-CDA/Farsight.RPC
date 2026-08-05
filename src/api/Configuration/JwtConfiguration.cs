@@ -8,7 +8,7 @@ public sealed class JwtConfiguration
 {
     public const string SECTION_NAME = "Jwt";
 
-    public string Secret { get; set; } = "change-me-to-a-32-byte-or-longer-secret";
+    public string Secret { get; set; } = String.Empty;
     public string Issuer { get; set; } = "Farsight.Rpc.Api";
     public string Audience { get; set; } = "Farsight.Rpc.Web";
     public int ExpiryMinutes { get; set; } = 480;
@@ -17,7 +17,9 @@ public sealed class JwtConfiguration
     {
         public Validator()
         {
-            RuleFor(x => x.Secret).MinimumLength(32);
+            RuleFor(x => x.Secret)
+                .NotEmpty()
+                .MinimumLength(32);
             RuleFor(x => x.Issuer).NotEmpty();
             RuleFor(x => x.Audience).NotEmpty();
             RuleFor(x => x.ExpiryMinutes).GreaterThan(0);

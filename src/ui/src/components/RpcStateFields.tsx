@@ -4,13 +4,13 @@ import ChevronDownIcon from "./icons/ChevronDownIcon";
 import LoadingSpinner from "./LoadingSpinner";
 import RpcCapabilitiesField, {
   type RpcCapability,
+  type RpcCapabilityError,
 } from "./RpcCapabilitiesField";
 
 type RpcStateFieldsProps = {
   idPrefix: string;
   ethGetLogsLimit: string;
   reportedEthGetLogsLimit: number | null;
-  ethGetLogsError: string | null;
   onEthGetLogsLimitChange: (value: string) => void;
   providerId: string;
   providers: readonly RpcProviderSummary[];
@@ -23,8 +23,7 @@ type RpcStateFieldsProps = {
   onCreateProvider: () => void;
   selectedCapabilities: ReadonlySet<RpcCapability>;
   reportedCapabilities: readonly RpcCapability[] | null;
-  debugApiError?: string | null;
-  tracingApiError?: string | null;
+  capabilityErrors?: readonly RpcCapabilityError[] | null;
   capabilitiesAutoDetected?: boolean;
   onCapabilitiesChange: (capabilities: Set<RpcCapability>) => void;
 };
@@ -119,9 +118,7 @@ export default function RpcStateFields(props: RpcStateFieldsProps) {
       <RpcCapabilitiesField
         selectedCapabilities={props.selectedCapabilities}
         reportedCapabilities={props.reportedCapabilities}
-        debugApiError={props.debugApiError}
-        tracingApiError={props.tracingApiError}
-        ethGetLogsError={props.ethGetLogsError}
+        errors={props.capabilityErrors}
         autoDetected={props.capabilitiesAutoDetected}
         onChange={handleCapabilitiesChange}
       />

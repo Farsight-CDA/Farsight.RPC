@@ -1,25 +1,16 @@
 using EtherSharp.Client;
-using EtherSharp.Common.Exceptions;
-using EtherSharp.Numerics;
 using EtherSharp.RPC.Modules.Eth;
 using EtherSharp.RPC.Transport;
-using EtherSharp.Tx;
-using EtherSharp.Tx.EIP1559;
-using EtherSharp.Tx.Legacy;
-using EtherSharp.Wallet;
 using Farsight.Chains;
 using Farsight.Common;
 using Farsight.Rpc.Api.Configuration;
 using Farsight.Rpc.Api.Services.Chainlist;
-using System.Buffers;
 using System.Collections.Immutable;
 
 namespace Farsight.Rpc.Api.Services;
 
 public partial class PublicRpcRegistry : Singleton
 {
-    private static readonly EtherHdWallet _validationSigner = EtherHdWallet.Create();
-
     [Inject]
     private readonly ChainlistApiClient _chainlistSource;
     [Inject]
@@ -107,31 +98,6 @@ public partial class PublicRpcRegistry : Singleton
             results.Count, candidates.Length);
     }
 
-    private static readonly SearchValues<string> _validErrors = SearchValues.Create(
-        [
-            "insufficient funds",
-            "Insufficient balance",
-            "insufficient fee",
-            "tx fee",
-            "exceeds transaction sender account balance",
-            "max fee per gas less than block base fee",
-            "gas price less than block base fee",
-            "already known",
-            "transaction underpriced",
-            "insufficient to cover the transaction cost",
-            "Gas limit too low",
-            "the sender account doesn't exist",
-            "cannot pay gas",
-            "Transaction fee too low",
-            "invalid gas price",
-            "gas fee cap is below the minimum base fee",
-            "value transfer not allowed",
-            "transaction gas price below minimum",
-            "below current base fee"
-        ],
-        StringComparison.OrdinalIgnoreCase
-    );
-
     private async Task<bool> ValidateRPCAsync(ulong chainId, Uri address, CancellationToken cancellationToken)
     {
         //ToDo: Install resiliency middleware
@@ -151,32 +117,23 @@ public partial class PublicRpcRegistry : Singleton
                 return false;
             }
 
-            var handler = new LegacyTxTypeHandler(_validationSigner);
-            await handler.InitializeAsync(chainId, cancellationToken);
-
-            var signedTx = await handler.EncodeTxAsync(
-                ITxInput.ForEthTransfer(_validationSigner.Address, 1),
-                LegacyTxParams.Default,
-                new LegacyGasParams(21000, UInt256.Pow(10, 9)),
-                1,
+            var rpcModule = client.AsInternal().Provider.GetRequiredService<IEthRpcModule>();
+            (bool supported, var error) = await RpcCapabilityProbe.ProbeSendRawTransactionAsync(
+                chainId,
+                rpcModule,
                 cancellationToken
             );
 
-            var rpcModule = client.AsInternal().Provider.GetRequiredService<IEthRpcModule>();
-
-            await rpcModule.SendRawTransactionAsync(signedTx.EncodedTx, cancellationToken);
-            return false;
-        }
-        catch(RPCException ex)
-        {
-            bool isValid = ex.Message.ContainsAny(_validErrors);
-
-            if(!isValid)
+            if(!supported)
             {
-                _logger.LogDebug("Chain({chainId}): Dropping RPC {rpc}: {error}", chainId, address, ex.Message);
+                _logger.LogDebug(
+                    "Chain({chainId}): Dropping RPC {rpc}: {error}",
+                    chainId,
+                    address,
+                    error?.Error);
             }
 
-            return isValid;
+            return supported;
         }
         catch(Exception ex)
         {

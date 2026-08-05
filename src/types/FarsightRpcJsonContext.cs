@@ -11,6 +11,7 @@ namespace Farsight.Rpc.Types;
     Converters = [typeof(HexStringByteArrayConverter)]
 )]
 [JsonSerializable(typeof(ApiKeyRpcsDto))]
+[JsonSerializable(typeof(RpcCapabilityError))]
 [JsonSerializable(typeof(RpcProbeResult))]
 [JsonSerializable(typeof(WalletInfoDto))]
 [JsonSerializable(typeof(WalletSignRequestDto))]

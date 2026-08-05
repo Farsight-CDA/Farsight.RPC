@@ -10,9 +10,14 @@ export const allRpcCapabilities = [
   "BlockOverrides",
   "Subscriptions",
   "GetLogs",
+  "SendRawTransaction",
 ] as const;
 
 export type RpcCapability = (typeof allRpcCapabilities)[number];
+export type RpcCapabilityError = {
+  capability: RpcCapability;
+  error: string;
+};
 
 export function formatRpcCapability(capability: RpcCapability): string {
   switch (capability) {
@@ -26,6 +31,8 @@ export function formatRpcCapability(capability: RpcCapability): string {
       return "Block Overrides";
     case "GetLogs":
       return "eth_getLogs";
+    case "SendRawTransaction":
+      return "eth_sendRawTransaction";
     default:
       return capability;
   }
@@ -47,15 +54,15 @@ export function rpcCapabilityStyle(capability: RpcCapability): string {
       return "border-emerald-500/30 bg-emerald-500/10 text-emerald-400";
     case "GetLogs":
       return "border-orange-500/30 bg-orange-500/10 text-orange-400";
+    case "SendRawTransaction":
+      return "border-red-500/30 bg-red-500/10 text-red-400";
   }
 }
 
 type RpcCapabilitiesFieldProps = {
   selectedCapabilities: ReadonlySet<RpcCapability>;
   reportedCapabilities: readonly RpcCapability[] | null;
-  debugApiError?: string | null;
-  tracingApiError?: string | null;
-  ethGetLogsError?: string | null;
+  errors?: readonly RpcCapabilityError[] | null;
   onChange: (capabilities: Set<RpcCapability>) => void;
   autoDetected?: boolean;
 };
@@ -91,20 +98,15 @@ export default function RpcCapabilitiesField(
             const checked = () => props.selectedCapabilities.has(capability);
             const reported = () =>
               props.reportedCapabilities?.includes(capability) ?? false;
-            const errorText = () => {
+            const errors = () => {
               if (props.reportedCapabilities === null || reported()) {
-                return null;
+                return [];
               }
-              if (capability === "DebugApi") {
-                return props.debugApiError ?? null;
-              }
-              if (capability === "TracingApi") {
-                return props.tracingApiError ?? null;
-              }
-              if (capability === "GetLogs") {
-                return props.ethGetLogsError ?? null;
-              }
-              return null;
+              return (
+                props.errors
+                  ?.filter((error) => error.capability === capability)
+                  .map((error) => error.error) ?? []
+              );
             };
             return (
               <label
@@ -144,13 +146,13 @@ export default function RpcCapabilitiesField(
                     </span>
                   </Show>
                 </div>
-                <Show when={errorText()}>
+                <For each={errors()}>
                   {(error) => (
                     <p class="text-[0.65rem] font-semibold leading-snug text-amber-300">
-                      {error()}
+                      {error}
                     </p>
                   )}
-                </Show>
+                </For>
               </label>
             );
           }}

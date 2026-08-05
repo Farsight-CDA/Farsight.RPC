@@ -7,7 +7,8 @@ export type RpcCapability =
   | "StateOverrides"
   | "BlockOverrides"
   | "Subscriptions"
-  | "GetLogs";
+  | "GetLogs"
+  | "SendRawTransaction";
 
 export const allCapabilities: RpcCapability[] = [
   "Archive",
@@ -17,6 +18,7 @@ export const allCapabilities: RpcCapability[] = [
   "BlockOverrides",
   "Subscriptions",
   "GetLogs",
+  "SendRawTransaction",
 ];
 
 export function isKnownCapability(value: string): value is RpcCapability {

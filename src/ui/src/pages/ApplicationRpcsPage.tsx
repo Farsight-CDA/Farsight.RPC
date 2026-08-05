@@ -18,6 +18,7 @@ import {
   formatRpcCapability,
   rpcCapabilityStyle,
   type RpcCapability,
+  type RpcCapabilityError,
 } from "../components/RpcCapabilitiesField";
 import RpcStateFields from "../components/RpcStateFields";
 import { createModalBackdropHandlers } from "../lib/createModalBackdropHandlers";
@@ -98,9 +99,7 @@ type ProbeResult = {
   };
   capabilities: RpcCapability[];
   ethGetLogsLimit: number | null;
-  ethGetLogsError: string | null;
-  debugApiError: string | null;
-  tracingApiError: string | null;
+  errors?: RpcCapabilityError[];
 };
 
 async function validateRpcEndpoint(
@@ -1741,9 +1740,6 @@ export default function ApplicationRpcsPage() {
                     reportedEthGetLogsLimit={parseProbeEthGetLogsLimit(
                       createRpcTestResult()?.ethGetLogsLimit ?? null,
                     )}
-                    ethGetLogsError={
-                      createRpcTestResult()?.ethGetLogsError ?? null
-                    }
                     onEthGetLogsLimitChange={setNewRpcEthGetLogsLimit}
                     providerId={newRpcProviderId()}
                     providers={providers()}
@@ -1761,12 +1757,7 @@ export default function ApplicationRpcsPage() {
                     reportedCapabilities={
                       createRpcTestResult()?.capabilities ?? null
                     }
-                    debugApiError={
-                      createRpcTestResult()?.debugApiError ?? null
-                    }
-                    tracingApiError={
-                      createRpcTestResult()?.tracingApiError ?? null
-                    }
+                    capabilityErrors={createRpcTestResult()?.errors ?? null}
                     capabilitiesAutoDetected={
                       createCapabilitiesAutoInferred()
                     }
@@ -1902,9 +1893,6 @@ export default function ApplicationRpcsPage() {
                   reportedEthGetLogsLimit={parseProbeEthGetLogsLimit(
                     editRpcTestResult()?.ethGetLogsLimit ?? null,
                   )}
-                  ethGetLogsError={
-                    editRpcTestResult()?.ethGetLogsError ?? null
-                  }
                   onEthGetLogsLimitChange={setEditRpcEthGetLogsLimit}
                   providerId={editRpcProviderId()}
                   providers={providers()}
@@ -1920,8 +1908,7 @@ export default function ApplicationRpcsPage() {
                   onCreateProvider={closeEditRpcModal}
                   selectedCapabilities={editRpcCapabilities()}
                   reportedCapabilities={editRpcTestResult()?.capabilities ?? null}
-                  debugApiError={editRpcTestResult()?.debugApiError ?? null}
-                  tracingApiError={editRpcTestResult()?.tracingApiError ?? null}
+                  capabilityErrors={editRpcTestResult()?.errors ?? null}
                   onCapabilitiesChange={setEditRpcCapabilities}
                 />
 

@@ -20,6 +20,7 @@ const allCapabilities: RpcCapability[] = [
   "BlockOverrides",
   "Subscriptions",
   "GetLogs",
+  "SendRawTransaction",
 ];
 
 type RpcCapability =
@@ -29,7 +30,8 @@ type RpcCapability =
   | "StateOverrides"
   | "BlockOverrides"
   | "Subscriptions"
-  | "GetLogs";
+  | "GetLogs"
+  | "SendRawTransaction";
 
 function formatCapability(capability: RpcCapability): string {
   switch (capability) {
@@ -43,6 +45,8 @@ function formatCapability(capability: RpcCapability): string {
       return "Block Overrides";
     case "GetLogs":
       return "eth_getLogs";
+    case "SendRawTransaction":
+      return "eth_sendRawTransaction";
     default:
       return capability;
   }
@@ -64,6 +68,8 @@ function capabilityStyle(capability: RpcCapability): string {
       return "border-emerald-500/30 bg-emerald-500/10 text-emerald-400";
     case "GetLogs":
       return "border-orange-500/30 bg-orange-500/10 text-orange-400";
+    case "SendRawTransaction":
+      return "border-red-500/30 bg-red-500/10 text-red-400";
     default:
       return "border-b-border bg-b-paper/20 text-b-ink/50";
   }

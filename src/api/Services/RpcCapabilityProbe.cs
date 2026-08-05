@@ -3,7 +3,10 @@ using EtherSharp.Common.Exceptions;
 using EtherSharp.Numerics;
 using EtherSharp.Query;
 using EtherSharp.RPC.Modules.Eth;
+using EtherSharp.Tx;
+using EtherSharp.Tx.Legacy;
 using EtherSharp.Types;
+using EtherSharp.Wallet;
 using Farsight.Common;
 using Farsight.Rpc.Types;
 using System.Buffers;
@@ -16,6 +19,7 @@ namespace Farsight.Rpc.Api.Services;
 public sealed partial class RpcCapabilityProbe : Transient
 {
     private const ulong MAXIMUM_LOGS_PROBERANGE = 100_000;
+    private static readonly EtherHdWallet _transactionProbeSigner = EtherHdWallet.Create();
     private static readonly TimeSpan _tracingApiProbeTimeout = TimeSpan.FromSeconds(3);
     private static readonly ulong[] _ethGetLogsProbeRanges =
     [
@@ -41,6 +45,30 @@ public sealed partial class RpcCapabilityProbe : Transient
         ],
         StringComparison.OrdinalIgnoreCase
     );
+    private static readonly SearchValues<string> _recognizedSendRawTransactionErrors = SearchValues.Create(
+        [
+            "insufficient funds",
+            "Insufficient balance",
+            "insufficient fee",
+            "tx fee",
+            "exceeds transaction sender account balance",
+            "max fee per gas less than block base fee",
+            "gas price less than block base fee",
+            "already known",
+            "transaction underpriced",
+            "insufficient to cover the transaction cost",
+            "Gas limit too low",
+            "the sender account doesn't exist",
+            "cannot pay gas",
+            "Transaction fee too low",
+            "invalid gas price",
+            "gas fee cap is below the minimum base fee",
+            "value transfer not allowed",
+            "transaction gas price below minimum",
+            "below current base fee"
+        ],
+        StringComparison.OrdinalIgnoreCase
+    );
 
     public async Task<RpcProbeResult> ProbeAsync(Uri address, CancellationToken cancellationToken = default)
     {
@@ -59,17 +87,21 @@ public sealed partial class RpcCapabilityProbe : Transient
 
         var ethRpcModule = client.AsInternal().Provider.GetRequiredService<IEthRpcModule>();
 
-        bool archive = await ProbeArchiveAsync(ethRpcModule, cancellationToken);
-        (bool debugApi, string? debugApiError, bool tracingApi, string? tracingApiError) =
+        (bool archive, RpcCapabilityError? archiveError) =
+            await ProbeArchiveAsync(ethRpcModule, cancellationToken);
+        (bool debugApi, bool tracingApi, RpcCapabilityError[] tracingErrors) =
             await ProbeTracingApisAsync(client, cancellationToken);
-        (bool stateOverrides, bool blockOverrides) = await ProbeOverridesAsync(ethRpcModule, cancellationToken);
-        (ulong? ethGetLogsLimit, string? ethGetLogsError) = await ProbeEthGetLogsLimitAsync(
+        (bool stateOverrides, bool blockOverrides, RpcCapabilityError? overrideError) =
+            await ProbeOverridesAsync(ethRpcModule, cancellationToken);
+        (ulong? ethGetLogsLimit, RpcCapabilityError? ethGetLogsError) = await ProbeEthGetLogsLimitAsync(
             ethRpcModule,
             latestBlockNumber,
             cancellationToken
         );
+        (bool sendRawTransaction, RpcCapabilityError? sendRawTransactionError) =
+            await ProbeSendRawTransactionAsync(chainId, ethRpcModule, cancellationToken);
 
-        var capabilities = new List<RpcCapability>(7);
+        var capabilities = new List<RpcCapability>(8);
         if(archive)
         {
             capabilities.Add(RpcCapability.Archive);
@@ -98,6 +130,29 @@ public sealed partial class RpcCapabilityProbe : Transient
         {
             capabilities.Add(RpcCapability.GetLogs);
         }
+        if(sendRawTransaction)
+        {
+            capabilities.Add(RpcCapability.SendRawTransaction);
+        }
+
+        var errors = new List<RpcCapabilityError>(tracingErrors.Length + 4);
+        if(archiveError is not null)
+        {
+            errors.Add(archiveError);
+        }
+        errors.AddRange(tracingErrors);
+        if(overrideError is not null)
+        {
+            errors.Add(overrideError);
+        }
+        if(ethGetLogsError is not null)
+        {
+            errors.Add(ethGetLogsError);
+        }
+        if(sendRawTransactionError is not null)
+        {
+            errors.Add(sendRawTransactionError);
+        }
 
         return new RpcProbeResult(
             chainId,
@@ -110,34 +165,65 @@ public sealed partial class RpcCapabilityProbe : Transient
                 compatibility.SupportsBaseFee),
             [.. capabilities],
             ethGetLogsLimit,
-            ethGetLogsError,
-            debugApiError,
-            tracingApiError
+            errors.Count == 0 ? null : [.. errors]
         );
     }
 
-    private static async Task<bool> ProbeArchiveAsync(IEthRpcModule eth, CancellationToken cancellationToken)
+    public static async Task<(bool Supported, RpcCapabilityError? Error)> ProbeSendRawTransactionAsync(
+        ulong chainId, IEthRpcModule eth, CancellationToken cancellationToken)
+    {
+        var handler = new LegacyTxTypeHandler(_transactionProbeSigner);
+        await handler.InitializeAsync(chainId, cancellationToken);
+
+        var signedTx = await handler.EncodeTxAsync(
+            ITxInput.ForEthTransfer(_transactionProbeSigner.Address, 1),
+            LegacyTxParams.Default,
+            new LegacyGasParams(21000, UInt256.Pow(10, 9)),
+            1,
+            cancellationToken
+        );
+
+        try
+        {
+            await eth.SendRawTransactionAsync(signedTx.EncodedTx, cancellationToken);
+            return (false, new RpcCapabilityError(
+                RpcCapability.SendRawTransaction,
+                "RPC unexpectedly accepted the eth_sendRawTransaction probe transaction."));
+        }
+        catch(RPCException ex)
+        {
+            bool supported = ex.Message.ContainsAny(_recognizedSendRawTransactionErrors);
+            return supported
+                ? (true, null)
+                : (false, new RpcCapabilityError(RpcCapability.SendRawTransaction, ex.Message));
+        }
+        catch(RPCTransportException ex)
+        {
+            return (false, new RpcCapabilityError(RpcCapability.SendRawTransaction, ex.Message));
+        }
+    }
+
+    public static async Task<(bool Supported, RpcCapabilityError? Error)> ProbeArchiveAsync(
+        IEthRpcModule eth, CancellationToken cancellationToken)
     {
         try
         {
             await eth.GetBalanceAsync(_overrideProbeAddress, TargetHeight.Height(1), cancellationToken);
             await eth.GetTransactionCountAsync(_overrideProbeAddress, TargetHeight.Height(1), cancellationToken);
-            return true;
+            return (true, null);
         }
-        catch(RPCException)
+        catch(RPCException ex)
         {
-            return false;
+            return (false, new RpcCapabilityError(RpcCapability.Archive, ex.Message));
         }
-        catch(RPCTransportException)
+        catch(RPCTransportException ex)
         {
-            return false;
+            return (false, new RpcCapabilityError(RpcCapability.Archive, ex.Message));
         }
     }
 
-    private static async Task<(ulong? Limit, string? Error)> ProbeEthGetLogsLimitAsync(
-        IEthRpcModule eth,
-        ulong latestBlockNumber,
-        CancellationToken cancellationToken)
+    public static async Task<(ulong? Limit, RpcCapabilityError? Error)> ProbeEthGetLogsLimitAsync(
+        IEthRpcModule eth, ulong latestBlockNumber, CancellationToken cancellationToken)
     {
         Task GetLogsAsync(TargetHeight fromBlock)
             => eth.GetLogsAsync(
@@ -196,14 +282,14 @@ public sealed partial class RpcCapabilityProbe : Transient
             try
             {
                 await GetLogsAsync(fromBlock == 0 ? TargetHeight.Earliest : TargetHeight.Height(fromBlock));
-                return (range, error);
+                return (range, new RpcCapabilityError(RpcCapability.GetLogs, error));
             }
             catch(Exception ex) when(ex is RPCException or RPCTransportException)
             {
             }
         }
 
-        return (null, error);
+        return (null, new RpcCapabilityError(RpcCapability.GetLogs, error));
     }
 
     [GeneratedRegex(
@@ -212,10 +298,8 @@ public sealed partial class RpcCapabilityProbe : Transient
     ]
     private static partial Regex EthGetLogsLimitErrorRegex();
 
-    private static async Task<(bool DebugApi, string? DebugApiError, bool TracingApi, string? TracingApiError)>
-        ProbeTracingApisAsync(
-        IEtherClient client,
-        CancellationToken cancellationToken)
+    public static async Task<(bool DebugApi, bool TracingApi, RpcCapabilityError[] Errors)> ProbeTracingApisAsync(
+        IEtherClient client, CancellationToken cancellationToken)
     {
         bool debugApi;
         string? debugApiError = null;
@@ -273,17 +357,26 @@ public sealed partial class RpcCapabilityProbe : Transient
             tracingApiError = ex.Message;
         }
 
-        return (debugApi, debugApiError, tracingApi, tracingApiError);
+        var errors = new List<RpcCapabilityError>(2);
+        if(debugApiError is not null)
+        {
+            errors.Add(new RpcCapabilityError(RpcCapability.DebugApi, debugApiError));
+        }
+        if(tracingApiError is not null)
+        {
+            errors.Add(new RpcCapabilityError(RpcCapability.TracingApi, tracingApiError));
+        }
+
+        return (debugApi, tracingApi, [.. errors]);
     }
 
     internal static bool IsRecognizedMethodResponse(int code, string message)
         => code == -32602 || message.ContainsAny(_recognizedMethodErrors);
 
-    private static async Task<(bool StateOverrides, bool BlockOverrides)> ProbeOverridesAsync(
-        IEthRpcModule eth,
-        CancellationToken cancellationToken)
+    public static async Task<(bool StateOverrides, bool BlockOverrides, RpcCapabilityError? Error)> ProbeOverridesAsync(
+        IEthRpcModule eth, CancellationToken cancellationToken)
     {
-        bool stateOverrides = await ExecuteOverrideProbeAsync(
+        (bool stateOverrides, string? stateOverrideError) = await ExecuteOverrideProbeAsync(
             eth,
             new AccountOverride(code: Convert.FromHexString("602A60005260206000F3")),
             blockOverrides: null,
@@ -292,22 +385,26 @@ public sealed partial class RpcCapabilityProbe : Transient
 
         if(!stateOverrides)
         {
-            return (false, false);
+            return (false, false, stateOverrideError is null
+                ? null
+                : new RpcCapabilityError(RpcCapability.StateOverrides, stateOverrideError));
         }
 
         const ulong BLOCK_OVERRIDE_TIMESTAMP = 4_102_444_800;
 
-        bool blockOverrides = await ExecuteOverrideProbeAsync(
+        (bool blockOverrides, string? blockOverrideError) = await ExecuteOverrideProbeAsync(
                 eth,
                 new AccountOverride(code: Convert.FromHexString("4260005260206000F3")),
                 new BlockOverride(Time: BLOCK_OVERRIDE_TIMESTAMP),
                 BLOCK_OVERRIDE_TIMESTAMP,
                 cancellationToken);
 
-        return (true, blockOverrides);
+        return (true, blockOverrides, blockOverrideError is null
+            ? null
+            : new RpcCapabilityError(RpcCapability.BlockOverrides, blockOverrideError));
     }
 
-    private static async Task<bool> ExecuteOverrideProbeAsync(
+    private static async Task<(bool Supported, string? Error)> ExecuteOverrideProbeAsync(
         IEthRpcModule eth,
         AccountOverride stateOverride,
         BlockOverride? blockOverrides,
@@ -337,16 +434,20 @@ public sealed partial class RpcCapabilityProbe : Transient
 
             if(!result.Success || result.Data.Length != 32)
             {
-                return false;
+                return (false, null);
             }
 
             Span<byte> expectedResult = stackalloc byte[32];
             BinaryPrimitives.WriteUInt64BigEndian(expectedResult[24..], expected);
-            return result.Data.Span.SequenceEqual(expectedResult);
+            return (result.Data.Span.SequenceEqual(expectedResult), null);
         }
-        catch(RPCException)
+        catch(RPCException ex)
         {
-            return false;
+            return (false, ex.Message);
+        }
+        catch(RPCTransportException ex)
+        {
+            return (false, ex.Message);
         }
     }
 }

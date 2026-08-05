@@ -9,7 +9,5 @@ public sealed record RpcProbeResult(
     RpcCompatibilityReport Compatibility,
     RpcCapability[] Capabilities,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.Never)] ulong? EthGetLogsLimit,
-    [property: JsonIgnore(Condition = JsonIgnoreCondition.Never)] string? EthGetLogsError,
-    [property: JsonIgnore(Condition = JsonIgnoreCondition.Never)] string? DebugApiError,
-    [property: JsonIgnore(Condition = JsonIgnoreCondition.Never)] string? TracingApiError
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] RpcCapabilityError[]? Errors
 );

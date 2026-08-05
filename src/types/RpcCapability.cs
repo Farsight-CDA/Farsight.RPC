@@ -9,4 +9,5 @@ public enum RpcCapability
     BlockOverrides,
     Subscriptions,
     GetLogs,
+    SendRawTransaction,
 }

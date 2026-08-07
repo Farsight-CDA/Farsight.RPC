@@ -116,8 +116,9 @@ export default function ErrorGroupMatchedPage() {
   };
 
   return (
-    <section class="border border-b-border bg-b-field overflow-hidden">
-      <div class="border-b border-b-border bg-b-paper/30 px-6 py-4">
+    <div class="flex min-h-0 flex-1 flex-col gap-6">
+      <section class="flex min-h-0 flex-1 flex-col border border-b-border bg-b-field overflow-hidden">
+        <div class="shrink-0 border-b border-b-border bg-b-paper/30 px-6 py-4">
         <div class="flex items-center gap-3">
           <div class="flex size-10 items-center justify-center border border-b-accent/30 bg-b-accent/10">
             <ErrorGroupIcon class="size-5 text-b-accent" />
@@ -133,8 +134,8 @@ export default function ErrorGroupMatchedPage() {
         </div>
       </div>
 
-      <div class="p-6">
-        <div class="flex flex-col gap-2 mb-6">
+        <div class="flex flex-1 min-h-0 flex-col overflow-hidden p-6">
+          <div class="flex flex-col gap-2 mb-6 shrink-0">
           <label class="text-xs font-bold uppercase tracking-widest text-b-ink/70">
             Add Error Pattern
           </label>
@@ -173,46 +174,49 @@ export default function ErrorGroupMatchedPage() {
           </Show>
         </div>
 
-        <Show
-          when={group().errors.length > 0}
-          fallback={
-            <div class="flex flex-col items-center justify-center gap-3 py-8 border border-dashed border-b-border/50 bg-b-paper/20">
-              <ErrorGroupIcon class="size-8 text-b-ink/20" />
-              <p class="text-sm font-semibold uppercase tracking-wider text-b-ink/50">
-                No error patterns configured.
+        <div class="min-h-0 flex-1 overflow-y-auto overscroll-contain [scrollbar-gutter:stable]">
+          <Show
+            when={group().errors.length > 0}
+            fallback={
+              <div class="flex flex-col items-center justify-center gap-3 py-8 border border-dashed border-b-border/50 bg-b-paper/20">
+                <ErrorGroupIcon class="size-8 text-b-ink/20" />
+                <p class="text-sm font-semibold uppercase tracking-wider text-b-ink/50">
+                  No error patterns configured.
+                </p>
+                <p class="text-xs font-semibold uppercase tracking-wider text-b-ink/30">
+                  Add your first error pattern above.
+                </p>
+              </div>
+            }
+          >
+            <div class="flex flex-col gap-2">
+              <p class="text-xs font-bold uppercase tracking-widest text-b-ink/50 mb-1">
+                {group().errors.length} pattern
+                {group().errors.length === 1 ? "" : "s"}
               </p>
-              <p class="text-xs font-semibold uppercase tracking-wider text-b-ink/30">
-                Add your first error pattern above.
-              </p>
+              <For each={group().errors}>
+                {(err, i) => (
+                  <div class="flex items-center justify-between gap-4 border border-b-border bg-b-paper/40 px-4 py-3">
+                    <span class="text-sm font-semibold text-b-ink break-all">
+                      {err}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => void handleRemoveError(i())}
+                      disabled={loading()}
+                      class="btn btn-sm btn-interactive btn-disabled btn-danger shrink-0"
+                      title="Remove error pattern"
+                    >
+                      <TrashIcon class="size-4" />
+                    </button>
+                  </div>
+                )}
+              </For>
             </div>
-          }
-        >
-          <div class="flex flex-col gap-2">
-            <p class="text-xs font-bold uppercase tracking-widest text-b-ink/50 mb-1">
-              {group().errors.length} pattern
-              {group().errors.length === 1 ? "" : "s"}
-            </p>
-            <For each={group().errors}>
-              {(err, i) => (
-                <div class="flex items-center justify-between gap-4 border border-b-border bg-b-paper/40 px-4 py-3">
-                  <span class="text-sm font-semibold text-b-ink break-all">
-                    {err}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => void handleRemoveError(i())}
-                    disabled={loading()}
-                    class="btn btn-sm btn-interactive btn-disabled btn-danger shrink-0"
-                    title="Remove error pattern"
-                  >
-                    <TrashIcon class="size-4" />
-                  </button>
-                </div>
-              )}
-            </For>
-          </div>
-        </Show>
+          </Show>
+        </div>
       </div>
-    </section>
+      </section>
+    </div>
   );
 }

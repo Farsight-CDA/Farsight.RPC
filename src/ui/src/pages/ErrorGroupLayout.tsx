@@ -27,7 +27,7 @@ const ErrorGroupLayout: ParentComponent = (props) => {
   };
 
   return (
-    <main class="flex flex-1 flex-col">
+    <main class="flex flex-1 flex-col min-h-0">
       <Show
         when={errorGroupsState() === "pending" || errorGroupsState() === "idle"}
       >
@@ -79,8 +79,8 @@ const ErrorGroupLayout: ParentComponent = (props) => {
             ]}
           />
 
-          <div class="flex-1 px-6 py-4">
-            <div class={`mx-auto ${DETAIL_PAGE_MAX_WIDTH}`}>{props.children}</div>
+          <div class="flex flex-1 flex-col overflow-hidden px-6 py-4 min-h-0">
+            <div class={`mx-auto ${DETAIL_PAGE_MAX_WIDTH} flex flex-1 flex-col overflow-y-auto min-h-0 w-full`}>{props.children}</div>
           </div>
         </Show>
       </Show>

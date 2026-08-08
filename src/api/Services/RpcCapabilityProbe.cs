@@ -42,6 +42,7 @@ public sealed partial class RpcCapabilityProbe : Transient
             "no transaction found",
             "cannot find block hash for transaction",
             "receipt could not be found",
+            "failed to get receipt by tx ID",
             "genesis is not traceable",
         ],
         StringComparison.OrdinalIgnoreCase

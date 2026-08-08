@@ -24,6 +24,8 @@ public sealed class GET(AppDbContext dbContext) : EndpointWithoutRequest<GET.App
     public override async Task HandleAsync(CancellationToken ct)
     {
         var applications = await dbContext.ConsumerApplications
+            .OrderBy(application => application.Color)
+            .ThenBy(application => application.Name)
             .Select(a => new ApplicationSummary(
                 a.Id,
                 a.Name,

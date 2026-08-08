@@ -474,7 +474,10 @@ export function ReferenceDataProvider(props: ReferenceDataProviderProps) {
   const addApplication = (app: ApplicationSummary) => {
     setApplications((current) => {
       const next = [...current, app];
-      next.sort((a, b) => a.name.localeCompare(b.name));
+      next.sort(
+        (a, b) =>
+          a.color.localeCompare(b.color) || a.name.localeCompare(b.name),
+      );
       return next;
     });
     setApplicationsError(null);
@@ -484,7 +487,10 @@ export function ReferenceDataProvider(props: ReferenceDataProviderProps) {
   const addWallet = (wallet: WalletSummary) => {
     setWallets((current) => {
       const next = [...current, wallet];
-      next.sort((a, b) => a.name.localeCompare(b.name));
+      next.sort(
+        (a, b) =>
+          a.color.localeCompare(b.color) || a.name.localeCompare(b.name),
+      );
       return next;
     });
     setWalletsError(null);

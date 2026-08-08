@@ -24,7 +24,8 @@ public sealed class GET(AppDbContext dbContext) : EndpointWithoutRequest<GET.Wal
     {
         var wallets = await dbContext.Wallets
             .AsNoTracking()
-            .OrderBy(wallet => wallet.Name)
+            .OrderBy(wallet => wallet.Color)
+            .ThenBy(wallet => wallet.Name)
             .Select(wallet => new WalletSummary(
                 wallet.Id,
                 wallet.Name,

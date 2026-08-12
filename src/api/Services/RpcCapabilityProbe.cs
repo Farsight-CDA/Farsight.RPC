@@ -32,7 +32,17 @@ public sealed partial class RpcCapabilityProbe : Transient
     ];
     private static readonly Address _overrideProbeAddress = Address.Parse("0x000000000000000000000000000000000000fa57");
     private static readonly SearchValues<string> _recognizedJsTracerUnsupportedErrors = SearchValues.Create(
-        [],
+        [
+            "unknown variant",
+            "custom traces are blocked",
+            "JS Tracer is not enabled",
+        ],
+        StringComparison.OrdinalIgnoreCase
+    );
+    private static readonly SearchValues<string> _recognizedTracingApiErrors = SearchValues.Create(
+        [
+            "transaction not found",
+        ],
         StringComparison.OrdinalIgnoreCase
     );
     private static readonly SearchValues<string> _recognizedSendRawTransactionErrors = SearchValues.Create(
@@ -363,7 +373,7 @@ public sealed partial class RpcCapabilityProbe : Transient
         }
         catch(RPCException ex)
         {
-            tracingApi = false;
+            tracingApi = ex.Message.ContainsAny(_recognizedTracingApiErrors);
             if(!tracingApi)
             {
                 tracingApiError = ex.Message;

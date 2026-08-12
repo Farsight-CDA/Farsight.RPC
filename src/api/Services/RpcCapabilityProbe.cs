@@ -36,12 +36,15 @@ public sealed partial class RpcCapabilityProbe : Transient
             "unknown variant",
             "custom traces are blocked",
             "JS Tracer is not enabled",
+            "Bad request input parameters",
+            "runtime error: invalid memory address or nil pointer dereference",
         ],
         StringComparison.OrdinalIgnoreCase
     );
     private static readonly SearchValues<string> _recognizedTracingApiErrors = SearchValues.Create(
         [
             "transaction not found",
+            "receipt could not be found",
         ],
         StringComparison.OrdinalIgnoreCase
     );

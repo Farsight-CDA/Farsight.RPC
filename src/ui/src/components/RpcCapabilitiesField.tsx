@@ -5,6 +5,7 @@ import WarningIcon from "./icons/WarningIcon";
 export const allRpcCapabilities = [
   "Archive",
   "DebugApi",
+  "DebugJsTracers",
   "TracingApi",
   "StateOverrides",
   "BlockOverrides",
@@ -23,6 +24,8 @@ export function formatRpcCapability(capability: RpcCapability): string {
   switch (capability) {
     case "DebugApi":
       return "Debug API";
+    case "DebugJsTracers":
+      return "Debug JS Tracers";
     case "TracingApi":
       return "Tracing API";
     case "StateOverrides":
@@ -44,6 +47,8 @@ export function rpcCapabilityStyle(capability: RpcCapability): string {
       return "border-blue-500/30 bg-blue-500/10 text-blue-400";
     case "DebugApi":
       return "border-purple-500/30 bg-purple-500/10 text-purple-400";
+    case "DebugJsTracers":
+      return "border-violet-500/30 bg-violet-500/10 text-violet-400";
     case "TracingApi":
       return "border-pink-500/30 bg-pink-500/10 text-pink-400";
     case "StateOverrides":

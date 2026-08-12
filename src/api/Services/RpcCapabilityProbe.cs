@@ -21,6 +21,8 @@ public sealed partial class RpcCapabilityProbe : Transient
     private const ulong MAXIMUM_LOGS_PROBERANGE = 100_000;
     private static readonly EtherHdWallet _transactionProbeSigner = EtherHdWallet.Create();
     private static readonly TimeSpan _tracingApiProbeTimeout = TimeSpan.FromSeconds(3);
+    private const string DEBUG_JS_TRACER =
+        "{step:function(){},fault:function(){},result:function(){return 1;}}";
     private static readonly ulong[] _ethGetLogsProbeRanges =
     [
         10_000,
@@ -29,24 +31,8 @@ public sealed partial class RpcCapabilityProbe : Transient
         1_000,
     ];
     private static readonly Address _overrideProbeAddress = Address.Parse("0x000000000000000000000000000000000000fa57");
-    private static readonly SearchValues<string> _recognizedMethodErrors = SearchValues.Create(
-        [
-            "invalid argument",
-            "invalid params",
-            "invalid hash",
-            "transaction not found",
-            "tx not found",
-            "transaction 0x0000000000000000000000000000000000000000000000000000000000000000 not found",
-            "unknown transaction",
-            "unknown block or tx index",
-            "no transaction found",
-            "cannot find block hash for transaction",
-            "receipt could not be found",
-            "failed to get receipt by tx ID",
-            "genesis is not traceable",
-            "transaction indexing is in progress",
-            "trace request rejected due to concurrency limit",
-        ],
+    private static readonly SearchValues<string> _recognizedJsTracerUnsupportedErrors = SearchValues.Create(
+        [],
         StringComparison.OrdinalIgnoreCase
     );
     private static readonly SearchValues<string> _recognizedSendRawTransactionErrors = SearchValues.Create(
@@ -89,7 +75,7 @@ public sealed partial class RpcCapabilityProbe : Transient
 
         (bool archive, var archiveError) =
             await ProbeArchiveAsync(ethRpcModule, cancellationToken);
-        (bool debugApi, bool tracingApi, var tracingErrors) =
+        (bool debugApi, bool debugJsTracers, bool tracingApi, var tracingErrors) =
             await ProbeTracingApisAsync(client, cancellationToken);
         (bool stateOverrides, bool blockOverrides, var overrideError) =
             await ProbeOverridesAsync(ethRpcModule, cancellationToken);
@@ -101,7 +87,7 @@ public sealed partial class RpcCapabilityProbe : Transient
         (bool sendRawTransaction, var sendRawTransactionError) =
             await ProbeSendRawTransactionAsync(chainId, ethRpcModule, cancellationToken);
 
-        var capabilities = new List<RpcCapability>(8);
+        var capabilities = new List<RpcCapability>(9);
         if(archive)
         {
             capabilities.Add(RpcCapability.Archive);
@@ -109,6 +95,10 @@ public sealed partial class RpcCapabilityProbe : Transient
         if(debugApi)
         {
             capabilities.Add(RpcCapability.DebugApi);
+        }
+        if(debugJsTracers)
+        {
+            capabilities.Add(RpcCapability.DebugJsTracers);
         }
         if(tracingApi)
         {
@@ -298,35 +288,63 @@ public sealed partial class RpcCapabilityProbe : Transient
     ]
     private static partial Regex EthGetLogsLimitErrorRegex();
 
-    public static async Task<(bool DebugApi, bool TracingApi, RpcCapabilityError[] Errors)> ProbeTracingApisAsync(
+    public static async Task<(bool DebugApi, bool DebugJsTracers, bool TracingApi, RpcCapabilityError[] Errors)> ProbeTracingApisAsync(
         IEtherClient client, CancellationToken cancellationToken)
     {
         bool debugApi;
+        bool debugJsTracers;
         string? debugApiError = null;
+        string? debugJsTracersError = null;
         try
         {
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             cts.CancelAfter(_tracingApiProbeTimeout);
-            await client.Debug.TraceTransactionCallsAsync(Bytes32.Zero, cts.Token);
+            int result = await client.Debug.TraceCallJavaScriptAsync<object, int>(
+                _overrideProbeAddress,
+                gas: null,
+                gasPrice: null,
+                UInt256.Zero,
+                ReadOnlyMemory<byte>.Empty,
+                TargetHeight.Latest,
+                new JavaScriptTracer(DEBUG_JS_TRACER),
+                new { },
+                cts.Token);
             debugApi = true;
+            debugJsTracers = result == 1;
+
+            if(!debugJsTracers)
+            {
+                debugJsTracersError = "Debug API did not return the expected JavaScript tracer result.";
+            }
         }
         catch(OperationCanceledException) when(!cancellationToken.IsCancellationRequested)
         {
             debugApi = false;
+            debugJsTracers = false;
             debugApiError = $"Debug API probe timed out after {_tracingApiProbeTimeout.TotalSeconds} seconds.";
+            debugJsTracersError = debugApiError;
         }
         catch(RPCException ex)
         {
-            debugApi = IsRecognizedMethodResponse(ex.Code, ex.Message);
-            if(!debugApi)
+            debugApi = ex.Message.ContainsAny(_recognizedJsTracerUnsupportedErrors);
+            debugJsTracers = false;
+
+            if(debugApi)
+            {
+                debugJsTracersError = ex.Message;
+            }
+            else
             {
                 debugApiError = ex.Message;
+                debugJsTracersError = ex.Message;
             }
         }
         catch(RPCTransportException ex)
         {
             debugApi = false;
+            debugJsTracers = false;
             debugApiError = ex.Message;
+            debugJsTracersError = ex.Message;
         }
 
         bool tracingApi;
@@ -345,7 +363,7 @@ public sealed partial class RpcCapabilityProbe : Transient
         }
         catch(RPCException ex)
         {
-            tracingApi = IsRecognizedMethodResponse(ex.Code, ex.Message);
+            tracingApi = false;
             if(!tracingApi)
             {
                 tracingApiError = ex.Message;
@@ -357,21 +375,22 @@ public sealed partial class RpcCapabilityProbe : Transient
             tracingApiError = ex.Message;
         }
 
-        var errors = new List<RpcCapabilityError>(2);
+        var errors = new List<RpcCapabilityError>(3);
         if(debugApiError is not null)
         {
             errors.Add(new RpcCapabilityError(RpcCapability.DebugApi, debugApiError));
+        }
+        if(debugJsTracersError is not null)
+        {
+            errors.Add(new RpcCapabilityError(RpcCapability.DebugJsTracers, debugJsTracersError));
         }
         if(tracingApiError is not null)
         {
             errors.Add(new RpcCapabilityError(RpcCapability.TracingApi, tracingApiError));
         }
 
-        return (debugApi, tracingApi, [.. errors]);
+        return (debugApi, debugJsTracers, tracingApi, [.. errors]);
     }
-
-    internal static bool IsRecognizedMethodResponse(int code, string message)
-        => code == -32602 || message.ContainsAny(_recognizedMethodErrors);
 
     public static async Task<(bool StateOverrides, bool BlockOverrides, RpcCapabilityError? Error)> ProbeOverridesAsync(
         IEthRpcModule eth, CancellationToken cancellationToken)

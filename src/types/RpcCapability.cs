@@ -10,4 +10,5 @@ public enum RpcCapability
     Subscriptions,
     GetLogs,
     SendRawTransaction,
+    DebugJsTracers,
 }

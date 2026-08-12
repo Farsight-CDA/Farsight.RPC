@@ -3,6 +3,7 @@ import type { ApplicationRpc, ApplicationRpcRule } from "./application-data";
 export type RpcCapability =
   | "Archive"
   | "DebugApi"
+  | "DebugJsTracers"
   | "TracingApi"
   | "StateOverrides"
   | "BlockOverrides"
@@ -13,6 +14,7 @@ export type RpcCapability =
 export const allCapabilities: RpcCapability[] = [
   "Archive",
   "DebugApi",
+  "DebugJsTracers",
   "TracingApi",
   "StateOverrides",
   "BlockOverrides",

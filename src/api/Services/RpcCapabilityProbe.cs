@@ -44,6 +44,7 @@ public sealed partial class RpcCapabilityProbe : Transient
             "receipt could not be found",
             "failed to get receipt by tx ID",
             "genesis is not traceable",
+            "transaction indexing is in progress",
         ],
         StringComparison.OrdinalIgnoreCase
     );

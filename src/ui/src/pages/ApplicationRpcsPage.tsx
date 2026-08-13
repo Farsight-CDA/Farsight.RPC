@@ -84,7 +84,7 @@ async function readErrorMessage(
   return fallback;
 }
 
-const rpcValidationTimeoutMs = 15_000;
+const rpcValidationTimeoutMs = 17_000;
 const rpcValidationTimedOutMessage = "RPC validation timed out.";
 
 type ProbeResult = {

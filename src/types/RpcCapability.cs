@@ -11,4 +11,5 @@ public enum RpcCapability
     GetLogs,
     SendRawTransaction,
     DebugJsTracers,
+    CreateAccessList,
 }

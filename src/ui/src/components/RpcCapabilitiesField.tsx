@@ -12,6 +12,7 @@ export const allRpcCapabilities = [
   "Subscriptions",
   "GetLogs",
   "SendRawTransaction",
+  "CreateAccessList",
 ] as const;
 
 export type RpcCapability = (typeof allRpcCapabilities)[number];
@@ -36,6 +37,8 @@ export function formatRpcCapability(capability: RpcCapability): string {
       return "eth_getLogs";
     case "SendRawTransaction":
       return "eth_sendRawTransaction";
+    case "CreateAccessList":
+      return "eth_createAccessList";
     default:
       return capability;
   }
@@ -61,6 +64,8 @@ export function rpcCapabilityStyle(capability: RpcCapability): string {
       return "border-orange-500/30 bg-orange-500/10 text-orange-400";
     case "SendRawTransaction":
       return "border-red-500/30 bg-red-500/10 text-red-400";
+    case "CreateAccessList":
+      return "border-lime-500/30 bg-lime-500/10 text-lime-400";
   }
 }
 

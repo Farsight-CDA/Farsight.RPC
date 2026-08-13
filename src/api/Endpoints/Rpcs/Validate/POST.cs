@@ -11,7 +11,7 @@ namespace Farsight.Rpc.Api.Endpoints.Rpcs.Validate;
 
 public sealed class POST(RpcCapabilityProbe capabilityProbe) : Endpoint<POST.Request, RpcProbeResult>
 {
-    private static readonly TimeSpan _validationTimeout = TimeSpan.FromSeconds(10);
+    private static readonly TimeSpan _validationTimeout = TimeSpan.FromSeconds(12);
 
     public sealed record Request(Uri Address, string Chain);
 

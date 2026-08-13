@@ -99,8 +99,10 @@ public sealed partial class RpcCapabilityProbe : Transient
         );
         (bool sendRawTransaction, var sendRawTransactionError) =
             await ProbeSendRawTransactionAsync(chainId, ethRpcModule, cancellationToken);
+        (bool createAccessList, var createAccessListError) =
+            await ProbeCreateAccessListAsync(ethRpcModule, cancellationToken);
 
-        var capabilities = new List<RpcCapability>(9);
+        var capabilities = new List<RpcCapability>(10);
         if(archive)
         {
             capabilities.Add(RpcCapability.Archive);
@@ -137,8 +139,12 @@ public sealed partial class RpcCapabilityProbe : Transient
         {
             capabilities.Add(RpcCapability.SendRawTransaction);
         }
+        if(createAccessList)
+        {
+            capabilities.Add(RpcCapability.CreateAccessList);
+        }
 
-        var errors = new List<RpcCapabilityError>(tracingErrors.Length + 4);
+        var errors = new List<RpcCapabilityError>(tracingErrors.Length + 5);
         if(archiveError is not null)
         {
             errors.Add(archiveError);
@@ -156,6 +162,10 @@ public sealed partial class RpcCapabilityProbe : Transient
         {
             errors.Add(sendRawTransactionError);
         }
+        if(createAccessListError is not null)
+        {
+            errors.Add(createAccessListError);
+        }
 
         return new RpcProbeResult(
             chainId,
@@ -170,6 +180,31 @@ public sealed partial class RpcCapabilityProbe : Transient
             ethGetLogsLimit,
             errors.Count == 0 ? null : [.. errors]
         );
+    }
+
+    public static async Task<(bool Supported, RpcCapabilityError? Error)> ProbeCreateAccessListAsync(
+        IEthRpcModule eth, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await eth.CreateAccessListAsync(
+                _transactionProbeSigner.Address,
+                UInt256.Zero,
+                ReadOnlyMemory<byte>.Empty,
+                null,
+                new CallOptions
+                {
+                    From = _transactionProbeSigner.Address,
+                    TargetHeight = TargetHeight.Latest,
+                },
+                cancellationToken
+            );
+            return (true, null);
+        }
+        catch(Exception ex)
+        {
+            return (false, new RpcCapabilityError(RpcCapability.CreateAccessList, ex.Message));
+        }
     }
 
     public static async Task<(bool Supported, RpcCapabilityError? Error)> ProbeSendRawTransactionAsync(

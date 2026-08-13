@@ -68,6 +68,13 @@ public sealed partial class RpcCapabilityProbe : Transient
         ],
         StringComparison.OrdinalIgnoreCase
     );
+    private static readonly SearchValues<string> _recognizedCreateAccessListErrors = SearchValues.Create(
+        [
+            "insufficient funds",
+            "header not found",
+        ],
+        StringComparison.OrdinalIgnoreCase
+    );
 
     public async Task<RpcProbeResult> ProbeAsync(Uri address, CancellationToken cancellationToken = default)
     {
@@ -100,7 +107,7 @@ public sealed partial class RpcCapabilityProbe : Transient
         (bool sendRawTransaction, var sendRawTransactionError) =
             await ProbeSendRawTransactionAsync(chainId, ethRpcModule, cancellationToken);
         (bool createAccessList, var createAccessListError) =
-            await ProbeCreateAccessListAsync(ethRpcModule, cancellationToken);
+            await ProbeCreateAccessListAsync(ethRpcModule, latestBlockNumber, cancellationToken);
 
         var capabilities = new List<RpcCapability>(10);
         if(archive)
@@ -183,7 +190,7 @@ public sealed partial class RpcCapabilityProbe : Transient
     }
 
     public static async Task<(bool Supported, RpcCapabilityError? Error)> ProbeCreateAccessListAsync(
-        IEthRpcModule eth, CancellationToken cancellationToken)
+        IEthRpcModule eth, ulong latestBlockNumber, CancellationToken cancellationToken)
     {
         try
         {
@@ -195,10 +202,14 @@ public sealed partial class RpcCapabilityProbe : Transient
                 new CallOptions
                 {
                     From = _transactionProbeSigner.Address,
-                    TargetHeight = TargetHeight.Latest,
+                    TargetHeight = TargetHeight.Height(latestBlockNumber),
                 },
                 cancellationToken
             );
+            return (true, null);
+        }
+        catch(RPCException ex) when(ex.Message.ContainsAny(_recognizedCreateAccessListErrors))
+        {
             return (true, null);
         }
         catch(Exception ex)

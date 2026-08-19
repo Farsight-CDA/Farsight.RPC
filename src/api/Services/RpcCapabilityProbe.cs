@@ -29,6 +29,8 @@ public sealed partial class RpcCapabilityProbe : Transient
         5_000,
         2_000,
         1_000,
+        500,
+        100
     ];
     private static readonly Address _overrideProbeAddress = Address.Parse("0x000000000000000000000000000000000000fa57");
     private static readonly SearchValues<string> _recognizedJsTracerUnsupportedErrors = SearchValues.Create(

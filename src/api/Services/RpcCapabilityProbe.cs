@@ -397,17 +397,40 @@ public sealed partial class RpcCapabilityProbe : Transient
         }
         catch(RPCException ex)
         {
-            debugApi = ex.Message.ContainsAny(_recognizedJsTracerUnsupportedErrors);
             debugJsTracers = false;
+            debugJsTracersError = ex.Message;
 
-            if(debugApi)
+            if(ex.Message.ContainsAny(_recognizedJsTracerUnsupportedErrors))
             {
-                debugJsTracersError = ex.Message;
+                debugApi = true;
             }
             else
             {
-                debugApiError = ex.Message;
-                debugJsTracersError = ex.Message;
+                try
+                {
+                    using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                    cts.CancelAfter(_tracingApiProbeTimeout);
+                    await client.Debug.TraceCallCallsAsync(
+                        _overrideProbeAddress,
+                        gas: null,
+                        gasPrice: null,
+                        UInt256.Zero,
+                        ReadOnlyMemory<byte>.Empty,
+                        TargetHeight.Latest,
+                        cancellationToken: cts.Token);
+                    debugApi = true;
+                    debugApiError = "Debug API fallback probe was required";
+                }
+                catch(OperationCanceledException) when(!cancellationToken.IsCancellationRequested)
+                {
+                    debugApi = false;
+                    debugApiError = $"Debug API fallback probe timed out after {_tracingApiProbeTimeout.TotalSeconds} seconds.";
+                }
+                catch(Exception fallbackException) when(fallbackException is RPCException or RPCTransportException)
+                {
+                    debugApi = false;
+                    debugApiError = fallbackException.Message;
+                }
             }
         }
         catch(RPCTransportException ex)

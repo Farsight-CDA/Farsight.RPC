@@ -621,7 +621,14 @@ export default function ApplicationRpcsPage() {
   const runCreateRpcTest = async (): Promise<boolean> => {
     const token = auth.token;
     const chain = selectedChainForRpc();
-    if (!token || !chain) return false;
+    if (!token) {
+      setCreateRpcError("Your session has expired. Please sign in again.");
+      return false;
+    }
+    if (!chain) {
+      setCreateRpcError("No chain selected.");
+      return false;
+    }
     const address = newRpcAddress().trim();
     if (!isValidRpcAddress(address)) {
       setCreateRpcError(addressHint);
@@ -1692,11 +1699,8 @@ export default function ApplicationRpcsPage() {
                       <button
                         type="button"
                         onClick={() => void handleCreateContinue()}
-                        disabled={
-                          createRpcTestStatus() === "testing" ||
-                          !isValidRpcAddress(newRpcAddress().trim())
-                        }
-                        class="btn btn-md btn-interactive btn-primary"
+                        disabled={createRpcTestStatus() === "testing"}
+                        class="btn btn-md btn-interactive btn-disabled btn-primary"
                       >
                         <Show when={createRpcTestStatus() === "testing"}>
                           <LoadingSpinner class="size-3.5 text-b-paper" />

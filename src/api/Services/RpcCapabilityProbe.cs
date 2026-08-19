@@ -9,6 +9,7 @@ using EtherSharp.Types;
 using EtherSharp.Wallet;
 using Farsight.Common;
 using Farsight.Rpc.Types;
+using Farsight.Rpc.Types.Evm;
 using System.Buffers;
 using System.Buffers.Binary;
 using System.Globalization;
@@ -78,11 +79,20 @@ public sealed partial class RpcCapabilityProbe : Transient
         StringComparison.OrdinalIgnoreCase
     );
 
-    public async Task<RpcProbeResult> ProbeAsync(Uri address, CancellationToken cancellationToken = default)
+    public async Task<RpcProbeResult> ProbeAsync(
+        Uri address,
+        RpcErrorGroupDto[] errorGroups,
+        CancellationToken cancellationToken = default)
     {
-        await using var client = address.Scheme is "ws" or "wss"
-            ? EtherClientBuilder.CreateForWebsocket(address).BuildReadClient()
-            : EtherClientBuilder.CreateForHttpRpc(address).BuildReadClient();
+        var clientBuilder = address.Scheme is "ws" or "wss"
+            ? EtherClientBuilder.CreateForWebsocket(address)
+            : EtherClientBuilder.CreateForHttpRpc(address);
+        clientBuilder.AddRPCMiddleware(new EvmRpcResiliencyMiddleware(
+            address.Host,
+            errorGroups)
+        );
+
+        await using var client = clientBuilder.BuildReadClient();
 
         var (chainId, latestBlockNumber, latestBlockTime, compatibility) = await client.InitializeAsync(
             IQuery.Combine(

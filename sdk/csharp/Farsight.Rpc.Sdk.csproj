@@ -34,11 +34,8 @@
 
 	<ItemGroup>
 		<PackageReference Include="EtherSharp" />
-		<PackageReference Include="Microsoft.Extensions.Diagnostics.Abstractions" />
 		<PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
 		<PackageReference Include="Microsoft.Extensions.Http" />
-		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
-		<PackageReference Include="Polly" />
 	</ItemGroup>
 
 	<Target Name="IncludeProjectReferenceOutputsInPackage" DependsOnTargets="ResolveReferences">

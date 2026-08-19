@@ -11,6 +11,9 @@
 
 	<ItemGroup>
 		<PackageReference Include="EtherSharp" />
+		<PackageReference Include="Microsoft.Extensions.Diagnostics.Abstractions" />
+		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+		<PackageReference Include="Polly" />
 	</ItemGroup>
 
 </Project>

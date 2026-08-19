@@ -13,7 +13,7 @@ using System.Diagnostics.Metrics;
 using System.Net.Sockets;
 using System.Net.WebSockets;
 
-namespace Farsight.Rpc.Sdk.Evm;
+namespace Farsight.Rpc.Types.Evm;
 
 public sealed class EvmRpcResiliencyMiddleware : IRpcMiddleware
 {

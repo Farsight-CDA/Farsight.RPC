@@ -1,17 +1,19 @@
 using Farsight.Chains;
 using Farsight.Rpc.Api.Auth;
 using Farsight.Rpc.Api.Common.Extensions;
+using Farsight.Rpc.Api.Persistence;
 using Farsight.Rpc.Api.Services;
 using Farsight.Rpc.Api.Validation;
 using Farsight.Rpc.Types;
 using FastEndpoints;
 using FluentValidation;
+using Microsoft.EntityFrameworkCore;
 
 namespace Farsight.Rpc.Api.Endpoints.Rpcs.Validate;
 
-public sealed class POST(RpcCapabilityProbe capabilityProbe) : Endpoint<POST.Request, RpcProbeResult>
+public sealed class POST(RpcCapabilityProbe capabilityProbe, AppDbContext dbContext) : Endpoint<POST.Request, RpcProbeResult>
 {
-    private static readonly TimeSpan _validationTimeout = TimeSpan.FromSeconds(12);
+    private static readonly TimeSpan _validationTimeout = TimeSpan.FromSeconds(20);
 
     public sealed record Request(Uri Address, string Chain);
 
@@ -42,10 +44,15 @@ public sealed class POST(RpcCapabilityProbe capabilityProbe) : Endpoint<POST.Req
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
         cts.CancelAfter(_validationTimeout);
 
+        var errorGroups = await dbContext.RpcErrorGroups
+            .AsNoTracking()
+            .Select(group => new RpcErrorGroupDto(group.Id, group.Name, group.Action, group.Errors))
+            .ToArrayAsync(ct);
+
         RpcProbeResult result;
         try
         {
-            result = await capabilityProbe.ProbeAsync(req.Address, cts.Token);
+            result = await capabilityProbe.ProbeAsync(req.Address, errorGroups, cts.Token);
         }
         catch(OperationCanceledException) when(!ct.IsCancellationRequested)
         {

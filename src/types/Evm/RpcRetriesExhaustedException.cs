@@ -1,4 +1,4 @@
-namespace Farsight.Rpc.Sdk.Evm;
+namespace Farsight.Rpc.Types.Evm;
 
 public sealed class RpcRetriesExhaustedException(string reason)
     : Exception($"RPC retries exhausted: {reason}")

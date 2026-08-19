@@ -89,7 +89,7 @@ public sealed partial class RpcCapabilityProbe : Transient
             : EtherClientBuilder.CreateForHttpRpc(address);
         clientBuilder.AddRPCMiddleware(new EvmRpcResiliencyMiddleware(
             address.Host,
-            errorGroups)
+            errorGroups.Where(group => group.Action == RpcErrorAction.Transient))
         );
 
         await using var client = clientBuilder.BuildReadClient();

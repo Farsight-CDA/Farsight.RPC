@@ -71,6 +71,7 @@ Each `ChainMetadata` record contains:
 | Polygon | POL |
 | PulseChain | PLS |
 | Rise Chain | ETH |
+| Robinhood Chain | ETH |
 | Rootstock | RBTC |
 | Scroll | ETH |
 | Sei | SEI |

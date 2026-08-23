@@ -1,0 +1,25 @@
+{
+  "Name": "Robinhood Chain",
+  "ChainId": 4663,
+  "CanReorg": true,
+  "SupportsPriorityFees": true,
+  "SupportsGasRefunds": true,
+  "BlockGasLimitM": 1125899906,
+  "NativeCurrency": {
+    "Name": "Ether",
+    "Symbol": "ETH",
+    "Decimals": 18,
+    "PythFeedId": "0xff61491a931112ddf1bd8147cd1b641375f79f5825126d665480874634fd0ace",
+    "WrappedTokenAddress": "0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73"
+  },
+  "FlashCallerAddress": "0x31ab65b220487210bbde88b5b8fa1f9aaa77ae76",
+  "StablecoinAddresses": [
+    "0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168"
+  ],
+  "Api3": {
+    "MarketV2Address": "0x7D0C40f6B4D49CFB616B051F314B88546c38bEE1"
+  },
+  "Pyth": {
+    "PythAddress": "0x8250f4aF4B972684F7b336503E2D6dFeDeB1487a"
+  }
+}

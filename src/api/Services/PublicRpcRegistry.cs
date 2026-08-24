@@ -101,7 +101,7 @@ public partial class PublicRpcRegistry : Singleton
     private async Task<bool> ValidateRPCAsync(ulong chainId, Uri address, CancellationToken cancellationToken)
     {
         //ToDo: Install resiliency middleware
-        var client = EtherClientBuilder.CreateEmpty()
+        await using var client = EtherClientBuilder.CreateEmpty()
             .WithRPCTransport(provider => address.Scheme is "ws" or "wss"
                 ? new WssJsonRpcTransport(address, TimeSpan.FromSeconds(30), provider, [])
                 : new HttpJsonRpcTransport(address, provider, []))

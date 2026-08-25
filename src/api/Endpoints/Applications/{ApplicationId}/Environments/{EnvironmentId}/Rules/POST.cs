@@ -16,7 +16,8 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request>
         [property: RouteParam] Guid EnvironmentId,
         string[] Chains,
         RpcCapability[] AllOf,
-        RpcCapability[] AnyOf
+        RpcCapability[] AnyOf,
+        RpcRuleSeverity Severity
     );
 
     public sealed class Validator : Validator<Request>
@@ -51,6 +52,10 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request>
             RuleForEach(x => x.AnyOf!)
                 .IsInEnum()
                 .WithMessage("AnyOf capability is invalid.");
+
+            RuleFor(x => x.Severity)
+                .IsInEnum()
+                .WithMessage("Severity is invalid.");
 
             RuleFor(x => x)
                 .Must(static request => request.AllOf is null || request.AnyOf is null || request.AllOf.Length > 0 || request.AnyOf.Length > 0)
@@ -87,6 +92,7 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request>
             Chains = [.. req.Chains.Order(StringComparer.Ordinal)],
             AllOf = [.. req.AllOf.Order()],
             AnyOf = [.. req.AnyOf.Order()],
+            Severity = req.Severity,
         });
 
         await dbContext.SaveChangesAsync(ct);

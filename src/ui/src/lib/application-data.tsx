@@ -36,7 +36,10 @@ export type ApplicationRpcRule = {
   chains: string[];
   allOf: string[];
   anyOf: string[];
+  severity: RpcRuleSeverity;
 };
+
+export type RpcRuleSeverity = "Yellow" | "Red";
 
 export type ApplicationRpc = {
   id: string;

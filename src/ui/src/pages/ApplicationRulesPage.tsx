@@ -12,7 +12,11 @@ import TrashIcon from "../components/icons/TrashIcon";
 import WarningIcon from "../components/icons/WarningIcon";
 import { createModalBackdropHandlers } from "../lib/createModalBackdropHandlers";
 import { useAuth } from "../lib/auth";
-import { useApplicationData, type ApplicationRpcRule } from "../lib/application-data";
+import {
+  useApplicationData,
+  type ApplicationRpcRule,
+  type RpcRuleSeverity,
+} from "../lib/application-data";
 import { useEnvironment } from "../lib/environment-context";
 import { useEscapeKey } from "../lib/useEscapeKey";
 import { useReferenceData } from "../lib/reference-data";
@@ -136,11 +140,18 @@ function buildRuleBody(
   chains: string[],
   allOf: RpcCapability[],
   anyOf: RpcCapability[],
-): { chains: string[]; allOf: RpcCapability[]; anyOf: RpcCapability[] } {
+  severity: RpcRuleSeverity,
+): {
+  chains: string[];
+  allOf: RpcCapability[];
+  anyOf: RpcCapability[];
+  severity: RpcRuleSeverity;
+} {
   return {
     chains: [...chains].sort(),
     allOf: [...allOf].sort(),
     anyOf: [...anyOf].sort(),
+    severity,
   };
 }
 
@@ -171,6 +182,7 @@ export default function ApplicationRulesPage() {
   let chainPickerRef: HTMLDivElement | undefined;
   const [allOf, setAllOf] = createSignal<RpcCapability[]>([]);
   const [anyOf, setAnyOf] = createSignal<RpcCapability[]>([]);
+  const [severity, setSeverity] = createSignal<RpcRuleSeverity>("Yellow");
   const [modalError, setModalError] = createSignal<string | null>(null);
   const [modalLoading, setModalLoading] = createSignal(false);
 
@@ -216,6 +228,7 @@ export default function ApplicationRulesPage() {
     setChainFilter("");
     setAllOf([]);
     setAnyOf([]);
+    setSeverity("Yellow");
     setModalError(null);
     setIsModalOpen(true);
   };
@@ -229,6 +242,7 @@ export default function ApplicationRulesPage() {
     setChainFilter("");
     setAllOf(rule.allOf as RpcCapability[]);
     setAnyOf(rule.anyOf as RpcCapability[]);
+    setSeverity(rule.severity);
     setModalError(null);
     setIsModalOpen(true);
   };
@@ -320,7 +334,7 @@ export default function ApplicationRulesPage() {
       if (!environmentId) {
         throw new Error("Select an environment.");
       }
-      const body = buildRuleBody(chains(), allOf(), anyOf());
+      const body = buildRuleBody(chains(), allOf(), anyOf(), severity());
 
       if (modalMode() === "create") {
         const response = await fetch(
@@ -335,6 +349,7 @@ export default function ApplicationRulesPage() {
               chains: body.chains,
               allOf: body.allOf,
               anyOf: body.anyOf,
+              severity: body.severity,
             }),
           },
         );
@@ -356,6 +371,7 @@ export default function ApplicationRulesPage() {
               chains: body.chains,
               allOf: body.allOf,
               anyOf: body.anyOf,
+              severity: body.severity,
             }),
           },
         );
@@ -468,6 +484,16 @@ export default function ApplicationRulesPage() {
                     <div class="flex flex-col gap-3 border border-b-border bg-b-paper/40 p-4 shadow-[0_1px_0_rgba(0,0,0,0.35)] transition-colors hover:border-b-border-hover sm:flex-row sm:items-center sm:justify-between">
                       <div class="min-w-0 flex-1">
                         <div class="flex flex-col gap-2">
+                          <span
+                            class={`inline-flex w-fit items-center gap-1.5 border px-2 py-1 text-[0.65rem] font-bold uppercase tracking-wider ${
+                              rule.severity === "Red"
+                                ? "border-red-500/30 bg-red-500/10 text-red-400"
+                                : "border-amber-500/30 bg-amber-500/10 text-amber-300"
+                            }`}
+                          >
+                            <WarningIcon class="size-3" />
+                            {rule.severity}
+                          </span>
                           <div class="flex flex-wrap items-center gap-2">
                             <span class="text-[0.65rem] font-bold uppercase tracking-widest text-b-ink/50">
                               Chains:
@@ -585,7 +611,7 @@ export default function ApplicationRulesPage() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="rule-modal-title"
-            class="w-full max-w-lg border border-b-border bg-b-field p-8 shadow-[0_25px_50px_rgba(0,0,0,0.5)]"
+            class="max-h-[calc(100vh-4rem)] w-full max-w-lg overflow-y-auto border border-b-border bg-b-field p-8 shadow-[0_25px_50px_rgba(0,0,0,0.5)]"
             onClick={(e) => e.stopPropagation()}
           >
             <p class="mb-2 text-xs font-bold uppercase tracking-[0.35em] text-b-accent">
@@ -600,6 +626,44 @@ export default function ApplicationRulesPage() {
 
             <div class="flex flex-col gap-6">
               <div class="flex flex-col gap-4">
+                <div>
+                  <p class="mb-3 text-xs font-bold uppercase tracking-widest text-b-ink/70">
+                    Severity
+                  </p>
+                  <div class="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Rule severity">
+                    <button
+                      type="button"
+                      role="radio"
+                      aria-checked={severity() === "Yellow"}
+                      onClick={() => setSeverity("Yellow")}
+                      disabled={modalLoading()}
+                      class={`flex items-center justify-center gap-2 border px-3 py-2.5 text-xs font-bold uppercase tracking-wider transition-all disabled:cursor-not-allowed disabled:opacity-50 ${
+                        severity() === "Yellow"
+                          ? "border-amber-500/50 bg-amber-500/15 text-amber-300"
+                          : "border-b-border bg-b-paper text-b-ink/50 hover:border-amber-500/30 hover:text-amber-300"
+                      }`}
+                    >
+                      <WarningIcon class="size-4" />
+                      Yellow
+                    </button>
+                    <button
+                      type="button"
+                      role="radio"
+                      aria-checked={severity() === "Red"}
+                      onClick={() => setSeverity("Red")}
+                      disabled={modalLoading()}
+                      class={`flex items-center justify-center gap-2 border px-3 py-2.5 text-xs font-bold uppercase tracking-wider transition-all disabled:cursor-not-allowed disabled:opacity-50 ${
+                        severity() === "Red"
+                          ? "border-red-500/50 bg-red-500/15 text-red-400"
+                          : "border-b-border bg-b-paper text-b-ink/50 hover:border-red-500/30 hover:text-red-400"
+                      }`}
+                    >
+                      <WarningIcon class="size-4" />
+                      Red
+                    </button>
+                  </div>
+                </div>
+
                 <div>
                   <p class="mb-3 text-xs font-bold uppercase tracking-widest text-b-ink/70">
                     Chains

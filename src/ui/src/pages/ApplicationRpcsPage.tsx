@@ -31,7 +31,7 @@ import {
   useApplicationData,
   type ApplicationRpc,
 } from "../lib/application-data";
-import { chainRuleValidation } from "../lib/rule-validation";
+import { chainRuleFailureSeverity } from "../lib/rule-validation";
 import { useEnvironment } from "../lib/environment-context";
 import { useEscapeKey } from "../lib/useEscapeKey";
 
@@ -314,17 +314,20 @@ export default function ApplicationRpcsPage() {
 
   const failingChains = createMemo(() => {
     const envId = environment.selectedEnvironmentId();
-    if (!envId) return new Set<string>();
+    if (!envId) return new Map<string, "Yellow" | "Red">();
     const allRules = rules();
     const allRpcs = rpcs();
-    const result = new Set<string>();
+    const result = new Map<string, "Yellow" | "Red">();
     for (const chain of availableChains()) {
-      if (!chainRuleValidation(chain, envId, allRpcs, allRules)) {
-        result.add(chain);
-      }
+      const severity = chainRuleFailureSeverity(chain, envId, allRpcs, allRules);
+      if (severity) result.set(chain, severity);
     }
     return result;
   });
+
+  const highestFailureSeverity = createMemo(() =>
+    Array.from(failingChains().values()).includes("Red") ? "Red" : "Yellow",
+  );
 
   const filteredChains = createMemo(() => {
     const allChains = availableChains();
@@ -1065,11 +1068,19 @@ export default function ApplicationRpcsPage() {
                         aria-pressed={filterFailingOnly()}
                         class={`inline-flex w-full items-center justify-center gap-2 border px-3 py-2 text-left text-xs font-bold uppercase tracking-wider transition-all duration-200 ${
                           filterFailingOnly()
-                            ? "border-amber-500/40 bg-amber-500/10 text-amber-300 hover:border-amber-500/60 hover:bg-amber-500/20 hover:text-amber-200"
+                            ? highestFailureSeverity() === "Red"
+                              ? "border-red-500/40 bg-red-500/10 text-red-400 hover:border-red-500/60 hover:bg-red-500/20 hover:text-red-300"
+                              : "border-amber-500/40 bg-amber-500/10 text-amber-300 hover:border-amber-500/60 hover:bg-amber-500/20 hover:text-amber-200"
                             : "border-b-border bg-b-paper/15 text-b-ink/60 hover:border-b-border-hover hover:bg-b-paper/30 hover:text-b-ink"
                         }`}
                       >
-                        <WarningIcon class="size-3.5" />
+                        <WarningIcon
+                          class={`size-3.5 ${
+                            highestFailureSeverity() === "Red"
+                              ? "text-red-400"
+                              : "text-amber-300"
+                          }`}
+                        />
                         <span>Ruleset issues</span>
                         <span class="tabular-nums">({failingChains().size})</span>
                       </button>
@@ -1122,7 +1133,7 @@ export default function ApplicationRpcsPage() {
                       <For each={filteredChains()}>
                         {(chain) => {
                           const isActive = () => activeChain() === chain;
-                          const isFailing = () => failingChains().has(chain);
+                          const failureSeverity = () => failingChains().get(chain);
                           return (
                             <div
                               role="button"
@@ -1139,10 +1150,14 @@ export default function ApplicationRpcsPage() {
                                   ? "border-b-accent bg-b-accent/10 text-b-ink shadow-[inset_2px_0_0_0_var(--color-b-accent)]"
                                   : "border-transparent bg-b-paper/15 text-b-ink/85 hover:border-b-border-hover hover:bg-b-paper/35"
                               } ${
-                                isFailing()
+                                failureSeverity() === "Red"
                                   ? isActive()
                                     ? "bg-red-500/15"
                                     : "border-red-500/30 bg-red-500/10 hover:border-red-500/50 hover:bg-red-500/20"
+                                  : failureSeverity() === "Yellow"
+                                    ? isActive()
+                                      ? "bg-amber-500/15"
+                                      : "border-amber-500/30 bg-amber-500/10 hover:border-amber-500/50 hover:bg-amber-500/20"
                                   : ""
                               }`}
                             >
@@ -1150,8 +1165,14 @@ export default function ApplicationRpcsPage() {
                                 {chain}
                               </span>
                               <div class="ml-2 flex shrink-0 items-center gap-2">
-                                <Show when={failingChains().has(chain)}>
-                                  <WarningIcon class="size-4 text-amber-300" />
+                                <Show when={failureSeverity()}>
+                                  <WarningIcon
+                                    class={`size-4 ${
+                                      failureSeverity() === "Red"
+                                        ? "text-red-400"
+                                        : "text-amber-300"
+                                    }`}
+                                  />
                                 </Show>
                                 <button
                                   type="button"
@@ -1297,7 +1318,13 @@ export default function ApplicationRpcsPage() {
                                   }
                                 >
                                   <>
-                                    <WarningIcon class="size-10 text-amber-300/30" />
+                                    <WarningIcon
+                                      class={`size-10 ${
+                                        highestFailureSeverity() === "Red"
+                                          ? "text-red-400/30"
+                                          : "text-amber-300/30"
+                                      }`}
+                                    />
                                     <p class="text-center text-sm font-semibold uppercase tracking-wider text-b-ink/50">
                                       No failing chains match your filter.
                                     </p>

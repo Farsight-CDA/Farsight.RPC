@@ -1,4 +1,8 @@
-import type { ApplicationRpc, ApplicationRpcRule } from "./application-data";
+import type {
+  ApplicationRpc,
+  ApplicationRpcRule,
+  RpcRuleSeverity,
+} from "./application-data";
 
 export type RpcCapability =
   | "Archive"
@@ -29,23 +33,24 @@ export function isKnownCapability(value: string): value is RpcCapability {
   return allCapabilities.includes(value as RpcCapability);
 }
 
-export function chainRuleValidation(
+export function chainRuleFailureSeverity(
   chain: string,
   environmentId: string,
   rpcs: ApplicationRpc[],
   rules: ApplicationRpcRule[],
-): boolean {
+): RpcRuleSeverity | null {
   const environmentRules = rules.filter(
     (rule) =>
       rule.environmentId === environmentId &&
       (rule.chains.length === 0 || rule.chains.includes(chain)),
   );
-  if (environmentRules.length === 0) return true;
+  if (environmentRules.length === 0) return null;
 
   const chainRpcs = rpcs.filter(
     (rpc) => rpc.chain === chain && rpc.environmentId === environmentId,
   );
 
+  let failureSeverity: RpcRuleSeverity | null = null;
   for (const rule of environmentRules) {
     const allOf = rule.allOf.filter(isKnownCapability);
     const anyOf = rule.anyOf.filter(isKnownCapability);
@@ -62,23 +67,32 @@ export function chainRuleValidation(
       );
     });
 
-    if (!hasMatchingRpc) return false;
+    if (!hasMatchingRpc) {
+      if (rule.severity === "Red") return "Red";
+      failureSeverity = "Yellow";
+    }
   }
 
-  return true;
+  return failureSeverity;
 }
 
-export function anyChainFailsValidation(
+export function highestChainRuleFailureSeverity(
   environmentId: string | undefined,
   chains: string[],
   rpcs: ApplicationRpc[],
   rules: ApplicationRpcRule[],
-): boolean {
-  if (!environmentId) return false;
+): RpcRuleSeverity | null {
+  if (!environmentId) return null;
+  let failureSeverity: RpcRuleSeverity | null = null;
   for (const chain of chains) {
-    if (!chainRuleValidation(chain, environmentId, rpcs, rules)) {
-      return true;
-    }
+    const chainSeverity = chainRuleFailureSeverity(
+      chain,
+      environmentId,
+      rpcs,
+      rules,
+    );
+    if (chainSeverity === "Red") return "Red";
+    if (chainSeverity === "Yellow") failureSeverity = "Yellow";
   }
-  return false;
+  return failureSeverity;
 }

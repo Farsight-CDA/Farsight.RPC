@@ -36,6 +36,7 @@ internal sealed class RpcRuleEFConfiguration : IEntityTypeConfiguration<RpcRule>
         entity.Property(x => x.AnyOf)
             .HasColumnType("integer[]")
             .Metadata.SetValueComparer(_capabilitiesComparer);
+        entity.Property(x => x.Severity);
 
         entity.ToTable("RpcRules");
     }

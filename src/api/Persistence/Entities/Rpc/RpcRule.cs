@@ -11,6 +11,7 @@ public sealed class RpcRule
     public required string[] Chains { get; set; }
     public required RpcCapability[] AllOf { get; set; }
     public required RpcCapability[] AnyOf { get; set; }
+    public required RpcRuleSeverity Severity { get; set; }
 
     //Navigation Property
     public ConsumerApplication? Application { get; private set; }

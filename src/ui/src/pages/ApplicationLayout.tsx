@@ -21,7 +21,7 @@ import WarningIcon from "../components/icons/WarningIcon";
 import ChevronDownIcon from "../components/icons/ChevronDownIcon";
 import { useEnvironment } from "../lib/environment-context";
 import { useApplicationData } from "../lib/application-data";
-import { anyChainFailsValidation } from "../lib/rule-validation";
+import { highestChainRuleFailureSeverity } from "../lib/rule-validation";
 
 function EnvironmentSelector() {
   const environment = useEnvironment();
@@ -95,13 +95,13 @@ const ApplicationLayoutContent: ParentComponent = (props) => {
   const environment = useEnvironment();
   const applicationData = useApplicationData();
 
-  const hasFailingChains = createMemo(() => {
+  const ruleFailureSeverity = createMemo(() => {
     const selectedEnvironment = environment.selectedEnvironmentId();
     const chains = environment.environments().find(
       (env) => env.id === selectedEnvironment,
     )?.chains;
-    if (!chains || chains.length === 0) return false;
-    return anyChainFailsValidation(
+    if (!chains || chains.length === 0) return null;
+    return highestChainRuleFailureSeverity(
       selectedEnvironment,
       chains,
       applicationData.rpcs.data(),
@@ -185,8 +185,14 @@ const ApplicationLayoutContent: ParentComponent = (props) => {
                 }}
               />
               {application()?.name}
-              <Show when={hasFailingChains()}>
-                <WarningIcon class="size-5 text-amber-300" />
+              <Show when={ruleFailureSeverity()}>
+                <WarningIcon
+                  class={`size-5 ${
+                    ruleFailureSeverity() === "Red"
+                      ? "text-red-400"
+                      : "text-amber-300"
+                  }`}
+                />
               </Show>
             </>
           }

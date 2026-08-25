@@ -16,7 +16,8 @@ public sealed class PUT(AppDbContext dbContext) : Endpoint<PUT.Request>
         [property: RouteParam] Guid RuleId,
         string[]? Chains,
         RpcCapability[]? AllOf,
-        RpcCapability[]? AnyOf
+        RpcCapability[]? AnyOf,
+        RpcRuleSeverity? Severity
     );
 
     public sealed class Validator : Validator<Request>
@@ -60,6 +61,12 @@ public sealed class PUT(AppDbContext dbContext) : Endpoint<PUT.Request>
                         .IsInEnum()
                         .WithMessage("AnyOf capability is invalid.");
                 });
+
+            When(
+                x => x.Severity is not null,
+                () => RuleFor(x => x.Severity!.Value)
+                    .IsInEnum()
+                    .WithMessage("Severity is invalid."));
         }
     }
 
@@ -107,6 +114,11 @@ public sealed class PUT(AppDbContext dbContext) : Endpoint<PUT.Request>
         if(req.AnyOf is not null)
         {
             rule.AnyOf = [.. req.AnyOf.Order()];
+        }
+
+        if(req.Severity is not null)
+        {
+            rule.Severity = req.Severity.Value;
         }
 
         await dbContext.SaveChangesAsync(ct);

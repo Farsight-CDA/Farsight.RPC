@@ -65,6 +65,7 @@ Each `ChainMetadata` record contains:
 | MegaETH | ETH |
 | Monad | MON |
 | Moonbeam | GLMR |
+| Nibiru | NIBI |
 | Optimism | ETH |
 | Plasma | ETH |
 | Plume | ETH |

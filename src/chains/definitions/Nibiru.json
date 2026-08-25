@@ -1,0 +1,21 @@
+{
+  "Name": "Nibiru",
+  "ChainId": 6900,
+  "CanReorg": false,
+  "SupportsPriorityFees": false,
+  "SupportsGasRefunds": true,
+  "BlockGasLimitM": 4294,
+  "NativeCurrency": {
+    "Name": "Nibiru",
+    "Symbol": "NIBI",
+    "Decimals": 18,
+    "PythFeedId": null,
+    "WrappedTokenAddress": "0x0CaCF669f8446BeCA826913a3c6B96aCD4b02a97"
+  },
+  "FlashCallerAddress": "0x31ab65b220487210bbde88b5b8fa1f9aaa77ae76",
+  "StablecoinAddresses": [
+    "0x0829F361A05D993d5CEb035cA6DF3446b060970b"
+  ],
+  "Api3": null,
+  "Pyth": null
+}

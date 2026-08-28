@@ -109,7 +109,7 @@ public partial class PublicRpcRegistry : Singleton
 
         try
         {
-            await client.InitializeAsync(forceNoQuery: true, cancellationToken);
+            await client.InitializeAsync(forceNoQuery: true, cancellationToken: cancellationToken);
 
             if(client.ChainId != chainId)
             {

@@ -100,7 +100,7 @@ public sealed partial class RpcCapabilityProbe : Transient
                 IQuery.GetBlockNumber(),
                 IQuery.GetBlockTimestamp(),
                 IQuery.GetCompatibilityReport()),
-            cancellationToken
+            cancellationToken: cancellationToken
         );
 
         var ethRpcModule = client.AsInternal().Provider.GetRequiredService<IEthRpcModule>();
@@ -210,13 +210,13 @@ public sealed partial class RpcCapabilityProbe : Transient
                 _transactionProbeSigner.Address,
                 UInt256.Zero,
                 ReadOnlyMemory<byte>.Empty,
-                null,
                 new CallOptions
                 {
                     From = _transactionProbeSigner.Address,
+                    GasLimit = 21_000,
                     TargetHeight = TargetHeight.Height(latestBlockNumber),
                 },
-                cancellationToken
+                cancellationToken: cancellationToken
             );
             return (true, null);
         }
@@ -234,7 +234,7 @@ public sealed partial class RpcCapabilityProbe : Transient
         ulong chainId, IEthRpcModule eth, CancellationToken cancellationToken)
     {
         var handler = new LegacyTxTypeHandler(_transactionProbeSigner);
-        await handler.InitializeAsync(chainId, cancellationToken);
+        await handler.InitializeAsync(chainId, cancellationToken: cancellationToken);
 
         var signedTx = await handler.EncodeTxAsync(
             ITxInput.ForEthTransfer(_transactionProbeSigner.Address, 1),
@@ -246,7 +246,7 @@ public sealed partial class RpcCapabilityProbe : Transient
 
         try
         {
-            await eth.SendRawTransactionAsync(signedTx.EncodedTx, cancellationToken);
+            await eth.SendRawTransactionAsync(signedTx.EncodedTx, cancellationToken: cancellationToken);
             return (false, new RpcCapabilityError(
                 RpcCapability.SendRawTransaction,
                 "RPC unexpectedly accepted the eth_sendRawTransaction probe transaction."));
@@ -269,8 +269,14 @@ public sealed partial class RpcCapabilityProbe : Transient
     {
         try
         {
-            await eth.GetBalanceAsync(_overrideProbeAddress, TargetHeight.Height(1), cancellationToken);
-            await eth.GetTransactionCountAsync(_overrideProbeAddress, TargetHeight.Height(1), cancellationToken);
+            await eth.GetBalanceAsync(
+                _overrideProbeAddress,
+                TargetHeight.Height(1),
+                cancellationToken: cancellationToken);
+            await eth.GetTransactionCountAsync(
+                _overrideProbeAddress,
+                TargetHeight.Height(1),
+                cancellationToken: cancellationToken);
             return (true, null);
         }
         catch(RPCException ex)
@@ -290,10 +296,9 @@ public sealed partial class RpcCapabilityProbe : Transient
             => eth.GetLogsAsync(
                 fromBlock,
                 TargetHeight.Height(latestBlockNumber),
-                [_overrideProbeAddress],
-                [],
+                new EventFilter([_overrideProbeAddress], EventTopics.Any),
                 blockHash: null,
-                cancellationToken
+                cancellationToken: cancellationToken
             );
 
         ulong availableRange = latestBlockNumber + 1;
@@ -379,7 +384,7 @@ public sealed partial class RpcCapabilityProbe : Transient
                 TargetHeight.Latest,
                 new JavaScriptTracer(DEBUG_JS_TRACER),
                 new { },
-                cts.Token);
+                cancellationToken: cts.Token);
             debugApi = true;
             debugJsTracers = result == 1;
 
@@ -447,7 +452,7 @@ public sealed partial class RpcCapabilityProbe : Transient
         {
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             cts.CancelAfter(_tracingApiProbeTimeout);
-            await client.Trace.TraceTransactionCallsAsync(Bytes32.Zero, cts.Token);
+            await client.Trace.TraceTransactionCallsAsync(Bytes32.Zero, cancellationToken: cts.Token);
             tracingApi = true;
         }
         catch(OperationCanceledException) when(!cancellationToken.IsCancellationRequested)
@@ -533,7 +538,6 @@ public sealed partial class RpcCapabilityProbe : Transient
 
             var result = await eth.CallAsync(
                 to: _overrideProbeAddress,
-                gas: null,
                 gasPrice: null,
                 value: UInt256.Zero,
                 data: ReadOnlyMemory<byte>.Empty,
@@ -543,7 +547,7 @@ public sealed partial class RpcCapabilityProbe : Transient
                     StateOverrides = stateOverrides,
                     BlockOverrides = blockOverrides,
                 },
-                cancellationToken);
+                cancellationToken: cancellationToken);
 
             if(!result.Success || result.Data.Length != 32)
             {

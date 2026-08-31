@@ -377,7 +377,6 @@ public sealed partial class RpcCapabilityProbe : Transient
             cts.CancelAfter(_tracingApiProbeTimeout);
             int result = await client.Debug.TraceCallJavaScriptAsync<object, int>(
                 _overrideProbeAddress,
-                gas: null,
                 gasPrice: null,
                 UInt256.Zero,
                 ReadOnlyMemory<byte>.Empty,
@@ -417,7 +416,6 @@ public sealed partial class RpcCapabilityProbe : Transient
                     cts.CancelAfter(_tracingApiProbeTimeout);
                     await client.Debug.TraceCallCallsAsync(
                         _overrideProbeAddress,
-                        gas: null,
                         gasPrice: null,
                         UInt256.Zero,
                         ReadOnlyMemory<byte>.Empty,

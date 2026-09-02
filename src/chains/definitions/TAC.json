@@ -10,7 +10,8 @@
     "Symbol": "TAC",
     "Decimals": 18,
     "PythFeedId": null,
-    "WrappedTokenAddress": "0xB63B9f0eb4A6E6f191529D71d4D88cc8900Df2C9"
+    "WrappedTokenAddress": "0xB63B9f0eb4A6E6f191529D71d4D88cc8900Df2C9",
+    "NativeTokenAddress": null
   },
   "FlashCallerAddress": "0x31ab65b220487210bbde88b5b8fa1f9aaa77ae76",
   "StablecoinAddresses": [

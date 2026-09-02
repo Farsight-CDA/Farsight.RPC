@@ -10,7 +10,8 @@
     "Symbol": "NIBI",
     "Decimals": 18,
     "PythFeedId": null,
-    "WrappedTokenAddress": "0x0CaCF669f8446BeCA826913a3c6B96aCD4b02a97"
+    "WrappedTokenAddress": "0x0CaCF669f8446BeCA826913a3c6B96aCD4b02a97",
+    "NativeTokenAddress": null
   },
   "FlashCallerAddress": "0x31ab65b220487210bbde88b5b8fa1f9aaa77ae76",
   "StablecoinAddresses": [

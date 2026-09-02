@@ -10,7 +10,8 @@
     "Symbol": "PLUME",
     "Decimals": 18,
     "PythFeedId": "0xded84d57dbf810bf86b97936f12e1f01b8d6d01c251a4d6eac592147988d475c",
-    "WrappedTokenAddress": "0xEa237441c92CAe6FC17Caaf9a7acB3f953be4bd1"
+    "WrappedTokenAddress": "0xEa237441c92CAe6FC17Caaf9a7acB3f953be4bd1",
+    "NativeTokenAddress": null
   },
   "FlashCallerAddress": "0x31ab65b220487210bbde88b5b8fa1f9aaa77ae76",
   "StablecoinAddresses": [

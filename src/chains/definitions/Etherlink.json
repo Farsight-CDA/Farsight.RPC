@@ -10,7 +10,8 @@
     "Symbol": "XTZ",
     "Decimals": 18,
     "PythFeedId": "0x0affd4b8ad136a21d79bc82450a325ee12ff55a235abc242666e423b8bcffd03",
-    "WrappedTokenAddress": "0xc9B53AB2679f573e480d01e0f49e2B5CFB7a3EAb"
+    "WrappedTokenAddress": "0xc9B53AB2679f573e480d01e0f49e2B5CFB7a3EAb",
+    "NativeTokenAddress": null
   },
   "FlashCallerAddress": "0x31ab65b220487210bbde88b5b8fa1f9aaa77ae76",
   "StablecoinAddresses": [

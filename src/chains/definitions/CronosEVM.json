@@ -10,7 +10,8 @@
     "Symbol": "CRO",
     "Decimals": 18,
     "PythFeedId": "0x23199c2bcb1303f667e733b9934db9eca5991e765b45f5ed18bc4b231415f2fe",
-    "WrappedTokenAddress": "0x5C7F8A570d578ED84E63fdFA7b1eE72dEae1AE23"
+    "WrappedTokenAddress": "0x5C7F8A570d578ED84E63fdFA7b1eE72dEae1AE23",
+    "NativeTokenAddress": null
   },
   "FlashCallerAddress": "0x31ab65b220487210bbde88b5b8fa1f9aaa77ae76",
   "StablecoinAddresses": [

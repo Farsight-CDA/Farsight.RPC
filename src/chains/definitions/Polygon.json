@@ -10,7 +10,8 @@
     "Symbol": "POL",
     "Decimals": 18,
     "PythFeedId": "0xffd11c5a1cfd42f80afb2df4d9f264c15f956d68153335374ec10722edd70472",
-    "WrappedTokenAddress": "0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270"
+    "WrappedTokenAddress": "0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270",
+    "NativeTokenAddress": null
   },
   "FlashCallerAddress": "0x31ab65b220487210bbde88b5b8fa1f9aaa77ae76",
   "StablecoinAddresses": [

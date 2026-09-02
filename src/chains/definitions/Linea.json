@@ -10,7 +10,8 @@
     "Symbol": "ETH",
     "Decimals": 18,
     "PythFeedId": "0xff61491a931112ddf1bd8147cd1b641375f79f5825126d665480874634fd0ace",
-    "WrappedTokenAddress": "0xe5d7c2a44ffddf6b295a15c148167daaaf5cf34f"
+    "WrappedTokenAddress": "0xe5d7c2a44ffddf6b295a15c148167daaaf5cf34f",
+    "NativeTokenAddress": null
   },
   "FlashCallerAddress": "0x31ab65b220487210bbde88b5b8fa1f9aaa77ae76",
   "StablecoinAddresses": [

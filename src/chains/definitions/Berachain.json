@@ -10,7 +10,8 @@
     "Symbol": "BERA",
     "Decimals": 18,
     "PythFeedId": "0x962088abcfdbdb6e30db2e340c8cf887d9efb311b1f2f17b155a63dbb6d40265",
-    "WrappedTokenAddress": "0x6969696969696969696969696969696969696969"
+    "WrappedTokenAddress": "0x6969696969696969696969696969696969696969",
+    "NativeTokenAddress": null
   },
   "FlashCallerAddress": "0x31ab65b220487210bbde88b5b8fa1f9aaa77ae76",
   "StablecoinAddresses": [

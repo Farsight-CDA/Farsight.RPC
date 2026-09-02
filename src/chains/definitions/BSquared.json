@@ -10,7 +10,8 @@
     "Symbol": "BTC",
     "Decimals": 18,
     "PythFeedId": "0xe62df6c8b4a85fe1a67db44dc12de5db330f7ac66b72dc658afedf0f4a415b43",
-    "WrappedTokenAddress": "0x4200000000000000000000000000000000000006"
+    "WrappedTokenAddress": "0x4200000000000000000000000000000000000006",
+    "NativeTokenAddress": null
   },
   "FlashCallerAddress": "0x31ab65b220487210bbde88b5b8fa1f9aaa77ae76",
   "StablecoinAddresses": [

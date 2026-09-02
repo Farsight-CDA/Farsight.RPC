@@ -10,7 +10,8 @@
     "Symbol": "MNT",
     "Decimals": 18,
     "PythFeedId": "0x4e3037c822d852d79af3ac80e35eb420ee3b870dca49f9344a38ef4773fb0585",
-    "WrappedTokenAddress": "0x78c1b0C915c4faa5fFfa6cabf0219DA63d7f4cb8"
+    "WrappedTokenAddress": "0x78c1b0C915c4faa5fFfa6cabf0219DA63d7f4cb8",
+    "NativeTokenAddress": null
   },
   "FlashCallerAddress": "0x31ab65b220487210bbde88b5b8fa1f9aaa77ae76",
   "StablecoinAddresses": [

@@ -10,7 +10,8 @@
     "Symbol": "xDAI",
     "Decimals": 18,
     "PythFeedId": "0xb0948a5e5313200c632b51bb5ca32f6de0d36e9950a942d19751e833f70dabfd",
-    "WrappedTokenAddress": "0xe91d153e0b41518a2ce8dd3d7944fa863463a97d"
+    "WrappedTokenAddress": "0xe91d153e0b41518a2ce8dd3d7944fa863463a97d",
+    "NativeTokenAddress": null
   },
   "FlashCallerAddress": "0x31ab65b220487210bbde88b5b8fa1f9aaa77ae76",
   "StablecoinAddresses": [

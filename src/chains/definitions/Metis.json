@@ -10,7 +10,8 @@
     "Symbol": "METIS",
     "Decimals": 18,
     "PythFeedId": "0xc22aa7943f65c9b1bb8d765bf4d5136590c48508f61912314f23bb730325b159",
-    "WrappedTokenAddress": "0x75cb093E4D61d2A2e65D8e0BBb01DE8d89b53481"
+    "WrappedTokenAddress": "0x75cb093E4D61d2A2e65D8e0BBb01DE8d89b53481",
+    "NativeTokenAddress": "0xDeadDeAddeAddEAddeadDEaDDEAdDeaDDeAD0000"
   },
   "FlashCallerAddress": "0x31ab65b220487210bbde88b5b8fa1f9aaa77ae76",
   "StablecoinAddresses": [

@@ -10,7 +10,8 @@
     "Symbol": "AVAX",
     "Decimals": 18,
     "PythFeedId": "0x93da3352f9f1d105fdfe4971cfa80e9dd777bfc5d0f683ebb6e1294b92137bb7",
-    "WrappedTokenAddress": "0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7"
+    "WrappedTokenAddress": "0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7",
+    "NativeTokenAddress": null
   },
   "FlashCallerAddress": "0x31ab65b220487210bbde88b5b8fa1f9aaa77ae76",
   "StablecoinAddresses": [

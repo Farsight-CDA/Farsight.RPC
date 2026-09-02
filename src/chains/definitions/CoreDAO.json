@@ -10,7 +10,8 @@
     "Symbol": "CORE",
     "Decimals": 18,
     "PythFeedId": "0x9b4503710cc8c53f75c30e6e4fda1a7064680ef2e0ee97acd2e3a7c37b3c830c",
-    "WrappedTokenAddress": "0x40375c92d9faf44d2f9db9bd9ba41a3317a2404f"
+    "WrappedTokenAddress": "0x40375c92d9faf44d2f9db9bd9ba41a3317a2404f",
+    "NativeTokenAddress": null
   },
   "FlashCallerAddress": "0x31ab65b220487210bbde88b5b8fa1f9aaa77ae76",
   "StablecoinAddresses": [

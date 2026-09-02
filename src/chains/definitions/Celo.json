@@ -10,7 +10,8 @@
     "Symbol": "CELO",
     "Decimals": 18,
     "PythFeedId": "0x7d669ddcdd23d9ef1fa9a9cc022ba055ec900e91c4cb960f3c20429d4447a411",
-    "WrappedTokenAddress": null
+    "WrappedTokenAddress": null,
+    "NativeTokenAddress": "0x471EcE3750Da237f93B8E339c536989b8978a438"
   },
   "FlashCallerAddress": "0x31ab65b220487210bbde88b5b8fa1f9aaa77ae76",
   "StablecoinAddresses": [

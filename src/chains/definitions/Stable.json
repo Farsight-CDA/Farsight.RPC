@@ -10,7 +10,8 @@
     "Symbol": "USDT0",
     "Decimals": 18,
     "PythFeedId": "0x2b89b9dc8fdf9f34709a5b106b472f0f39bb6ca9ce04b0fd7f2e971688e2e53b",
-    "WrappedTokenAddress": null
+    "WrappedTokenAddress": null,
+    "NativeTokenAddress": null
   },
   "FlashCallerAddress": "0x31ab65b220487210bbde88b5b8fa1f9aaa77ae76",
   "StablecoinAddresses": [

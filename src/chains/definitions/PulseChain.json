@@ -10,7 +10,8 @@
     "Symbol": "PLS",
     "Decimals": 18,
     "PythFeedId": null,
-    "WrappedTokenAddress": "0xA1077a294dDE1B09bB078844df40758a5D0f9a27"
+    "WrappedTokenAddress": "0xA1077a294dDE1B09bB078844df40758a5D0f9a27",
+    "NativeTokenAddress": null
   },
   "FlashCallerAddress": "0x31ab65b220487210bbde88b5b8fa1f9aaa77ae76",
   "StablecoinAddresses": [

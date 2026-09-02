@@ -10,7 +10,8 @@
     "Symbol": "MON",
     "Decimals": 18,
     "PythFeedId": "0x31491744e2dbf6df7fcf4ac0820d18a609b49076d45066d3568424e62f686cd1",
-    "WrappedTokenAddress": "0x3bd359C1119dA7Da1D913D1C4D2B7c461115433A"
+    "WrappedTokenAddress": "0x3bd359C1119dA7Da1D913D1C4D2B7c461115433A",
+    "NativeTokenAddress": null
   },
   "FlashCallerAddress": "0x31ab65b220487210bbde88b5b8fa1f9aaa77ae76",
   "StablecoinAddresses": [

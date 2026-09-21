@@ -4,7 +4,7 @@
   "CanReorg": true,
   "SupportsPriorityFees": true,
   "SupportsGasRefunds": true,
-  "BlockGasLimitM": 30,
+  "BlockGasLimitM": 80,
   "NativeCurrency": {
     "Name": "Ether",
     "Symbol": "ETH",

@@ -39,6 +39,7 @@ Each `ChainMetadata` record contains:
 |---|---|
 | Abstract | ETH |
 | Arbitrum | ETH |
+| Arc | USDC |
 | Avalanche C-Chain | AVAX |
 | BSquared | BTC |
 | Base | ETH |

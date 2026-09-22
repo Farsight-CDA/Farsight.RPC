@@ -1,0 +1,22 @@
+{
+  "Name": "Arc",
+  "ChainId": 5042,
+  "CanReorg": false,
+  "SupportsPriorityFees": true,
+  "SupportsGasRefunds": true,
+  "BlockGasLimitM": 30,
+  "NativeCurrency": {
+    "Name": "USD Coin",
+    "Symbol": "USDC",
+    "Decimals": 18,
+    "PythFeedId": "0xeaa020c61cc479712813461ce153894a96a6c00b21ed0cfc2798d1f9a9e9c94a",
+    "WrappedTokenAddress": null,
+    "NativeTokenAddress": "0x3600000000000000000000000000000000000000"
+  },
+  "FlashCallerAddress": "0x31ab65b220487210bbde88b5b8fa1f9aaa77ae76",
+  "StablecoinAddresses": [
+    "0x3600000000000000000000000000000000000000"
+  ],
+  "Api3": null,
+  "Pyth": null
+}

@@ -37,7 +37,6 @@ Each `ChainMetadata` record contains:
 
 | Chain | Native Currency |
 |---|---|
-| Abstract | ETH |
 | Arbitrum | ETH |
 | Arc | USDC |
 | Avalanche C-Chain | AVAX |

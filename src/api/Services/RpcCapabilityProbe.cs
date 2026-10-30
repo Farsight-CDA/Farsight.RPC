@@ -506,7 +506,7 @@ public sealed partial class RpcCapabilityProbe : Transient
                 : new RpcCapabilityError(RpcCapability.StateOverrides, stateOverrideError));
         }
 
-        const ulong BLOCK_OVERRIDE_TIMESTAMP = 4_102_444_800;
+        const uint BLOCK_OVERRIDE_TIMESTAMP = 4_102_444_800;
 
         (bool blockOverrides, string? blockOverrideError) = await ExecuteOverrideProbeAsync(
                 eth,
@@ -515,9 +515,54 @@ public sealed partial class RpcCapabilityProbe : Transient
                 BLOCK_OVERRIDE_TIMESTAMP,
                 cancellationToken);
 
+        if(blockOverrides)
+        {
+            (blockOverrides, blockOverrideError) = await ExecuteBlockOverrideGasEstimateProbeAsync(
+                eth,
+                BLOCK_OVERRIDE_TIMESTAMP,
+                cancellationToken);
+        }
+
         return (true, blockOverrides, blockOverrideError is null
             ? null
             : new RpcCapabilityError(RpcCapability.BlockOverrides, blockOverrideError));
+    }
+
+    private static async Task<(bool Supported, string? Error)> ExecuteBlockOverrideGasEstimateProbeAsync(
+        IEthRpcModule eth,
+        uint timestamp,
+        CancellationToken cancellationToken
+    )
+    {
+        try
+        {
+            // Stop only if TIMESTAMP matches the override; otherwise revert.
+            var stateOverrides = new Dictionary<Address, AccountOverride>
+            {
+                [_overrideProbeAddress] = new AccountOverride(
+                    code: Convert.FromHexString($"4263{timestamp:X8}14600F5760006000FD5B00")),
+            };
+
+            ulong gas = await eth.EstimateGasAsync(
+                to: _overrideProbeAddress,
+                value: UInt256.Zero,
+                data: ReadOnlyMemory<byte>.Empty,
+                options: new CallOptions
+                {
+                    TargetHeight = TargetHeight.Latest,
+                    StateOverrides = stateOverrides,
+                    BlockOverrides = new BlockOverride(Time: timestamp),
+                },
+                cancellationToken: cancellationToken);
+
+            return gas > 21_000
+                ? (true, null)
+                : (false, "eth_estimateGas did not execute the block override probe code.");
+        }
+        catch(Exception ex) when(ex is RPCException or RPCTransportException)
+        {
+            return (false, $"eth_estimateGas block override probe failed: {ex.Message}");
+        }
     }
 
     private static async Task<(bool Supported, string? Error)> ExecuteOverrideProbeAsync(

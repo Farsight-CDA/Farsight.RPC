@@ -7,7 +7,7 @@ builder.AddApplication<Startup>();
 builder.Host.ConfigureHostOptions(x =>
 {
     x.BackgroundServiceExceptionBehavior = BackgroundServiceExceptionBehavior.StopHost;
-    x.StartupTimeout = TimeSpan.FromSeconds(30);
+    x.StartupTimeout = TimeSpan.FromMinutes(5);
     x.ShutdownTimeout = TimeSpan.FromSeconds(5);
 });
 

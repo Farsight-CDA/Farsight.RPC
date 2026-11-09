@@ -6,8 +6,6 @@
 aspire-output/
 postgres-data/
 
-appsettings.*.json
-
 # User-specific files
 *.rsuser
 *.suo

@@ -6,6 +6,7 @@
 		<ImplicitUsings>enable</ImplicitUsings>
 		<RootNamespace>Farsight.Rpc.Api</RootNamespace>
 		<AssemblyName>Farsight.Rpc.Api</AssemblyName>
+		<UserSecretsId>Farsight.Rpc.Api</UserSecretsId>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">

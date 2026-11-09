@@ -18,6 +18,16 @@ namespace Farsight.Rpc.Api;
 
 public static class App
 {
+    public static void ConfigureConfiguration(WebApplicationBuilder builder)
+    {
+        if(builder.Environment.IsDevelopment())
+        {
+            _ = builder.Configuration.AddUserSecrets(typeof(App).Assembly, optional: true);
+        }
+
+        _ = builder.Configuration.AddKeyPerFile("/run/secrets", optional: true);
+    }
+
     public static void ConfigureHosting(WebApplicationBuilder builder)
     {
         var bindingConfiguration = builder.Configuration
@@ -48,7 +58,7 @@ public static class App
         builder.Services.AddHttpClient();
 
         builder.Services.AddDbContext<AppDbContext>((provider, options) =>
-            options.UseNpgsql(provider.GetRequiredService<DatabaseConfiguration>().PostgresConnectionString));
+            options.UseNpgsql(provider.GetRequiredService<DatabaseConfiguration>().ConnectionString));
 
         builder.Services.Configure<ForwardedHeadersOptions>(options =>
         {

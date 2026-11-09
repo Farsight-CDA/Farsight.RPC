@@ -4,9 +4,9 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Farsight.Rpc.Api.Configuration;
 
-[ConfigOption(SectionName = "Database")]
+[ConfigOption(SectionName = "Db")]
 public sealed class DatabaseConfiguration
 {
     [Required]
-    public required string PostgresConnectionString { get; init; }
+    public required string ConnectionString { get; init; }
 }

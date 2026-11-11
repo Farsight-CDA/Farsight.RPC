@@ -81,7 +81,7 @@ public sealed class EvmRpcResiliencyMiddleware : IRpcMiddleware
                 {
                     RpcCallResult<TResult>.Transient => true,
                     RpcCallResult<TResult>.SoftOverwhelm => softOverwhelmedRetries < _options.MaxSoftOverwhelmedRetries,
-                    _ => false
+                    RpcCallResult<TResult>.Success or RpcCallResult<TResult>.HardOverwhelm or null => false
                 }),
                 OnRetry = async args =>
                 {
@@ -89,7 +89,7 @@ public sealed class EvmRpcResiliencyMiddleware : IRpcMiddleware
                     {
                         RpcCallResult<TResult>.Transient transient => (transient.Reason, args.RetryDelay),
                         RpcCallResult<TResult>.SoftOverwhelm overwhelmed => (overwhelmed.Reason, args.RetryDelay * SOFT_OVERWHELMED_DELAY_MULTIPLIER),
-                        _ => throw new UnreachableException()
+                        RpcCallResult<TResult>.Success or RpcCallResult<TResult>.HardOverwhelm or null => throw new UnreachableException()
                     };
 
                     _logger?.LogDebug("Retrying RPC request after {Duration}; Reason={Reason}", retryDelay, reason);
@@ -116,26 +116,20 @@ public sealed class EvmRpcResiliencyMiddleware : IRpcMiddleware
             cancellationToken
         );
 
-        if(outcome is RpcCallResult<TResult>.HardOverwhelm or RpcCallResult<TResult>.SoftOverwhelm)
-        {
-            string reason = outcome switch
-            {
-                RpcCallResult<TResult>.HardOverwhelm hardOverwhelm => hardOverwhelm.Reason,
-                RpcCallResult<TResult>.SoftOverwhelm softOverwhelm => lastOverwhelmedReason ?? softOverwhelm.Reason,
-                _ => throw new UnreachableException()
-            };
-
-            _logger?.LogDebug("RPC endpoint is overwhelmed; Reason={Reason}", reason);
-            _overwhelmedCounter?.Add(1, _overwhelmedHardTags);
-            throw new RpcOverwhelmedException(reason);
-        }
-
         return outcome switch
         {
             RpcCallResult<TResult>.Success success => success.Result,
             RpcCallResult<TResult>.Transient transient => throw new RpcRetriesExhaustedException(transient.Reason),
-            _ => throw new UnreachableException()
+            RpcCallResult<TResult>.SoftOverwhelm softOverwhelm => throw CreateOverwhelmedException(lastOverwhelmedReason ?? softOverwhelm.Reason),
+            RpcCallResult<TResult>.HardOverwhelm hardOverwhelm => throw CreateOverwhelmedException(hardOverwhelm.Reason)
         };
+    }
+
+    private RpcOverwhelmedException CreateOverwhelmedException(string reason)
+    {
+        _logger?.LogDebug("RPC endpoint is overwhelmed; Reason={Reason}", reason);
+        _overwhelmedCounter?.Add(1, _overwhelmedHardTags);
+        return new RpcOverwhelmedException(reason);
     }
 
     private async Task<RpcCallResult<TResult>> ExecuteAttemptAsync<TResult>(Func<CancellationToken, Task<RpcResult<TResult>>> onNext, CancellationToken cancellationToken)
@@ -223,7 +217,7 @@ public sealed class EvmRpcResiliencyMiddleware : IRpcMiddleware
     private static bool ContainsAny(string value, SearchValues<string>? searchValues)
         => searchValues is not null && value.AsSpan().ContainsAny(searchValues);
 
-    private abstract record RpcCallResult<TResult>
+    private closed record RpcCallResult<TResult>
     {
         public sealed record Success(RpcResult<TResult> Result) : RpcCallResult<TResult>;
         public sealed record Transient(string Reason) : RpcCallResult<TResult>;

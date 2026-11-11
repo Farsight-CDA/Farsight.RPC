@@ -9,7 +9,7 @@ public partial interface IFarsightRpcClient
     /// <summary>
     /// Represents the possible outcomes of an RPC lookup request.
     /// </summary>
-    public abstract record GetRpcsResult
+    public closed record GetRpcsResult
     {
         /// <summary>
         /// Represents a successful RPC lookup.
@@ -39,7 +39,7 @@ public partial interface IFarsightRpcClient
     /// <summary>
     /// Represents the possible outcomes of a wallet information request.
     /// </summary>
-    public abstract record GetWalletInfoResult
+    public closed record GetWalletInfoResult
     {
         /// <summary>
         /// Represents a successful wallet information request.
@@ -59,7 +59,7 @@ public partial interface IFarsightRpcClient
     /// <summary>
     /// Represents the possible outcomes of a wallet signing request.
     /// </summary>
-    public abstract record SignResult
+    public closed record SignResult
     {
         /// <summary>
         /// Represents a successful signing request.

@@ -7,6 +7,7 @@ using Fido2NetLib;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json.Serialization;
 
 namespace Farsight.Rpc.Api.Endpoints.Auth.Login;
 
@@ -22,14 +23,27 @@ public sealed class POST(
         string Password
     );
 
-    public new sealed record Response(
-        string? Token,
-        string Username,
-        DateTimeOffset? ExpiresUtc,
-        bool RequiresTwoFactor,
-        Guid? TwoFactorChallengeId,
-        AssertionOptions? SecurityKeyOptions
-    );
+    [JsonUnion(TypeClassifier = typeof(JsonUnionTypeStructuralClassifier))]
+    public new readonly union Response(Response.Authenticated, Response.SecurityKeyRequired)
+    {
+        public sealed record Authenticated(
+            string Token,
+            string Username,
+            DateTimeOffset ExpiresUtc
+        )
+        {
+            public bool RequiresTwoFactor => false;
+        }
+
+        public sealed record SecurityKeyRequired(
+            string Username,
+            Guid TwoFactorChallengeId,
+            AssertionOptions SecurityKeyOptions
+        )
+        {
+            public bool RequiresTwoFactor => true;
+        }
+    }
 
     public override void Configure()
     {
@@ -70,12 +84,12 @@ public sealed class POST(
 
             dbContext.SecurityKeyLoginChallenges.Add(challenge);
             await dbContext.SaveChangesAsync(ct);
-            await Send.OkAsync(new Response(null, req.Username, null, true, challenge.Id, options), ct);
+            await Send.OkAsync(new Response.SecurityKeyRequired(req.Username, challenge.Id, options), ct);
             return;
         }
 
         var accessToken = tokenService.CreateAccessToken(req.Username);
-        await Send.OkAsync(new Response(accessToken.Token, req.Username, accessToken.ExpiresUtc, false, null, null), ct);
+        await Send.OkAsync(new Response.Authenticated(accessToken.Token, req.Username, accessToken.ExpiresUtc), ct);
     }
 
     private static bool IsValidPassword(string password, string passwordHash)

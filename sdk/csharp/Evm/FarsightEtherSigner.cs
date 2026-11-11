@@ -35,7 +35,6 @@ public sealed class FarsightEtherSigner : IEtherSigner
         {
             IFarsightRpcClient.GetWalletInfoResult.Success success => success.Address,
             IFarsightRpcClient.GetWalletInfoResult.InvalidApiKey => throw new InvalidOperationException("The wallet API key was rejected."),
-            _ => throw new InvalidOperationException("Unknown wallet information result."),
         };
 
         try
@@ -62,7 +61,6 @@ public sealed class FarsightEtherSigner : IEtherSigner
             IFarsightRpcClient.SignResult.Success success => success.Signature,
             IFarsightRpcClient.SignResult.InvalidApiKey => throw new InvalidOperationException("The wallet API key was rejected."),
             IFarsightRpcClient.SignResult.InvalidData => throw new InvalidOperationException("The wallet API key is not associated with a compatible secp256k1 private key."),
-            _ => throw new InvalidOperationException("Unknown wallet signing result."),
         };
 
         if(signature.Length != 65)

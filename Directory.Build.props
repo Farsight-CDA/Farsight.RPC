@@ -2,6 +2,7 @@
 	<Import Project="version.props" />
 
 	<PropertyGroup>
+		<Features>runtime-async=on</Features>
 		<InvariantGlobalization>true</InvariantGlobalization>
 		<BaseIntermediateOutputPath>obj/$(OS)/</BaseIntermediateOutputPath>
 		<BaseOutputPath>bin/$(OS)/</BaseOutputPath>

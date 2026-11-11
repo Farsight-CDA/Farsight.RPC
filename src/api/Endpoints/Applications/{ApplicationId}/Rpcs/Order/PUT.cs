@@ -91,7 +91,7 @@ public sealed class PUT(AppDbContext dbContext) : Endpoint<PUT.Request>
             ThrowError("RPCs changed while their order was being updated.", 409);
         }
 
-        int updatedRows = await dbContext.Database.ExecuteSqlInterpolatedAsync($"""
+        int updatedRows = await dbContext.Database.ExecuteSqlAsync($"""
             UPDATE "Rpcs" AS rpc
             SET "Order" = ordering."Position"::integer - 1
             FROM unnest({req.RpcIds}) WITH ORDINALITY AS ordering("Id", "Position")

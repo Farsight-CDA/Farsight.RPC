@@ -27,13 +27,13 @@ internal sealed class RpcRuleEFConfiguration : IEntityTypeConfiguration<RpcRule>
         entity.Property(x => x.Id);
         entity.Property(x => x.ApplicationId);
         entity.Property(x => x.EnvironmentId);
-        entity.Property(x => x.Chains)
+        entity.PrimitiveCollection(x => x.Chains)
             .HasColumnType("text[]")
             .Metadata.SetValueComparer(_chainsComparer);
-        entity.Property(x => x.AllOf)
+        entity.PrimitiveCollection(x => x.AllOf)
             .HasColumnType("integer[]")
             .Metadata.SetValueComparer(_capabilitiesComparer);
-        entity.Property(x => x.AnyOf)
+        entity.PrimitiveCollection(x => x.AnyOf)
             .HasColumnType("integer[]")
             .Metadata.SetValueComparer(_capabilitiesComparer);
         entity.Property(x => x.Severity);

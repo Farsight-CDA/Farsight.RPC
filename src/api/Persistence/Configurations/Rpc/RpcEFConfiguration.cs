@@ -32,7 +32,7 @@ internal sealed class RpcEFConfiguration : IEntityTypeConfiguration<RpcEndpoint>
 
         entity.Property(x => x.ApplicationId);
         entity.Property(x => x.ProviderId);
-        entity.Property(x => x.Capabilities)
+        entity.PrimitiveCollection(x => x.Capabilities)
             .HasColumnType("integer[]")
             .HasDefaultValue(Array.Empty<RpcCapability>())
             .Metadata.SetValueComparer(_capabilitiesComparer);

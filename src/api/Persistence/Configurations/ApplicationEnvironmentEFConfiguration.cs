@@ -23,7 +23,7 @@ internal sealed class ApplicationEnvironmentEFConfiguration : IEntityTypeConfigu
         entity.Property(x => x.Name)
             .UseCollation(AppDbContext.NAME_CASE_INSENSITIVE_COLLATION);
 
-        entity.Property(x => x.Chains)
+        entity.PrimitiveCollection(x => x.Chains)
             .HasColumnType("text[]")
             .Metadata.SetValueComparer(_chainsComparer);
 

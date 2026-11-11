@@ -24,7 +24,7 @@ internal sealed class RpcErrorGroupEFConfiguration : IEntityTypeConfiguration<Rp
         entity.Property(x => x.Action)
             .HasConversion<string>();
 
-        entity.Property(x => x.Errors)
+        entity.PrimitiveCollection(x => x.Errors)
             .HasColumnType("text[]")
             .Metadata.SetValueComparer(_errorsComparer);
 

@@ -16,8 +16,8 @@ public sealed partial class SecurityKeyService : Singleton
     private Fido2 CreateFido2()
         => new(new Fido2Configuration
         {
-            ServerDomain = _securityKeyConfiguration.ServerDomain,
-            ServerName = _securityKeyConfiguration.ServerName,
+            RPID = _securityKeyConfiguration.ServerDomain,
+            RPName = _securityKeyConfiguration.ServerName,
             Origins = _securityKeyConfiguration.Origins,
             BackupEligibleCredentialPolicy = Fido2Configuration.CredentialBackupPolicy.Disallowed,
             BackedUpCredentialPolicy = Fido2Configuration.CredentialBackupPolicy.Disallowed,

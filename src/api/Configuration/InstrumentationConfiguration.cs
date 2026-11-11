@@ -1,4 +1,5 @@
 ﻿using Farsight.Common;
+using System.ComponentModel.DataAnnotations;
 
 namespace Farsight.Rpc.Api.Configuration;
 
@@ -6,7 +7,8 @@ namespace Farsight.Rpc.Api.Configuration;
 public class InstrumentationConfiguration
 {
     public bool EnableMetrics { get; init; } = true;
-    public string MetricsListenUrl { get; init; } = "http://*:8888";
+    [Range(1, 65535)]
+    public int MetricsPort { get; init; } = 8888;
 
     public bool EnableLogs { get; init; } = false;
     public string? LogsOTLPUrl { get; init; }

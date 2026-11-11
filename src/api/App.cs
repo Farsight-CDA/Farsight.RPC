@@ -84,7 +84,16 @@ public static class App
                     .AddRuntimeInstrumentation()
                     .AddProcessInstrumentation()
                     .AddAspNetCoreInstrumentation()
-                    .AddPrometheusHttpListener(x => x.UriPrefixes = [instrumentationOptions.MetricsListenUrl])
+                    .AddPrometheusHttpListener(options =>
+                    {
+                        options.Port = instrumentationOptions.MetricsPort;
+                        // The exporter's UriBuilder rejects wildcard hosts.
+                        options.ConfigureHttpListener = static (exporterOptions, listener) =>
+                        {
+                            listener.Prefixes.Clear();
+                            listener.Prefixes.Add($"http://*:{exporterOptions.Port}/metrics/");
+                        };
+                    })
                 );
         }
 #endif

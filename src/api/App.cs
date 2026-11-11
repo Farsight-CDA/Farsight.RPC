@@ -85,10 +85,10 @@ public static class App
                     .AddAspNetCoreInstrumentation()
                     .AddPrometheusHttpListener(options =>
                         // The exporter's UriBuilder rejects wildcard hosts.
-                        options.ConfigureHttpListener = static (exporterOptions, listener) =>
+                        options.ConfigureHttpListener = (_, listener) =>
                         {
                             listener.Prefixes.Clear();
-                            listener.Prefixes.Add($"http://*:{exporterOptions.Port}/metrics/");
+                            listener.Prefixes.Add($"{instrumentationOptions.MetricsURL.TrimEnd('/')}/");
                         })
                 );
         }

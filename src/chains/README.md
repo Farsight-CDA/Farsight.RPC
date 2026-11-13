@@ -76,7 +76,6 @@ Each `ChainMetadata` record contains:
 | Sei | SEI |
 | Sonic | S |
 | Soneium | ETH |
-| Swellchain | ETH |
 | TAC | TAC |
 | Tempo | USD |
 | Unichain | ETH |

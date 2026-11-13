@@ -60,7 +60,6 @@ Each `ChainMetadata` record contains:
 | Kaia | KAIA |
 | Katana | ETH |
 | Linea | ETH |
-| Lisk | ETH |
 | Mantle | MNT |
 | MegaETH | ETH |
 | Monad | MON |

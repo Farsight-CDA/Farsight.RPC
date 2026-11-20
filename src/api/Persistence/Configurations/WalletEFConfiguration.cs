@@ -14,7 +14,7 @@ internal sealed class WalletEFConfiguration : IEntityTypeConfiguration<Wallet>
         entity.Property(x => x.Id);
         entity.Property(x => x.Name)
             .UseCollation(AppDbContext.NAME_CASE_INSENSITIVE_COLLATION);
-        entity.Property(x => x.Mnemonic);
+        entity.Property(x => x.EncryptedMnemonic);
         entity.Property(x => x.Color)
             .HasMaxLength(7)
             .HasDefaultValue("#6B7280");

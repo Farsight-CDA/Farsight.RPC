@@ -13,12 +13,14 @@ namespace Farsight.Rpc.Api.Persistence.Migrations
     [DbContext(typeof(AppDbContext))]
     partial class AppDbContextModelSnapshot : ModelSnapshot
     {
+        public override string LastMigrationId => "20261120164230_EncryptWalletMnemonics";
+
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
                 .HasAnnotation("Npgsql:CollationDefinition:name_case_insensitive", "und-u-ks-level2,und-u-ks-level2,icu,False")
-                .HasAnnotation("ProductVersion", "10.0.10")
+                .HasAnnotation("ProductVersion", "11.0.0-rc.3.26522.148")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -343,9 +345,9 @@ namespace Farsight.Rpc.Api.Persistence.Migrations
                         .HasColumnType("character varying(7)")
                         .HasDefaultValue("#6B7280");
 
-                    b.Property<string>("Mnemonic")
+                    b.Property<byte[]>("EncryptedMnemonic")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasColumnType("bytea");
 
                     b.Property<string>("Name")
                         .IsRequired()

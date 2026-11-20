@@ -1,13 +1,13 @@
 using Farsight.Rpc.Api.Auth;
-using Farsight.Rpc.Api.Cryptography;
 using Farsight.Rpc.Api.Persistence;
+using Farsight.Rpc.Api.Services;
 using FastEndpoints;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Cryptography;
 
 namespace Farsight.Rpc.Api.Endpoints.Wallets.PrivateKeys.Key;
 
-public sealed class GET(AppDbContext dbContext) : Endpoint<GET.Request, GET.Response>
+public sealed class GET(AppDbContext dbContext, WalletKeyDerivation keyDerivation) : Endpoint<GET.Request, GET.Response>
 {
     public sealed record Request(
         [property: RouteParam] Guid WalletId,
@@ -33,7 +33,7 @@ public sealed class GET(AppDbContext dbContext) : Endpoint<GET.Request, GET.Resp
             {
                 privateKey.Curve,
                 privateKey.DerivationPath,
-                privateKey.Wallet!.Mnemonic,
+                privateKey.Wallet!.EncryptedMnemonic,
             })
             .SingleOrDefaultAsync(ct);
 
@@ -42,9 +42,9 @@ public sealed class GET(AppDbContext dbContext) : Endpoint<GET.Request, GET.Resp
             ThrowError("Private key not found.", StatusCodes.Status404NotFound);
         }
 
-        byte[] key = WalletKeyDerivation.DerivePrivateKey(
+        byte[] key = keyDerivation.DerivePrivateKey(
             privateKey.Curve,
-            privateKey.Mnemonic,
+            privateKey.EncryptedMnemonic,
             privateKey.DerivationPath
         );
 

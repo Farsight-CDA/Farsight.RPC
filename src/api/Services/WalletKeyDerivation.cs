@@ -1,3 +1,4 @@
+using Farsight.Common;
 using Farsight.Rpc.Api.Persistence.Entities;
 using Keysmith.Net.BIP;
 using Keysmith.Net.EC;
@@ -5,13 +6,20 @@ using Keysmith.Net.ED;
 using Keysmith.Net.SLIP;
 using System.Security.Cryptography;
 
-namespace Farsight.Rpc.Api.Cryptography;
+namespace Farsight.Rpc.Api.Services;
 
-internal static class WalletKeyDerivation
+public sealed partial class WalletKeyDerivation : Singleton
 {
-    public static byte[] DerivePublicKey(WalletCurve curve, string mnemonic, string derivationPath)
+    [Inject]
+    private readonly WalletMnemonicEncryption _encryption;
+
+    public byte[] DerivePublicKey(
+        WalletCurve curve,
+        ReadOnlySpan<byte> encryptedMnemonic,
+        string derivationPath
+    )
     {
-        byte[] privateKey = DerivePrivateKey(curve, mnemonic, derivationPath);
+        byte[] privateKey = DerivePrivateKey(curve, encryptedMnemonic, derivationPath);
 
         try
         {
@@ -44,11 +52,13 @@ internal static class WalletKeyDerivation
         }
     }
 
-    public static byte[] DerivePrivateKey(
+    public byte[] DerivePrivateKey(
         WalletCurve curve,
-        string mnemonic,
-        string derivationPath)
+        ReadOnlySpan<byte> encryptedMnemonic,
+        string derivationPath
+    )
     {
+        string mnemonic = _encryption.Decrypt(encryptedMnemonic);
         byte[] privateKey = new byte[32];
         Span<byte> seed = stackalloc byte[64];
         Span<byte> chainCode = stackalloc byte[32];

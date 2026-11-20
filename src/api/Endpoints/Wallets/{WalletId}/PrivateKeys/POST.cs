@@ -2,6 +2,7 @@ using Farsight.Rpc.Api.Auth;
 using Farsight.Rpc.Api.Cryptography;
 using Farsight.Rpc.Api.Persistence;
 using Farsight.Rpc.Api.Persistence.Entities;
+using Farsight.Rpc.Api.Services;
 using FastEndpoints;
 using FluentValidation;
 using Keysmith.Net.BIP;
@@ -11,7 +12,7 @@ using Npgsql;
 
 namespace Farsight.Rpc.Api.Endpoints.Wallets.PrivateKeys;
 
-public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request, POST.Response>
+public sealed class POST(AppDbContext dbContext, WalletKeyDerivation keyDerivation) : Endpoint<POST.Request, POST.Response>
 {
     public sealed record Request(
         [property: RouteParam] Guid WalletId,
@@ -83,12 +84,12 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request, POST.R
 
     public override async Task HandleAsync(Request req, CancellationToken ct)
     {
-        string? mnemonic = await dbContext.Wallets
+        byte[]? encryptedMnemonic = await dbContext.Wallets
             .Where(wallet => wallet.Id == req.WalletId)
-            .Select(wallet => wallet.Mnemonic)
+            .Select(wallet => wallet.EncryptedMnemonic)
             .SingleOrDefaultAsync(ct);
 
-        if(mnemonic is null)
+        if(encryptedMnemonic is null)
         {
             ThrowError("Wallet not found.", StatusCodes.Status404NotFound);
         }
@@ -104,7 +105,7 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request, POST.R
         }
 
         string derivationPath = BIP44.MakePath(BIP44.Parse(req.DerivationPath));
-        byte[] publicKey = WalletKeyDerivation.DerivePublicKey(req.Curve, mnemonic, derivationPath);
+        byte[] publicKey = keyDerivation.DerivePublicKey(req.Curve, encryptedMnemonic, derivationPath);
 
         var privateKey = new WalletPrivateKey
         {

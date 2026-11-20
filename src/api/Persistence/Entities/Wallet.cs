@@ -4,7 +4,7 @@ public sealed class Wallet
 {
     public required Guid Id { get; init; }
     public required string Name { get; set; }
-    public required string Mnemonic { get; init; }
+    public required byte[] EncryptedMnemonic { get; init; }
     public string Color { get; set; } = "#6B7280";
 
     //Navigation Property

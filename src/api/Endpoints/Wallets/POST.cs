@@ -2,6 +2,7 @@ using Farsight.Rpc.Api.Auth;
 using Farsight.Rpc.Api.Common.Extensions;
 using Farsight.Rpc.Api.Persistence;
 using Farsight.Rpc.Api.Persistence.Entities;
+using Farsight.Rpc.Api.Services;
 using FastEndpoints;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
@@ -9,7 +10,7 @@ using Npgsql;
 
 namespace Farsight.Rpc.Api.Endpoints.Wallets;
 
-public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request, POST.Response>
+public sealed class POST(AppDbContext dbContext, WalletMnemonicEncryption encryption) : Endpoint<POST.Request, POST.Response>
 {
     public sealed record Request(
         string Name,
@@ -51,7 +52,7 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request, POST.R
         {
             Id = Guid.NewGuid(),
             Name = req.Name,
-            Mnemonic = req.Mnemonic,
+            EncryptedMnemonic = encryption.Encrypt(req.Mnemonic),
             Color = req.Color,
         };
 

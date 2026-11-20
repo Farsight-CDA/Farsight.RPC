@@ -1,6 +1,6 @@
-using Farsight.Rpc.Api.Cryptography;
 using Farsight.Rpc.Api.Persistence;
 using Farsight.Rpc.Api.Persistence.Entities;
+using Farsight.Rpc.Api.Services;
 using Farsight.Rpc.Types;
 using FastEndpoints;
 using FluentValidation;
@@ -11,7 +11,7 @@ using System.Security.Cryptography;
 
 namespace Farsight.Rpc.Api.Endpoints.Wallets.Sign;
 
-public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request, WalletSignResponseDto>
+public sealed class POST(AppDbContext dbContext, WalletKeyDerivation keyDerivation) : Endpoint<POST.Request, WalletSignResponseDto>
 {
     public sealed record Request(
         [property: FromHeader(ApiKeyHeaders.API_KEY)] string ApiKey,
@@ -62,7 +62,7 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request, Wallet
             ThrowError("Secp256k1 signing requires exactly 32 bytes of data.", StatusCodes.Status400BadRequest);
         }
 
-        byte[] signature = SignData(privateKey, wallet.Mnemonic, data);
+        byte[] signature = SignData(privateKey, wallet.EncryptedMnemonic, data);
 
         apiKey.LastUsedAt = DateTimeOffset.UtcNow;
         await dbContext.SaveChangesAsync(ct);
@@ -70,11 +70,11 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request, Wallet
         await Send.OkAsync(new WalletSignResponseDto(signature), ct);
     }
 
-    private static byte[] SignData(WalletPrivateKey privateKey, string mnemonic, ReadOnlySpan<byte> data)
+    private byte[] SignData(WalletPrivateKey privateKey, ReadOnlySpan<byte> encryptedMnemonic, ReadOnlySpan<byte> data)
     {
-        byte[] privateKeyBytes = WalletKeyDerivation.DerivePrivateKey(
+        byte[] privateKeyBytes = keyDerivation.DerivePrivateKey(
             privateKey.Curve,
-            mnemonic,
+            encryptedMnemonic,
             privateKey.DerivationPath
         );
 

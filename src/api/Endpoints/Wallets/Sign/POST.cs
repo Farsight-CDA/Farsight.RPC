@@ -8,6 +8,7 @@ using Keysmith.Net.EC;
 using Keysmith.Net.ED;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Cryptography;
+using System.Text;
 
 namespace Farsight.Rpc.Api.Endpoints.Wallets.Sign;
 
@@ -41,10 +42,11 @@ public sealed class POST(AppDbContext dbContext, WalletKeyDerivation keyDerivati
 
     public override async Task HandleAsync(Request req, CancellationToken ct)
     {
+        byte[] keyHash = SHA256.HashData(Encoding.UTF8.GetBytes(req.ApiKey));
         var apiKey = await dbContext.WalletApiKeys
             .Include(apiKey => apiKey.WalletPrivateKey)
                 .ThenInclude(privateKey => privateKey!.Wallet)
-            .SingleOrDefaultAsync(apiKey => apiKey.Key == req.ApiKey, ct);
+            .SingleOrDefaultAsync(apiKey => apiKey.KeyHash == keyHash, ct);
 
         if(apiKey is null)
         {

@@ -5,7 +5,7 @@ public sealed class WalletApiKey
     public required Guid Id { get; init; }
     public required Guid WalletPrivateKeyId { get; init; }
     public required string Name { get; set; }
-    public required string Key { get; init; }
+    public required byte[] KeyHash { get; init; }
     public DateTimeOffset? LastUsedAt { get; set; }
 
     //Navigation Property

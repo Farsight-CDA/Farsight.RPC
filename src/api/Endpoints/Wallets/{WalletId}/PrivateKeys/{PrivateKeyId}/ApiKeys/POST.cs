@@ -7,6 +7,7 @@ using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using System.Security.Cryptography;
+using System.Text;
 
 namespace Farsight.Rpc.Api.Endpoints.Wallets.PrivateKeys.ApiKeys;
 
@@ -47,12 +48,13 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request, POST.R
             ThrowError("Private key not found.", StatusCodes.Status404NotFound);
         }
 
+        string key = Convert.ToHexStringLower(RandomNumberGenerator.GetBytes(32));
         var apiKey = new WalletApiKey
         {
             Id = Guid.NewGuid(),
             WalletPrivateKeyId = req.PrivateKeyId,
             Name = req.Name,
-            Key = Convert.ToHexString(RandomNumberGenerator.GetBytes(32)).ToLowerInvariant(),
+            KeyHash = SHA256.HashData(Encoding.UTF8.GetBytes(key)),
         };
 
         dbContext.WalletApiKeys.Add(apiKey);
@@ -65,6 +67,7 @@ public sealed class POST(AppDbContext dbContext) : Endpoint<POST.Request, POST.R
             ThrowError("An API key with this value already exists.", StatusCodes.Status409Conflict);
         }
 
-        await Send.OkAsync(new Response(apiKey.Id, apiKey.Name, apiKey.Key, apiKey.LastUsedAt), ct);
+        HttpContext.Response.Headers.CacheControl = "no-store";
+        await Send.OkAsync(new Response(apiKey.Id, apiKey.Name, key, apiKey.LastUsedAt), ct);
     }
 }

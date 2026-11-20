@@ -13,7 +13,7 @@ namespace Farsight.Rpc.Api.Persistence.Migrations
     [DbContext(typeof(AppDbContext))]
     partial class AppDbContextModelSnapshot : ModelSnapshot
     {
-        public override string LastMigrationId => "20261120164230_EncryptWalletMnemonics";
+        public override string LastMigrationId => "20261120172416_HashWalletApiKeys";
 
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
@@ -368,9 +368,9 @@ namespace Farsight.Rpc.Api.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<string>("Key")
+                    b.Property<byte[]>("KeyHash")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasColumnType("bytea");
 
                     b.Property<DateTimeOffset?>("LastUsedAt")
                         .HasColumnType("timestamp with time zone");
@@ -384,7 +384,7 @@ namespace Farsight.Rpc.Api.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Key")
+                    b.HasIndex("KeyHash")
                         .IsUnique();
 
                     b.HasIndex("WalletPrivateKeyId");

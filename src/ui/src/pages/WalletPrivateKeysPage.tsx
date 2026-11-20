@@ -9,7 +9,7 @@ import {
 import LoadingSpinner from "../components/LoadingSpinner";
 import Modal from "../components/Modal";
 import SegmentedControl from "../components/SegmentedControl";
-import ApiKeyModal from "../components/ApiKeyModal";
+import CreatedWalletApiKeyModal from "../components/CreatedWalletApiKeyModal";
 import PrivateKeyModal from "../components/PrivateKeyModal";
 import CheckmarkIcon from "../components/icons/CheckmarkIcon";
 import CopyIcon from "../components/icons/CopyIcon";
@@ -300,8 +300,7 @@ export default function WalletPrivateKeysPage() {
   const [newKeyName, setNewKeyName] = createSignal("");
   const [createKeyError, setCreateKeyError] = createSignal<string | null>(null);
   const [createKeyLoading, setCreateKeyLoading] = createSignal(false);
-  const [apiKeyToView, setApiKeyToView] =
-    createSignal<WalletApiKeySummary | null>(null);
+  const [createdApiKey, setCreatedApiKey] = createSignal<string | null>(null);
 
   // Rename API key
   const [editingApiKeyId, setEditingApiKeyId] = createSignal<string | null>(
@@ -475,7 +474,7 @@ export default function WalletPrivateKeysPage() {
     e.preventDefault();
     const token = auth.token;
     const pkId = activePrivateKeyId();
-    if (!token || !pkId) return;
+    if (!token || !pkId || createKeyLoading()) return;
 
     const name = newKeyName();
     const validationError = validateName(name);
@@ -506,6 +505,7 @@ export default function WalletPrivateKeysPage() {
       const created = (await response.json()) as {
         id: string;
         name: string;
+        key: string;
         lastUsedAt: string | null;
       };
       walletData.addApiKey(pkId, {
@@ -516,6 +516,7 @@ export default function WalletPrivateKeysPage() {
       void walletData.refresh();
       setCreateKeyOpen(false);
       setNewKeyName("");
+      setCreatedApiKey(created.key);
     } catch (err) {
       setCreateKeyError(
         err instanceof Error ? err.message : "Failed to create API key",
@@ -1083,15 +1084,6 @@ export default function WalletPrivateKeysPage() {
                                       <div class="flex shrink-0 items-center justify-end gap-2 border-t border-b-border/60 pt-3 sm:border-l sm:border-t-0 sm:pl-6 sm:pt-0">
                                         <button
                                           type="button"
-                                          onClick={() => setApiKeyToView(apiKey)}
-                                          disabled={isBusy()}
-                                          class="btn btn-sm btn-interactive btn-disabled btn-secondary"
-                                          title="View API key"
-                                        >
-                                          <EyeIcon class="size-4" />
-                                        </button>
-                                        <button
-                                          type="button"
                                           onClick={() =>
                                             startEditingApiKey(apiKey)
                                           }
@@ -1360,7 +1352,8 @@ export default function WalletPrivateKeysPage() {
               autofocus
             />
             <p class="text-xs font-semibold text-b-ink/45">
-              Use a label that identifies the client or integration.
+              Use a label that identifies the client or integration. The key
+              will only be shown once.
             </p>
           </div>
 
@@ -1514,29 +1507,14 @@ export default function WalletPrivateKeysPage() {
         </div>
       </Modal>
 
-      <ApiKeyModal
-        apiKey={apiKeyToView}
-        onClose={() => setApiKeyToView(null)}
-        loadKey={async (apiKeyId) => {
-          const token = auth.token;
-          const pkId = activePrivateKeyId();
-          if (!token || !pkId) {
-            throw new Error("Failed to load API key");
-          }
-          const response = await fetch(
-            `/api/Wallets/${walletId()}/PrivateKeys/${pkId}/ApiKeys/${apiKeyId}/Key`,
-            { headers: { Authorization: `Bearer ${token}` } },
-          );
-          if (!response.ok) {
-            throw new Error(
-              await readErrorMessage(response, "Failed to load API key"),
-            );
-          }
-          const data = (await response.json()) as { key: string };
-          return data.key;
-        }}
-        description="Anyone with access to this key can sign transactions and control this wallet."
-      />
+      <Show when={createdApiKey()} keyed>
+        {(key) => (
+          <CreatedWalletApiKeyModal
+            apiKey={key}
+            onClose={() => setCreatedApiKey(null)}
+          />
+        )}
+      </Show>
 
       <PrivateKeyModal
         privateKey={pkToView}

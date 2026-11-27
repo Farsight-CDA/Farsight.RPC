@@ -105,7 +105,7 @@ public partial class PublicRpcRegistry : Singleton
             .WithRPCTransport(provider => address.Scheme is "ws" or "wss"
                 ? new WssJsonRpcTransport(address, TimeSpan.FromSeconds(30), provider, [])
                 : new HttpJsonRpcTransport(address, provider, []))
-            .BuildReadClient();
+            .Build();
 
         try
         {

@@ -1,4 +1,3 @@
-using EtherSharp.Crypto;
 using EtherSharp.Types;
 using EtherSharp.Wallet;
 using Farsight.Rpc.Sdk.Client;
@@ -82,27 +81,5 @@ public sealed class FarsightEtherSigner : IEtherSigner
             Bytes32.FromBytes(signature.AsSpan(32, 32)),
             recoveryId
         );
-    }
-
-    public ValueTask<RecoverableEtherSignature> SignEIP712Async<TMessage>(
-        in EIP712Domain domain,
-        in TMessage message,
-        CancellationToken cancellationToken = default
-    ) where TMessage : IEIP712Type
-        => NormalizeEIP712SignatureAsync(
-            SignRecoverableAsync(
-                message.GetSigningHash(domain),
-                cancellationToken
-            )
-        );
-
-    private static async ValueTask<RecoverableEtherSignature> NormalizeEIP712SignatureAsync(
-        ValueTask<RecoverableEtherSignature> signatureTask)
-    {
-        var signature = await signatureTask;
-        byte recoveryId = signature.RecoveryId < 27
-            ? (byte) (signature.RecoveryId + 27)
-            : signature.RecoveryId;
-        return new RecoverableEtherSignature(signature.R, signature.S, recoveryId);
     }
 }

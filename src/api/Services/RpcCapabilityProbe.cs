@@ -20,7 +20,7 @@ namespace Farsight.Rpc.Api.Services;
 public sealed partial class RpcCapabilityProbe : Transient
 {
     private const ulong MAXIMUM_LOGS_PROBERANGE = 100_000;
-    private static readonly EtherHdWallet _transactionProbeSigner = EtherHdWallet.Create();
+    private static readonly IEtherSigner _transactionProbeSigner = EtherHdWallet.Create();
     private static readonly TimeSpan _tracingApiProbeTimeout = TimeSpan.FromSeconds(3);
     private const string DEBUG_JS_TRACER =
         "{step:function(){},fault:function(){},result:function(){return 1;}}";
@@ -246,7 +246,7 @@ public sealed partial class RpcCapabilityProbe : Transient
             Input: ITxInput.ForEthTransfer(_transactionProbeSigner.Address, 1),
             GasPrice: UInt256.Pow(10, 9)
         );
-        var signedTx = await transaction.SignAsync(_transactionProbeSigner, cancellationToken);
+        var signedTx = await _transactionProbeSigner.SignTransactionAsync(transaction, cancellationToken);
 
         try
         {
